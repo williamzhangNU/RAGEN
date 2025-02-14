@@ -765,6 +765,10 @@ class RayPPOTrainer(object):
         global_token_scores = []
         global_metrics = {}
 
+        # update env mode, first see if env has a update_mode function
+        if hasattr(self.env, 'update_mode'):
+            self.env.update_mode('val')
+
         self.val_num += 1
 
         gen_config = GenerationConfig(
@@ -863,6 +867,10 @@ class RayPPOTrainer(object):
             global_metrics.pop('actions')
         print("global_metrics", global_metrics)
         self.logger.log(data=global_metrics, step=self.val_num)
+
+        if hasattr(self.env, 'update_mode'):
+            self.env.update_mode('train')
+            
         return global_metrics
     
     

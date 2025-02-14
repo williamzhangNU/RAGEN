@@ -73,8 +73,10 @@ create_two_armed_bandit_dataset() {
     print_step "Configuring Two-Armed Bandit environment settings..."
     
     # Two-Armed Bandit environment settings
-    export LOW_RISK_NAME=phoenix
-    export HIGH_RISK_NAME=dragon
+    export LOW_RISK_NAME_TRAIN=phoenix
+    export HIGH_RISK_NAME_TRAIN=dragon
+    export LOW_RISK_NAME_VAL=CEO
+    export HIGH_RISK_NAME_VAL=Professor
     
     print_step "Creating Two-Armed Bandit dataset..."
     

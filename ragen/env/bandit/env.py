@@ -155,8 +155,10 @@ class TwoArmedBanditEnv(BaseDiscreteActionEnv, gym.Env):
     
     def __init__(
             self,
-            low_risk_name: str = "phoenix",
-            high_risk_name: str = "dragon",
+            low_risk_name_train: str = "phoenix",
+            high_risk_name_train: str = "dragon",
+            low_risk_name_val: str = "phoenix",
+            high_risk_name_val: str = "dragon",
             seed: Optional[int] = None,
     ):
         """
@@ -169,12 +171,37 @@ class TwoArmedBanditEnv(BaseDiscreteActionEnv, gym.Env):
         """
         self.n_arms = 2
         self.ACTION_SPACE = gym.spaces.discrete.Discrete(self.n_arms, start=1)
+
+        self.mode = 'train'
+        self.seed = seed
+
+        self.low_risk_name_train = low_risk_name_train
+        self.high_risk_name_train = high_risk_name_train
+        self.low_risk_name_val = low_risk_name_val
+        self.high_risk_name_val = high_risk_name_val
+
+        self._set_name_mappings(self.mode)
         
-        # Set up arm names and mappings
-        self.low_risk_name = low_risk_name
-        self.high_risk_name = high_risk_name
+        # Initialize tracking variables
+        self.last_action = None
+        self.reward = 0
+        self._success = False
+
+    def _set_name_mappings(self, mode):
+        """
+        Set up arm names and mappings based on the mode.
         
-        # Fixed mappings: 1 -> low risk, 2 -> high risk
+        Args:
+            mode: Mode of the environment (train or val)
+        """
+        if mode == 'train':
+            self.low_risk_name = self.low_risk_name_train
+            self.high_risk_name = self.high_risk_name_train
+        elif mode == 'val':
+            self.low_risk_name = self.low_risk_name_val
+            self.high_risk_name = self.high_risk_name_val
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
         self.ARM_IDX_TO_NAME = {
             1: self.low_risk_name,
             2: self.high_risk_name,
@@ -183,19 +210,28 @@ class TwoArmedBanditEnv(BaseDiscreteActionEnv, gym.Env):
             self.low_risk_name: 1,
             self.high_risk_name: 2,
         }
-        
+
         # Store initialization parameters
         self.env_kwargs = {
             "n_arms": self.n_arms,
-            "low_risk_name": low_risk_name,
-            "high_risk_name": high_risk_name,
-            "seed": seed,
+            "low_risk_name_train": self.low_risk_name_train,
+            "high_risk_name_train": self.high_risk_name_train,
+            "low_risk_name_val": self.low_risk_name_val,
+            "high_risk_name_val": self.high_risk_name_val,
+            "seed": self.seed,
         }
-        
-        # Initialize tracking variables
-        self.last_action = None
-        self.reward = 0
-        self._success = False
+    
+    def update_mode(self, mode):
+        """
+        Update the mode of the environment and reset arm names and mappings.
+        Args:
+            mode: New mode of the environment (train or val)
+        """
+
+        self.mode = mode
+        assert self.mode in ['train', 'val'], f"Invalid mode: {self.mode}"
+        self._set_name_mappings(self.mode)
+
 
     def _low_risk_arm_reward_distribution(self):
         """
@@ -296,12 +332,17 @@ class TwoArmedBanditEnv(BaseDiscreteActionEnv, gym.Env):
     def copy(self):
         """Create a copy of the environment"""
         new_env = TwoArmedBanditEnv(
-            low_risk_name=self.env_kwargs["low_risk_name"],
-            high_risk_name=self.env_kwargs["high_risk_name"],
+            low_risk_name_train=self.env_kwargs["low_risk_name_train"],
+            high_risk_name_train=self.env_kwargs["high_risk_name_train"],
+            low_risk_name_val=self.env_kwargs["low_risk_name_val"],
+            high_risk_name_val=self.env_kwargs["high_risk_name_val"],
             seed=self.env_kwargs["seed"]
         )
         new_env.last_action = self.last_action
         new_env.reward = self.reward
+        new_env._success = self._success
+        new_env.mode = self.mode
+        new_env._set_name_mappings(self.mode)
         return new_env
     
     def success(self):
@@ -315,23 +356,34 @@ class TwoArmedBanditEnv(BaseDiscreteActionEnv, gym.Env):
 
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    env = TwoArmedBanditEnv(low_risk_name="phoenix", high_risk_name="dragon")
+    # Initialize environment
+    env = TwoArmedBanditEnv(
+        low_risk_name_train="phoenix", 
+        high_risk_name_train="dragon",
+        low_risk_name_val="unicorn", 
+        high_risk_name_val="hydra"
+    )
+
+    # Test train mode
+    print("=== Train Mode ===")
     print(env.reset(seed=0))
     print(env.step(1))
 
-    r = []
-    for i in range(500000):
-        env.reset(seed=i)
-        r1 = env._low_risk_arm_reward_distribution()
-        r2 = env._high_risk_arm_reward_distribution()
-        # r.append(r1 > r2)
-        r.append(r2)
-    print(np.std(r))
+    # Switch to validation mode
+    print("\n=== Validation Mode ===")
+    env.update_mode('val')
+    print(env.reset(seed=0))
+    print(env.step(2))
 
-    # print(BanditEnv.execute_predictions([env], ["<answer>9</answer>"], "<PAD>"))
+    # Distribution statistics
+    r_low = []
+    r_high = []
+    for i in range(10000):
+        env.reset(seed=i)
+        r_low.append(env._low_risk_arm_reward_distribution())
+        r_high.append(env._high_risk_arm_reward_distribution())
+    
+    print("\n=== Distribution Stats ===")
+    print(f"Low risk mean: {np.mean(r_low):.3f}, std: {np.std(r_low):.3f}")
+    print(f"High risk mean: {np.mean(r_high):.3f}, std: {np.std(r_high):.3f}")

@@ -42,8 +42,11 @@ def main():
     os.makedirs(args.output, exist_ok=True)
     data_source = args.env
 
-    low_risk_name = os.environ.get("LOW_RISK_NAME")
-    high_risk_name = os.environ.get("HIGH_RISK_NAME")
+    low_risk_name_train = os.environ.get("LOW_RISK_NAME_TRAIN")
+    high_risk_name_train = os.environ.get("HIGH_RISK_NAME_TRAIN")
+    low_risk_name_val = os.environ.get("LOW_RISK_NAME_VAL")
+    high_risk_name_val = os.environ.get("HIGH_RISK_NAME_VAL")
+
 
     # Generate instructions
     seeds = range(args.seed, args.seed + args.train_size + args.test_size)
@@ -52,7 +55,7 @@ def main():
     
     
     for seed in seeds:
-        env = TwoArmedBanditEnv(low_risk_name=low_risk_name, high_risk_name=high_risk_name, seed=seed)
+        env = TwoArmedBanditEnv(low_risk_name_train=low_risk_name_train, high_risk_name_train=high_risk_name_train, low_risk_name_val=low_risk_name_val, high_risk_name_val=high_risk_name_val, seed=seed)
         observation = env.reset(seed=seed)
         instruction = intro.format(observation=observation)
         instructions.append(instruction)
