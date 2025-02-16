@@ -1,5 +1,7 @@
-import wandb
 
+import wandb
+import pandas as pd
+from pathlib import Path
 
 def download_wandb(run_id, out_dir="./log", team="ragen", project="RAGEN"):
     api = wandb.Api()
@@ -9,52 +11,7 @@ def download_wandb(run_id, out_dir="./log", team="ragen", project="RAGEN"):
         file.download(out_dir + "/" + run_id, exist_ok=True)
 
 
-# def download_wandb_logs(run_id, out_dir="./log", team="zihanwang-ai-northwestern-university", project="RAGEN"):
-#     import wandb
-#     from pathlib import Path
-    
-#     # Ensure output directory exists
-#     Path(out_dir).mkdir(parents=True, exist_ok=True)
-    
-#     # Get the run
-#     api = wandb.Api()
-#     run = api.run(f"{team}/{project}/{run_id}")
-    
-#     # Use wandb.restore to download output.log
-#     log_file = wandb.restore("logs", run_path="/".join(run.path))
-    
-#     if log_file:
-#         # Copy the file to our desired output location
-#         output_path = Path(out_dir) / f"{run_id}_output.log"
-#         with open(log_file.name, 'r') as src, open(output_path, 'w') as dst:
-#             dst.write(src.read())
-#         print(f"Successfully downloaded logs to {output_path}")
-#     else:
-#         print("Failed to download logs")
-        
-# usage: 
-# from ragen.utils.wandb import download_wandb
-# download_wandb("9o465jqj")
-def download_wandb_metrics(run_id, out_dir="./log", team="zihanwang-ai-northwestern-university", project="RAGEN", save_format="csv"):
-    """
-    Download all metrics from a W&B run and save them in a folder named after the experiment.
-    
-    Args:
-        run_id (str): The run ID to download metrics from
-        out_dir (str): Directory to save the metrics file
-        team (str): W&B team name
-        project (str): W&B project name
-        save_format (str): Format to save the metrics ('csv' or 'json')
-    
-    Returns:
-        tuple: Paths to the saved metrics and summary files
-    """
-    import wandb
-    import pandas as pd
-    from pathlib import Path
-    
-    # Initialize W&B API
-    #wandb.login()
+def download_wandb_metrics(run_id, out_dir="./log", team="ragen", project="RAGEN", save_format="csv"):
     api = wandb.Api()
     
     # Get the run
