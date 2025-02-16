@@ -62,8 +62,8 @@ elif '--ragen' in sys.argv:
         version='0.1',
         package_dir={'': '.'},
         packages=find_packages(include=['ragen']),
-        author='Northwestern-MLL-Lab',
-        author_email='zihanwang.ai@gmail.com',
+        author='',
+        author_email='',
         acknowledgements='',
         description='VERL + R1 + AGENT',
         install_requires=[

@@ -397,7 +397,7 @@ bash train.sh sokoban \
 
 # override config
 bash train.sh sokoban \
-    model.experiment_name=test_zihan \
+    model.experiment_name=test \
     training.train_batch_size=8 \
     training.ppo_batch_size=4
 
@@ -424,7 +424,7 @@ Below:GRPO
 
 ```bash
 bash train.sh sokoban \
-    model.experiment_name=test_zihan_brpo_p8r16 \
+    model.experiment_name=test__brpo_p8r16 \
     training.n_rollout=16 \
     training.train_batch_size=8 \
     training.ppo_batch_size=128 \

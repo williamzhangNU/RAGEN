@@ -50,7 +50,6 @@ main() {
     
     # Clone repository
     # print_step "Cloning ragen repository..."
-    # git clone git@github.com:ZihanWang314/ragen.git
     # cd ragen
     
     # Install package in editable mode
