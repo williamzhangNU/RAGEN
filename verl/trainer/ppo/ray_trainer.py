@@ -590,7 +590,7 @@ class RayPPOTrainer(object):
             max_obs_length=self.config.data.max_obs_length,
             logging=self.config.logging,
             num_gpus=self.config.trainer.n_gpus_per_node,
-            no_think_rl=self.config.algorithm.no_think_rl,
+            output_action_only=self.config.algorithm.output_action_only,
             state_masking=self.config.actor_rollout_ref.actor.state_masking,
             start_state_marker=self.config.algorithm.state_masking.start_state_marker,
             end_state_marker=self.config.algorithm.state_masking.end_state_marker,
@@ -880,7 +880,7 @@ class RayPPOTrainer(object):
             max_obs_length=self.config.data.max_obs_length,
             logging=self.config.logging,
             num_gpus=self.config.trainer.n_gpus_per_node,
-            no_think_rl=self.config.algorithm.no_think_rl,
+            output_action_only=self.config.algorithm.output_action_only,
             state_masking=self.config.actor_rollout_ref.actor.state_masking,
             start_state_marker=self.config.algorithm.state_masking.start_state_marker,
             end_state_marker=self.config.algorithm.state_masking.end_state_marker,
@@ -902,7 +902,7 @@ class RayPPOTrainer(object):
         for batch_dict in self.val_dataloader:
             timing_raw = {}
             test_batch: DataProto = DataProto.from_single_dict(batch_dict)
-            test_batch = test_batch.repeat(repeat_times=self.config.actor_rollout_ref.rollout.n_agent, interleave=True)
+            # test_batch = test_batch.repeat(repeat_times=self.config.actor_rollout_ref.rollout.n_agent, interleave=True) # remove this, just leave out 1 sample per prompt for constant eval sample size
 
             env_seeds = [i['index'] for i in test_batch.non_tensor_batch['extra_info']]
             print("env_seeds:", env_seeds)

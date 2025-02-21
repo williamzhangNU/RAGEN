@@ -23,7 +23,7 @@ class GenerationConfig:
     max_obs_length: int
     logging: dict
     num_gpus: int
-    no_think_rl: bool=False
+    output_action_only: bool=False
     state_masking: bool=False
     start_state_marker: str="<start-state>"
     end_state_marker: str="<end-state>"
@@ -83,8 +83,8 @@ class LLMGenerationManager:
                 print(f"[WARNING] HACKED RESPONSES: {hacked}")
             responses_str = [re.sub(hack_pattern, '', resp, re.DOTALL) for resp in responses_str]
 
-        if self.config.no_think_rl:
-            # if no_think_rl is enabled, only keep action in the str
+        if self.config.output_action_only:
+            # if output_action_only is enabled, only keep action in the str
             actions, _ = self.env_class.postprocess_predictions(envs, responses_str)
             responses_str=[f"<answer>{envs[idx].ACTION_LOOKUP[action]}</answer>" for idx, action in enumerate(actions)]
             print("RESPONSES:", responses_str)

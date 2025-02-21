@@ -49,7 +49,7 @@ bash train.sh two_armed_bandit \
     ${BASE_PARAMS}
 
 # Add for RAGEN w/o thinking
-    training.no_think_rl=True
+    training.output_action_only=True
 ```
 
 ### Sokoban
@@ -67,7 +67,7 @@ bash train.sh sokoban \
     system.n_gpus=2
 
 # Add for RAGEN w/o thinking
-    training.no_think_rl=True
+    training.output_action_only=True
 
 # SFT Training
 bash train.sh sokoban \
@@ -96,7 +96,7 @@ bash train.sh frozenlake \
     ${BASE_PARAMS}
 
 # Add for RAGEN w/o thinking
-    training.no_think_rl=True
+    training.output_action_only=True
 
 # SFT Training
 bash train.sh frozenlake \

@@ -146,7 +146,7 @@ algorithm:
   gamma: 1.0
   lam: 1.0
   adv_estimator: gae
-  no_think_rl: False
+  output_action_only: False
   kl_penalty: kl  # how to estimate kl divergence
   kl_ctrl:
     type: fixed
@@ -169,7 +169,6 @@ trainer:
   default_hdfs_dir: ~/experiments/gsm8k/ppo/${trainer.experiment_name}
   default_local_dir: checkpoints/${trainer.project_name}/${trainer.experiment_name}
 
-multi_processing: ray
 max_turns: 10
 
 env:

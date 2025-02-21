@@ -5,8 +5,7 @@ rl_or_sft: "rl"
 system:
   cuda_visible_devices: 0
   n_gpus: 1
-  multi_processing: "ray"
-  vllm_attention_backend: "XFORMERS"
+  vllm_attention_backend: "XFORMERS" # unused arg, reserved as it's from verl
 
 # Model settings
 model:
@@ -26,17 +25,13 @@ training:
   max_response_length: 400
   max_obs_length: 200
   max_turns: 5
-  rollout_tp_size: 1
+  rollout_tp_size: 1 # only tested when tp=1
   n_rollout: 16
   total_epochs: 5
   temperature: 0.7
-  use_sft: false
-  use_kl_loss: true # this means actor KL Loss
-  no_think_rl: false
+  use_kl_loss: true # this means actor KL Loss. equals !(has_critic)
+  output_action_only: false # this means no thinking for output generation when doing training/inference
   state_masking: false
-  binary_reward: false
-  mask_state: false
-  length_penalty: false
   total_training_steps: null
 
 # Optimization parameters

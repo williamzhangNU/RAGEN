@@ -8,12 +8,12 @@ mkdir -p log/terminal
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_main.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_main_no_think_rl \
+#     model.experiment_name=sokoban_main_output_action_only \
 #     system.cuda_visible_devices=1 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
-#     training.no_think_rl=True \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_main_no_think_rl.log &
+#     training.output_action_only=True \
+#     trainer.test_freq=10  >> ./log/terminal/sokoban_main_output_action_only.log &
 
     
 # bash train.sh frozenlake \
@@ -25,12 +25,12 @@ mkdir -p log/terminal
 
 
 # bash train.sh frozenlake \
-#     model.experiment_name=frozenlake_main_no_think_rl \
+#     model.experiment_name=frozenlake_main_output_action_only \
 #     system.cuda_visible_devices=3 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
-#     training.no_think_rl=True \
-#     trainer.test_freq=10  >> ./log/terminal/frozenlake_main_no_think_rl.log &
+#     training.output_action_only=True \
+#     trainer.test_freq=10  >> ./log/terminal/frozenlake_main_output_action_only.log &
 
 
 

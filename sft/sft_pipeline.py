@@ -172,7 +172,6 @@ class SFTPipeline:
             f"VLLM_ATTENTION_BACKEND={self.config['system']['vllm_attention_backend']}",
             f"CUDA_VISIBLE_DEVICES={self.config['system']['cuda_visible_devices']}",
             "python -m verl.trainer.main_ppo",
-            f"multi_processing={self.config['system']['multi_processing']}",
             f"data.train_files={self.config['env']['data_dir']}/train.parquet",
             f"data.val_files={self.config['env']['data_dir']}/test.parquet",
             f"data.train_data_num={self.config['training']['train_data_num'] or 'null'}",
@@ -197,7 +196,7 @@ class SFTPipeline:
             f"actor_rollout_ref.ref.log_prob_micro_batch_size={self.config['training']['micro_batch_size']}",
             f"actor_rollout_ref.actor.kl_loss_coef={self.config['optimization']['kl_coef']}", # for use_kl_loss=True. ARPO/BRPO/GRPO needs the original model with "low_var_kl"
             f"actor_rollout_ref.actor.kl_loss_type={self.config['optimization']['kl_loss_type']}",
-            f"algorithm.no_think_rl={self.config['training']['no_think_rl']}",
+            f"algorithm.output_action_only={self.config['training']['output_action_only']}",
             f"actor_rollout_ref.rollout.n_agent={self.config['training']['n_rollout']}",
             f"actor_rollout_ref.rollout.temperature={self.config['training']['temperature']}",
             f"actor_rollout_ref.actor.state_masking={self.config['training']['state_masking']}",

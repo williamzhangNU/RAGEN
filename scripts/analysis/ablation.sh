@@ -1,113 +1,72 @@
-######################### Section 5.3.1 
+#!/bin/bash
 
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p2n64 \
-#     system.cuda_visible_devices=0 \
-#     training.micro_batch_size=2 \
-#     training.total_training_steps=100 \
-#     training.train_batch_size=2 \
-#     training.n_rollout=64 \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p2n64.log &
+mkdir -p ./log/terminal
 
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p4n32 \
-#     system.cuda_visible_devices=1 \
-#     training.micro_batch_size=2 \
-#     training.total_training_steps=100 \
-#     training.train_batch_size=4 \
-#     training.n_rollout=32 \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p4n32.log &
+##############################
+# Section 5.3.1 - Batch Size vs Rollout
+# Format: GPU_ID, batch_size, n_rollout
+CONFIGS=(
+    "0  2   64"  # p2n64
+    "1  4   32"  # p4n32
+    "2  16  8"   # p16n8
+    "3  32  4"   # p32n4
+    "0  64  2"   # p64n2
+)
 
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p16n8 \
-#     system.cuda_visible_devices=2 \
-#     training.micro_batch_size=2 \
-#     training.total_training_steps=100 \
-#     training.train_batch_size=16 \
-#     training.n_rollout=8 \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p16n8.log &
-
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p32n4 \
-#     system.cuda_visible_devices=3 \
-#     training.micro_batch_size=2 \
-#     training.total_training_steps=100 \
-#     training.train_batch_size=32 \
-#     training.n_rollout=4 \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p32n4.log &
+for config in "${CONFIGS[@]}"; do
+    read -r gpu batch rollout <<< "$config"
+    bash train.sh sokoban \
+        model.experiment_name=sokoban_ablation_p${batch}n${rollout} \
+        system.cuda_visible_devices=$gpu \
+        training.micro_batch_size=2 \
+        training.total_training_steps=100 \
+        training.train_batch_size=$batch \
+        training.n_rollout=$rollout \
+        trainer.test_freq=10 \
+        >> ./log/terminal/sokoban_ablation_p${batch}n${rollout}.log &
+done
 
 
-######################### Section 5.3.3 
+##############################
+# Section 5.3.3 - Offline Training
+# Format: GPU_ID, batch_size, total_steps, test_freq
+OFFLINE_CONFIGS=(
+    "0  16  50  5"   # offline2
+    "1  40  20  2"   # offline5
+    "2  80  10  1"   # offline10
+    "3  160 5   1"   # offline20
+)
 
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline2 \
-#     system.cuda_visible_devices=0 \
-#     training.micro_batch_size=2 \
-#     training.ppo_batch_size=128 \
-#     training.n_rollout=16 \
-#     training.train_batch_size=16 \
-#     training.total_training_steps=50 \
-#     trainer.test_freq=5  >> ./log/terminal/sokoban_ablation_offline2.log &
+for config in "${OFFLINE_CONFIGS[@]}"; do
+    read -r gpu batch steps freq <<< "$config"
+    bash train.sh sokoban \
+        model.experiment_name=sokoban_ablation_offline${batch} \
+        system.cuda_visible_devices=$gpu \
+        training.micro_batch_size=2 \
+        training.ppo_batch_size=128 \
+        training.n_rollout=16 \
+        training.train_batch_size=$batch \
+        training.total_training_steps=$steps \
+        trainer.test_freq=$freq \
+        >> ./log/terminal/sokoban_ablation_offline${batch}.log &
+done
 
+##############################
+# Section 5.3.4 - Base Model Study
+# Format: env_name, gpu_id
+BASE_CONFIGS=(
+    "sokoban    1"
+    "frozenlake 3"
+)
 
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline5 \
-#     system.cuda_visible_devices=1 \
-#     training.micro_batch_size=2 \
-#     training.ppo_batch_size=128 \
-#     training.n_rollout=16 \
-#     training.train_batch_size=40 \
-#     training.total_training_steps=20 \
-#     trainer.test_freq=2  >> ./log/terminal/sokoban_ablation_offline5.log &
-
-
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline10 \
-#     system.cuda_visible_devices=2 \
-#     training.micro_batch_size=2 \
-#     training.ppo_batch_size=128 \
-#     training.n_rollout=16 \
-#     training.train_batch_size=80 \
-#     training.total_training_steps=10 \
-#     trainer.test_freq=1 >> ./log/terminal/sokoban_ablation_offline10.log &
-
-
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline20 \
-#     system.cuda_visible_devices=3 \
-#     training.micro_batch_size=2 \
-#     training.ppo_batch_size=128 \
-#     training.n_rollout=16 \
-#     training.train_batch_size=160 \
-#     training.total_training_steps=5 \
-#     trainer.test_freq=1 >> ./log/terminal/sokoban_ablation_offline20.log &
-
-# bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p64n2 \
-#     system.cuda_visible_devices=0 \
-#     training.micro_batch_size=2 \
-#     training.total_training_steps=100 \
-#     training.train_batch_size=64 \
-#     training.n_rollout=2 \
-#     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p64n2.log &
-
-
-
-######################### Section 5.3.4
-
-bash train.sh sokoban \
-    model.base_model=Qwen/Qwen2.5-0.5B \
-    model.experiment_name=sokoban_abl_base \
-    system.cuda_visible_devices=1 \
-    training.micro_batch_size=2 \
-    training.total_training_steps=100 \
-    trainer.test_freq=10  >> ./log/terminal/sokoban_abl_base.log &
-
-bash train.sh frozenlake \
-    model.base_model=Qwen/Qwen2.5-0.5B \
-    model.experiment_name=frozenlake_abl_base \
-    system.cuda_visible_devices=3 \
-    training.micro_batch_size=2 \
-    training.total_training_steps=100 \
-    trainer.test_freq=10  >> ./log/terminal/frozenlake_abl_base.log &
-
+for config in "${BASE_CONFIGS[@]}"; do
+    read -r env gpu <<< "$config"
+    bash train.sh $env \
+        model.base_model=Qwen/Qwen2.5-0.5B \
+        model.experiment_name=${env}_abl_base \
+        system.cuda_visible_devices=$gpu \
+        training.micro_batch_size=2 \
+        training.total_training_steps=100 \
+        trainer.test_freq=10 \
+        >> ./log/terminal/${env}_abl_base.log &
+done

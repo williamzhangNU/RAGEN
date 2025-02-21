@@ -7,7 +7,7 @@ run_experiment() {
     local low_risk=$3
     local high_risk=$4
     local gpu_id=$5
-    local no_think_rl=${6:-false}  # Optional parameter, defaults to false
+    local output_action_only=${6:-false}  # Optional parameter, defaults to false
     local low_risk_val=${7:-""}    # Optional validation set low risk arm
     local high_risk_val=${8:-""}   # Optional validation set high risk arm
 
@@ -51,9 +51,9 @@ run_experiment() {
 
     # Run main experiment
     local current_exp_name=$exp_name
-    if [ "$no_think_rl" = true ]; then
-        current_exp_name="${exp_name}_no_think_rl"
-        common_params="$common_params training.no_think_rl=True"
+    if [ "$output_action_only" = true ]; then
+        current_exp_name="${exp_name}_output_action_only"
+        common_params="$common_params training.output_action_only=True"
     fi
 
     bash train.sh two_armed_bandit \
