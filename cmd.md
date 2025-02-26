@@ -42,7 +42,7 @@ Search groups:
 # RAGEN - Base command
 bash train.sh two_armed_bandit \
     model.base_model=Qwen/Qwen2.5-[0.5B|3B]-Instruct \
-    model.experiment_name=two_armed_bandit_[0_5B|3B]_instruct_ragen_main \
+    exp_name=two_armed_bandit_[0_5B|3B]_instruct_ragen_main \
     training.train_batch_size=32 \
     training.max_turns=1 \
     training.n_rollout=1 \
@@ -57,7 +57,7 @@ bash train.sh two_armed_bandit \
 # RAGEN - Base command
 bash train.sh sokoban \
     model.base_model=Qwen/Qwen2.5-[0.5B|1.5B|3B|7B]-Instruct \
-    model.experiment_name=sokoban_[0_5B|1_5B|3B|7B]_instruct_ragen_main \
+    exp_name=sokoban_[0_5B|1_5B|3B|7B]_instruct_ragen_main \
     training.train_batch_size=4 \
     training.max_turns=5 \
     training.n_rollout=8 \
@@ -89,7 +89,7 @@ bash train.sh sokoban \
 # RAGEN - Base command
 bash train.sh frozenlake \
     model.base_model=Qwen/Qwen2.5-[0.5B|3B]-Instruct \
-    model.experiment_name=frozenlake_[0_5B|3B]_instruct_ragen_main \
+    exp_name=frozenlake_[0_5B|3B]_instruct_ragen_main \
     training.train_batch_size=4 \
     training.max_turns=5 \
     training.n_rollout=8 \

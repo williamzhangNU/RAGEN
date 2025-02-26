@@ -57,7 +57,7 @@ run_experiment() {
     fi
 
     bash train.sh two_armed_bandit \
-        model.experiment_name=$current_exp_name \
+        exp_name=$current_exp_name \
         $common_params >> "./log/terminal/${current_exp_name}.log" &
 }
 

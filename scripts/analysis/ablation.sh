@@ -1,7 +1,7 @@
 ######################### Section 5.3.1 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p2n64 \
+#     exp_name=sokoban_ablation_p2n64 \
 #     system.cuda_visible_devices=0 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -10,7 +10,7 @@
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p2n64.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p4n32 \
+#     exp_name=sokoban_ablation_p4n32 \
 #     system.cuda_visible_devices=1 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -19,7 +19,7 @@
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p4n32.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p16n8 \
+#     exp_name=sokoban_ablation_p16n8 \
 #     system.cuda_visible_devices=2 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -28,7 +28,7 @@
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_ablation_p16n8.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p32n4 \
+#     exp_name=sokoban_ablation_p32n4 \
 #     system.cuda_visible_devices=3 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -40,7 +40,7 @@
 ######################### Section 5.3.3 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline2 \
+#     exp_name=sokoban_ablation_offline2 \
 #     system.cuda_visible_devices=0 \
 #     training.micro_batch_size=2 \
 #     training.ppo_batch_size=128 \
@@ -51,7 +51,7 @@
 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline5 \
+#     exp_name=sokoban_ablation_offline5 \
 #     system.cuda_visible_devices=1 \
 #     training.micro_batch_size=2 \
 #     training.ppo_batch_size=128 \
@@ -62,7 +62,7 @@
 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline10 \
+#     exp_name=sokoban_ablation_offline10 \
 #     system.cuda_visible_devices=2 \
 #     training.micro_batch_size=2 \
 #     training.ppo_batch_size=128 \
@@ -73,7 +73,7 @@
 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_offline20 \
+#     exp_name=sokoban_ablation_offline20 \
 #     system.cuda_visible_devices=3 \
 #     training.micro_batch_size=2 \
 #     training.ppo_batch_size=128 \
@@ -83,7 +83,7 @@
 #     trainer.test_freq=1 >> ./log/terminal/sokoban_ablation_offline20.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_ablation_p64n2 \
+#     exp_name=sokoban_ablation_p64n2 \
 #     system.cuda_visible_devices=0 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -97,7 +97,7 @@
 
 bash train.sh sokoban \
     model.base_model=Qwen/Qwen2.5-0.5B \
-    model.experiment_name=sokoban_abl_base \
+    exp_name=sokoban_abl_base \
     system.cuda_visible_devices=1 \
     training.micro_batch_size=2 \
     training.total_training_steps=100 \
@@ -105,7 +105,7 @@ bash train.sh sokoban \
 
 bash train.sh frozenlake \
     model.base_model=Qwen/Qwen2.5-0.5B \
-    model.experiment_name=frozenlake_abl_base \
+    exp_name=frozenlake_abl_base \
     system.cuda_visible_devices=3 \
     training.micro_batch_size=2 \
     training.total_training_steps=100 \

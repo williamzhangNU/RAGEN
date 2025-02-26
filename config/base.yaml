@@ -5,13 +5,13 @@ rl_or_sft: "rl"
 system:
   cuda_visible_devices: 0
   n_gpus: 1
-  multi_processing: "ray"
   vllm_attention_backend: "XFORMERS"
+
+exp_name: "test"
 
 # Model settings
 model:
   base_model: "Qwen/Qwen2.5-0.5B-Instruct"
-  experiment_name: "ragen-main-exp"
   gradient_checkpointing: true
 
 # Training parameters
@@ -30,7 +30,6 @@ training:
   n_rollout: 16
   total_epochs: 5
   temperature: 0.7
-  use_sft: false
   use_kl_loss: true # this means actor KL Loss
   no_think_rl: false
   state_masking: false
@@ -39,6 +38,14 @@ training:
   length_penalty: false
   ref_update_steps: null # every ref_update_steps, the reference model will be updated using the latest actor model
   total_training_steps: null
+  val_before_train: true
+  val_only: false
+  default_hdfs_dir: null
+  nnodes: 1
+  save_freq: 100
+  test_freq: 200 # 100
+  project_name: "RAGEN"
+
 
 # Optimization parameters
 optimization:
@@ -57,15 +64,6 @@ logging:
   log_image_step_size: 4
   log_n_image_per_batch: 32
 
-# Trainer settings
-trainer:
-  val_before_train: true
-  val_only: false
-  default_hdfs_dir: null
-  nnodes: 1
-  save_freq: 100
-  test_freq: 200 # 100
-  project_name: "RAGEN"
 
 # SFT settings
 sft:

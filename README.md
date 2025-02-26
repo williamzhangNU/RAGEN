@@ -89,11 +89,11 @@ We provide default configuration in `verl/trainer/config/ppo_trainer.yaml`. To t
 
 ```bash
 bash train.sh sokoban \
-    model.experiment_name=new_test
+    exp_name=new_test
 
 # Override config parameters as needed
 bash train.sh sokoban \
-    model.experiment_name=new_test_debug \
+    exp_name=new_test_debug \
     training.train_batch_size=128 \
     training.ppo_batch_size=64
 ```

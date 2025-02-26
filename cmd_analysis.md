@@ -30,7 +30,7 @@ bash scripts/analysis/ablation.sh
 
 
 bash train.sh sokoban \
-    model.experiment_name=sokoban_main \
+    exp_name=sokoban_main \
     system.cuda_visible_devices=0 \
     training.micro_batch_size=2 \
     training.total_training_steps=100 \
@@ -38,7 +38,7 @@ bash train.sh sokoban \
 
 
 bash train.sh frozenlake \
-    model.experiment_name=sokoban_main \
+    exp_name=sokoban_main \
     system.cuda_visible_devices=2 \
     training.micro_batch_size=2 \
     training.total_training_steps=100 \

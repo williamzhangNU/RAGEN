@@ -243,7 +243,7 @@ class HyperParamSearch:
 
         cmd_parts = [
             f"bash train.sh {env_name}",
-            f"model.experiment_name={experiment_name}"
+            f"exp_name={experiment_name}"
         ]
         
         for key, value in params.items():

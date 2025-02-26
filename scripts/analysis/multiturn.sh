@@ -1,14 +1,14 @@
 mkdir -p log/terminal
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_main \
+#     exp_name=sokoban_main \
 #     system.cuda_visible_devices=0 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_main.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_main_no_think_rl \
+#     exp_name=sokoban_main_no_think_rl \
 #     system.cuda_visible_devices=1 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -17,7 +17,7 @@ mkdir -p log/terminal
 
     
 # bash train.sh frozenlake \
-#     model.experiment_name=frozenlake_main \
+#     exp_name=frozenlake_main \
 #     system.cuda_visible_devices=2 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -25,7 +25,7 @@ mkdir -p log/terminal
 
 
 # bash train.sh frozenlake \
-#     model.experiment_name=frozenlake_main_no_think_rl \
+#     exp_name=frozenlake_main_no_think_rl \
 #     system.cuda_visible_devices=3 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -37,7 +37,7 @@ mkdir -p log/terminal
 
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_arpo \
+#     exp_name=sokoban_arpo \
 #     system.cuda_visible_devices=0 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -45,7 +45,7 @@ mkdir -p log/terminal
 #     trainer.test_freq=10  >> ./log/terminal/sokoban_arpo.log &
 
 # bash train.sh sokoban \
-#     model.experiment_name=sokoban_brpo \
+#     exp_name=sokoban_brpo \
 #     system.cuda_visible_devices=1 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -54,7 +54,7 @@ mkdir -p log/terminal
 
     
 # bash train.sh frozenlake \
-#     model.experiment_name=frozenlake_arpo \
+#     exp_name=frozenlake_arpo \
 #     system.cuda_visible_devices=2 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -63,7 +63,7 @@ mkdir -p log/terminal
 
 
 # bash train.sh frozenlake \
-#     model.experiment_name=frozenlake_brpo \
+#     exp_name=frozenlake_brpo \
 #     system.cuda_visible_devices=3 \
 #     training.micro_batch_size=2 \
 #     training.total_training_steps=100 \
@@ -91,7 +91,7 @@ python ragen/env/sokoban/create_dataset.py \
 
 
 bash train.sh sokoban \
-    model.experiment_name=sokoban_onestep_debug \
+    exp_name=sokoban_onestep_debug \
     system.cuda_visible_devices=0 \
     training.micro_batch_size=1 \
     training.total_training_steps=100 \
