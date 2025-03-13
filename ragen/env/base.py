@@ -37,9 +37,8 @@ class BaseEnv(ABC):
         """
         pass
 
-    @abstractmethod
     def render(self, mode: str = 'text') -> Any:
-        """Render the environment."""
+        """Render the environment. Optional method."""
         pass
 
 

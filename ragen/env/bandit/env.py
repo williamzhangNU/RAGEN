@@ -7,8 +7,7 @@ from .config import BiArmBanditEnvConfig
 class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
     def __init__(
             self,
-            config: Optional[BiArmBanditEnvConfig] = None,
-            seed: Optional[int] = None,
+            config: Optional[BiArmBanditEnvConfig] = None
     ):
         BaseDiscreteActionEnv.__init__(self)
         
@@ -17,108 +16,98 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
                 
         # Set up action space
         self.ACTION_SPACE = gym.spaces.discrete.Discrete(2, start=self.config.action_space_start)
+        self.invalid_act = self.config.invalid_act
+        self.invalid_act_score = self.config.invalid_act_score
+        # Set up arm names
+        self.lo_arm_name = self.config.lo_arm_name
+        self.hi_arm_name = self.config.hi_arm_name
         
-        # Set up arm names and mappings
-        self.low_risk_name = self.config.low_risk_name
-        self.high_risk_name = self.config.high_risk_name
-        
-        # Action lookup mappings
-        self.ACTION_LOOKUP = {
-            self.INVALID_ACTION: "none",
-            self.config.action_space_start: self.low_risk_name,
-            self.config.action_space_start + 1: self.high_risk_name,
-        }
-        
-        # Fixed mappings
-        self.ARM_IDX_TO_NAME = self.ACTION_LOOKUP
-        self.NAME_TO_ARM_IDX = {
-            "none": self.INVALID_ACTION,
-            self.low_risk_name: self.config.action_space_start,
-            self.high_risk_name: self.config.action_space_start + 1,
-        }
-        
-        # Store initialization parameters
-        self.env_kwargs = {
-            "n_arms": self.ACTION_SPACE.n,
-            "config": self.config,
-            "seed": seed,
-        }
-        
-        # Initialize tracking variables
-        self.last_action = None
-        self._success = False
-        self._finished = False
-        
-    def _low_risk_arm_reward_distribution(self):
-        return self.config.low_risk_reward
-
-    def _high_risk_arm_reward_distribution(self):
-        if self.np_random.random() < self.config.high_risk_high_reward_prob:
-            return self.config.high_risk_high_reward
+    def _randomize_arms(self):
+        """Randomize which position corresponds to which arm"""
+        start = self.config.action_space_start
+        if self.np_random.random() < 0.5:
+            # Low risk is position 1, high risk is position 2
+            self.ACTION_LOOKUP = {
+                self.invalid_act: "none",
+                start: self.lo_arm_name,
+                start + 1: self.hi_arm_name,
+            }
         else:
-            return self.config.high_risk_low_reward
+            # High risk is position 1, low risk is position 2
+            self.ACTION_LOOKUP = {
+                self.invalid_act: "none",
+                start: self.hi_arm_name,
+                start + 1: self.lo_arm_name,
+            }
+        
+        # Update mappings
+        self.ARM_IDX_TO_NAME = self.ACTION_LOOKUP
+        self.NAME_TO_ARM_IDX = {name: idx for idx, name in self.ACTION_LOOKUP.items() if idx != self.invalid_act}
 
-    def reset(self, mode='text', seed=None):
-        """Reset the environment and reward distributions"""
-        # gym.Env.reset(self, seed=seed)
+    def _lo_arm_reward(self):
+        return self.config.lo_arm_score
+
+    def _hi_arm_reward(self):
+        if self.np_random.random() < self.config.hi_arm_hiscore_prob:
+            return self.config.hi_arm_hiscore
+        else:
+            return self.config.hi_arm_loscore
+
+    def reset(self, mode=None, seed=None):
+        """Reset the environment and randomize arm positions"""
         gym.Env.reset(self, seed=seed)
-        return self.render(mode)
+        self._randomize_arms()
+        pos1 = self.config.action_space_start
+        pos2 = pos1 + 1
+        machine1 = self.ARM_IDX_TO_NAME[pos1]
+        machine2 = self.ARM_IDX_TO_NAME[pos2]
+        
+        init_text = f"You are facing {self.ACTION_SPACE.n} slot machines ({machine1} ({pos1}) and {machine2} ({pos2})). One has a higher risk and a higher reward, while the other has a lower risk and a lower reward. Which machine will you pull? Your answer should be in {self.get_all_actions()}"
+
+        return init_text
 
     def step(self, action: int):
-        """
-        Take action (pull arm) and get reward
-        - action = 1: pull low-risk arm
-        - action = 2: pull high-risk arm
-        """
-        assert isinstance(action, int)
-        self._finished = True
-        
-        if action == self.INVALID_ACTION:
-            return self.render(), True, {"action_is_effective": False}
-        
-        self._success = True
-        
         assert action in self.get_all_actions(), f"Invalid action {action}"
-        
-        if action == self.config.action_space_start:
-            reward = self._low_risk_arm_reward_distribution()
+        if action == self.invalid_act:
+            reward = self.invalid_act_score
+            next_obs = f"You give an invalid answer and receive {reward} points."
         else:
-            reward = self._high_risk_arm_reward_distribution()
-            
-        self.last_action = action
-        
-        info = {"action_is_effective": True}
-        
-        return self.render(), reward, True, info
-
-    def render(self, mode='text'):
-        """Render the current state"""
-        if mode == 'text':
-            if self.last_action is None:
-                return f"You are facing {self.ACTION_SPACE.n} slot machines ({self.low_risk_name} and {self.high_risk_name}). Each machine has its own reward distribution.\nWhich machine will you pull?"
+            arm_name = self.ARM_IDX_TO_NAME[action]
+            if arm_name == self.lo_arm_name:
+                reward = self._lo_arm_reward()
             else:
-                return f"You pulled machine {self.ARM_IDX_TO_NAME[self.last_action]}."
-        else:
-            raise NotImplementedError(f"Render mode {mode} not implemented")
+                reward = self._hi_arm_reward()                
+            next_obs = f"You pull the {arm_name} slot machine and receive {reward} points."
+        done, info = True, {}
+        return next_obs, reward, done, info
 
     def get_all_actions(self):
-        return list(range(self.ACTION_SPACE.start, self.ACTION_SPACE.start + self.ACTION_SPACE.n))
+        return [self.invalid_act, self.ACTION_SPACE.start, self.ACTION_SPACE.start + 1]
+
+
 
 if __name__ == "__main__":
-    # 使用默认配置
-    env = BiArmBanditEnv()
-    print(env.reset())
-    print(env.step(1))
     
-    # 使用自定义配置
-    custom_config = BiArmBanditEnvConfig(
-        low_risk_name="safe",
-        high_risk_name="risky",
-        low_risk_reward=0.3,
-        high_risk_low_reward=0.05,
-        high_risk_high_reward=2.0,
-        high_risk_high_reward_prob=0.2
-    )
-    env_custom = BiArmBanditEnv(config=custom_config, seed=0)
-    print(env_custom.reset(seed=0))
-    print(env_custom.step(1))
+    def run_simulation(env, n_episodes=3000, action=1, start_seed=500):
+        """Run simulation for n episodes and return statistics"""
+        """will get 0.2 (low risk) * 0.5 (prob) + (0.25 * 1 + 0.75 * 0.1) (high risk expected reward) * 0.5 (prob) = 0.2625 reward for constant action"""
+        rewards = []
+        for i in range(start_seed, start_seed + n_episodes):
+            env.reset(seed=i)
+            reward = env.step(action)[1]
+            rewards.append(reward)
+        
+        return {
+            'mean_reward': np.mean(rewards),
+            'std_reward': np.std(rewards),
+            'n_episodes': n_episodes,
+            'action': env.ARM_IDX_TO_NAME[action]
+        }
+
+    # Test default configuration
+    env = BiArmBanditEnv()
+    stats = run_simulation(env)
+    print(f"\nDefault Configuration Results:")
+    print(f"Arm: {stats['action']}")
+    print(f"Mean reward: {stats['mean_reward']:.3f} ± {stats['std_reward']:.3f}")
+    print(f"Number of episodes: {stats['n_episodes']}")
