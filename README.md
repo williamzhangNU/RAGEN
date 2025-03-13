@@ -16,7 +16,8 @@
 </p>
 
 **2025.3.13 Update:**
-We are recently refactoring code of RAGEN to help you better develop your own idea based on our codebase. Please checkout our [developing branch](https://github.com/ZihanWang314/RAGEN/tree/main-new). The first version decomposes RAGEN and veRL for better co-development, taking the latter as a submodule rather than a static directory.
+
+We are recently refactoring RAGEN code to help you better develop your own idea on the codebase. Please checkout our [developing branch](https://github.com/ZihanWang314/RAGEN/tree/main-new). The first version decomposes RAGEN and veRL for better co-development, taking the latter as a submodule rather than a static directory.
 
 **2025.3.8 Update:**
 
