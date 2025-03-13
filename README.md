@@ -15,6 +15,9 @@
   <a href="#"><img src="https://img.shields.io/badge/🔍_Post-34A853?style=for-the-badge&logoColor=white" alt="Post"></a>
 </p>
 
+**2025.3.13 Update:**
+We are recently refactoring code of RAGEN to help you better develop your own idea based on our codebase. Please checkout our [developing branch](https://github.com/ZihanWang314/RAGEN/tree/main-new). The first version decomposes RAGEN and veRL for better co-development, taking the latter as a submodule rather than a static directory.
+
 **2025.3.8 Update:**
 
 1. In previous veRL implementation, there is a [KL term issue](https://github.com/volcengine/verl/pull/179/files), which has been fixed in recent versions.
