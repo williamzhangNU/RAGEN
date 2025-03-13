@@ -28,7 +28,7 @@ from ragen.env import (
     SokobanEnv, 
     FrozenLakeEnv, 
     BanditEnv, 
-    TwoArmedBanditEnv, 
+    BiArmBanditEnv, 
     CountdownEnv
 )
 
@@ -36,7 +36,7 @@ ENV_CLASS_MAPPING = {
     'sokoban': SokobanEnv,
     'frozenlake': FrozenLakeEnv,
     'bandit': BanditEnv,
-    'two_armed_bandit': TwoArmedBanditEnv,
+    'bi_arm_bandit': BiArmBanditEnv,
     'countdown': CountdownEnv
 }
 

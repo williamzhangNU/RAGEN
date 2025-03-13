@@ -20,7 +20,7 @@ run_experiment() {
     fi
 
     # Create dataset
-    python ragen/env/bandit/create_dataset_two_armed.py \
+    python ragen/env/bandit/create_dataset_bi_arm.py \
         --output $data_dir \
         --seed 100000 \
         --train_size 10000 \
@@ -56,7 +56,7 @@ run_experiment() {
         common_params="$common_params training.no_think_rl=True"
     fi
 
-    bash train.sh two_armed_bandit \
+    bash train.sh bi_arm_bandit \
         model.experiment_name=$current_exp_name \
         $common_params >> "./log/terminal/${current_exp_name}.log" &
 }
@@ -64,20 +64,20 @@ run_experiment() {
 mkdir -p log/terminal
 
 # Run original experiments (without validation arms)
-# run_experiment "bandit_main" "data/two_armed_bandit" "phoenix" "dragon" 0
-# run_experiment "bandit_main" "data/two_armed_bandit" "phoenix" "dragon" 1 true
+# run_experiment "bandit_main" "data/bi_arm_bandit" "phoenix" "dragon" 0
+# run_experiment "bandit_main" "data/bi_arm_bandit" "phoenix" "dragon" 1 true
 
 # Run reverse experiments (without validation arms)
-# run_experiment "bandit_reverse" "data/two_armed_bandit_reverse" "dragon" "phoenix" 2
-# run_experiment "bandit_reverse" "data/two_armed_bandit_reverse" "dragon" "phoenix" 3 true
+# run_experiment "bandit_reverse" "data/bi_arm_bandit_reverse" "dragon" "phoenix" 2
+# run_experiment "bandit_reverse" "data/bi_arm_bandit_reverse" "dragon" "phoenix" 3 true
 
 # Run generalization experiments (without validation arms)
-# run_experiment "bandit_genea_regular" "data/two_armed_bandit_genea_regular" "teacher" "engineer" 0
-# run_experiment "bandit_genea_regular" "data/two_armed_bandit_genea_regular" "teacher" "engineer" 1 true
+# run_experiment "bandit_genea_regular" "data/bi_arm_bandit_genea_regular" "teacher" "engineer" 0
+# run_experiment "bandit_genea_regular" "data/bi_arm_bandit_genea_regular" "teacher" "engineer" 1 true
 
 # Run generalization experiments with different validation arms
-# run_experiment "bandit_genea_reverse" "data/two_armed_bandit_genea_reverse" "engineer" "teacher" 2
-# run_experiment "bandit_genea_reverse" "data/two_armed_bandit_genea_reverse" "engineer" "teacher" 3 true
+# run_experiment "bandit_genea_reverse" "data/bi_arm_bandit_genea_reverse" "engineer" "teacher" 2
+# run_experiment "bandit_genea_reverse" "data/bi_arm_bandit_genea_reverse" "engineer" "teacher" 3 true
 
-run_experiment "bandit_genea_reverse_testdiff" "data/two_armed_bandit_genea_reverse" "engineer" "teacher" 0 false "trader"   "librarian"
-# run_experiment "bandit_genea_reverse_testdiff" "data/two_armed_bandit_genea_reverse" "engineer" "teacher" 1 true "trader"   "librarian"
+run_experiment "bandit_genea_reverse_testdiff" "data/bi_arm_bandit_genea_reverse" "engineer" "teacher" 0 false "trader"   "librarian"
+# run_experiment "bandit_genea_reverse_testdiff" "data/bi_arm_bandit_genea_reverse" "engineer" "teacher" 1 true "trader"   "librarian"

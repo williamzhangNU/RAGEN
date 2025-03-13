@@ -60,7 +60,7 @@ def get_train_val_env(env_class, config: dict):
         env = env_class(size=config.env.size, p=config.env.p)
     elif config.env.name == 'bandit':
         env = env_class(n_arms=config.env.n_arms)
-    elif config.env.name == 'two_armed_bandit':
+    elif config.env.name == 'bi_arm_bandit':
         lo_name, hi_name = config.env.low_risk_name, config.env.high_risk_name
         lo_val_name = config.env.low_risk_name if config.env.low_risk_val_name is None else config.env.low_risk_val_name
         hi_val_name = config.env.high_risk_name if config.env.high_risk_val_name is None else config.env.high_risk_val_name

@@ -11,7 +11,7 @@ bash train.sh sokoban \
     optimization.kl_coef=0.001 \
     optimization.adv_estimator=gae
 
-bash train.sh two_armed_bandit \
+bash train.sh bi_arm_bandit \
     model.experiment_name=new_test \
     training.train_batch_size=8 \
     training.n_rollout=16 \
@@ -38,7 +38,7 @@ Running with 3B models using FSDP strategy. Total 27 runs on Qwen2.5-3B-Instruct
 ```bash
 # Search different parameter groups
 bash scripts/hyperparam_search.sh \
-    --env_name=two_armed_bandit \
+    --env_name=bi_arm_bandit \
     --exp_base_name="hyperparam_searching" \
     --search_group [1|2|3|4] \
     --micro_batch_size 4 \
@@ -59,9 +59,9 @@ Search groups:
 ### Two-Armed Bandit
 ```bash
 # RAGEN - Base command
-bash train.sh two_armed_bandit \
+bash train.sh bi_arm_bandit \
     model.base_model=Qwen/Qwen2.5-[0.5B|3B]-Instruct \
-    model.experiment_name=two_armed_bandit_[0_5B|3B]_instruct_ragen_main \
+    model.experiment_name=bi_arm_bandit_[0_5B|3B]_instruct_ragen_main \
     training.train_batch_size=32 \
     training.max_turns=1 \
     training.n_rollout=1 \

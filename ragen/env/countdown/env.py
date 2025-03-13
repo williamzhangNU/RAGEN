@@ -7,7 +7,7 @@ from typing_extensions import override
 import pandas as pd
 
 from ragen.env.base import BaseLanguageBasedEnv
-from ragen.env.countdown.reward_function import compute_score
+from .utils import compute_score
 
 
 class CountdownEnv(BaseLanguageBasedEnv, gym.Env):

@@ -1,9 +1,8 @@
 import gym
 from gym_sokoban.envs.sokoban_env import SokobanEnv as GymSokobanEnv
 import numpy as np
-from ragen.utils import NoLoggerWarnings
-from ragen.env.sokoban.room_utils import generate_room
-from ragen.utils import set_seed
+from ragen.utils import NoLoggerWarnings, set_seed
+from .utils import generate_room
 import re
 import copy
 from typing_extensions import override

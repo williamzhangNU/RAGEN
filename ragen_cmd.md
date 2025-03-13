@@ -99,7 +99,7 @@ The first main results we want to show is on task Bandits. This task aims to sho
 ```bash
 bash train.sh frozenlake \
     model.base_model=Qwen/Qwen2.5-7B-Instruct \
-    model.experiment_name=two_armed_bandit_qwen_2.5_7b_instruct_ragen \
+    model.experiment_name=bi_arm_bandit_qwen_2.5_7b_instruct_ragen \
     training.micro_batch_size=2 \
     training.use_kl_loss=True \
     training.max_turns=1 \
@@ -112,7 +112,7 @@ bash train.sh frozenlake \
 ```bash
 bash train.sh frozenlake \
     model.base_model=Qwen/Qwen2.5-7B-Instruct \
-    model.experiment_name=two_armed_bandit_qwen_2.5_7b_instruct_ragen_no_think \
+    model.experiment_name=bi_arm_bandit_qwen_2.5_7b_instruct_ragen_no_think \
     training.micro_batch_size=2 \
     training.use_kl_loss=True \
     training.max_turns=1 \

@@ -280,7 +280,7 @@ def compute_data_metrics(batch, use_critic=True):
     }
 
     # metric for two-armed bandit
-    if batch.non_tensor_batch['data_source'][0] == 'two_armed_bandit':
+    if batch.non_tensor_batch['data_source'][0] == 'bi_arm_bandit':
         batch_action = np.array(batch.non_tensor_batch['bandit_metrics'], dtype=np.int16)
         metrics['metric/n_low_arm'] = int(np.sum(batch_action == 1))
         metrics['metric/n_high_arm'] = int(np.sum(batch_action == 2))
@@ -706,7 +706,7 @@ class RayPPOTrainer(object):
 
                     # metric for two-armed bandit
                     # NOTE here we assume invalid action is 0, low arm is 1, high arm is 2
-                    if batch.non_tensor_batch['data_source'][0] == 'two_armed_bandit':
+                    if batch.non_tensor_batch['data_source'][0] == 'bi_arm_bandit':
                         batch.non_tensor_batch['bandit_metrics'] = np.array([0 for _ in range(len(envs))], dtype=object)
                         for idx, env in enumerate(envs):
                             batch.non_tensor_batch['bandit_metrics'][idx] = env.get_last_action()
@@ -959,7 +959,7 @@ class RayPPOTrainer(object):
                 for idx, env in enumerate(envs):
                     test_batch.non_tensor_batch['reward'][idx] = env.reward
 
-                if test_batch.non_tensor_batch['data_source'][0] == 'two_armed_bandit':
+                if test_batch.non_tensor_batch['data_source'][0] == 'bi_arm_bandit':
                     # metric for two-armed bandit
                     # NOTE here we assume invalid action is 0, low arm is 1, high arm is 2
                     test_batch.non_tensor_batch['bandit_metrics'] = np.array([0 for _ in range(len(envs))], dtype=object)

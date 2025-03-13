@@ -1,2 +1,1 @@
-from .env import BanditEnv
-from .env import TwoArmedBanditEnv
+from .env import BiArmBanditEnv
