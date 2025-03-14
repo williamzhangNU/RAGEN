@@ -1,6 +1,3 @@
-"""
-run `pip install "gymnasium[toy-text]"` to install gymnasium
-"""
 import gymnasium as gym
 from gymnasium.envs.toy_text.frozen_lake import FrozenLakeEnv as GymFrozenLakeEnv
 from gymnasium.utils import seeding
@@ -14,7 +11,7 @@ from ragen.env.base import BaseDiscreteActionEnv
 
 
 """
-Adapted from nice codes from gymnasium.envs.toy_text.frozen_lake.generate_random_map
+Adapted from the nicely written code from gymnasium.envs.toy_text.frozen_lake.generate_random_map
 Modify it so that the start and end points are random
 """
 
@@ -84,12 +81,6 @@ def generate_random_map(
 
 
 
-
-
-
-
-
-
 class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
     """
     Inherits from gymnasium.envs.toy_text.frozen_lake.FrozenLakeEnv
@@ -131,36 +122,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
     O   _   _   G
     """
 
-    # Map gym state in integer
-    MAP_LOOKUP = {
-        b"P": 0,
-        b"F": 1,
-        b"H": 2,
-        b"G": 3,
-    }
-
-    # Define rules to transform to rendered text observation of the environment
-    GRID_LOOKUP = {
-        0: " P \t",  # player
-        1: " _ \t",  # frozen
-        2: " O \t",  # hole
-        3: " G \t",  # goal
-        4: " X \t",  # player fall into hole
-        5: " √ \t",  # player on goal
-    }
-
-    ACTION_LOOKUP = {
-        0: "None",
-        1: "Left",
-        2: "Down",
-        3: "Right",
-        4: "Up",
-    }
-
-    INVALID_ACTION = 0
-    PENALTY_FOR_INVALID = -1
-
-
+    
     def __init__(self, **kwargs):
         BaseDiscreteActionEnv.__init__(self)
 
@@ -222,7 +184,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
         match = re.fullmatch(pattern, text.strip(), flags=re.IGNORECASE | re.X)
         
         if not match:
-            return self.INVALID_ACTION 
+            return self.invalid_act 
         
         if match.group(2):   
             return int(match.group(2))
@@ -231,7 +193,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
         elif match.group(5): 
             return int(match.group(5))
         
-        return self.INVALID_ACTION
+        return self.invalid_act
 
 
     def reset(
@@ -275,7 +237,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
         - Map custom action to gymnasium FrozenLakeEnv action and take the step
         - Check if the action is effective (whether player moves in the env).
         """
-        if action == self.INVALID_ACTION: # no penalty for invalid action
+        if action == self.invalid_act: # no penalty for invalid action
             return self.render(), 0, False, {"action_is_effective": False}
         
         prev_player_position = int(self.s)

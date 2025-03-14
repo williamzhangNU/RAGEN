@@ -2,9 +2,14 @@ import gym
 from gym_sokoban.envs.sokoban_env import SokobanEnv as GymSokobanEnv
 import numpy as np
 from .utils import generate_room
+# from gym_sokoban.envs.sokoban_env.utils import generate_room
 from ragen.env.base import BaseDiscreteActionEnv
 from ragen.env.sokoban.config import SokobanEnvConfig
 from ragen.utils import all_seed
+
+"""
+Adapted from the nicely written code from gym_sokoban
+"""
 
 class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
     def __init__(self, config=None, **kwargs):

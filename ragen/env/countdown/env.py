@@ -5,7 +5,10 @@ import re
 import itertools
 from ragen.env.countdown.config import CountdownEnvConfig
 
-"""We plan to generalize this environment to support any sort of static problem sets"""
+"""
+Adapted from the nicely written code from TinyZero and veRL
+We plan to generalize this environment to support any sort of static problem sets
+"""
 
 def check_format(equation, nums):
     try:
