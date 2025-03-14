@@ -11,16 +11,12 @@ class BiArmBanditEnvConfig:
             invalid_act: int = 0,
             invalid_act_score: float = 0,
     ):
-        # Action space configuration
         self.action_space_start = action_space_start
-
         self.lo_arm_name = lo_arm_name
         self.lo_arm_score = lo_arm_score
-
         self.hi_arm_name = hi_arm_name
         self.hi_arm_loscore = hi_arm_loscore
         self.hi_arm_hiscore = hi_arm_hiscore
         self.hi_arm_hiscore_prob = hi_arm_hiscore_prob
-        
         self.invalid_act = invalid_act
         self.invalid_act_score = invalid_act_score

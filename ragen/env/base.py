@@ -49,8 +49,6 @@ class BaseDiscreteActionEnv(BaseEnv, ABC):
     """
     GRID_LOOKUP = {} # define the mapping from integer to string for rendering
     ACTION_LOOKUP = {} # define the mapping from integer to action string
-    INVALID_ACTION = 0 # default invalid action
-    PENALTY_FOR_INVALID = -1 # penalty for invalid action
 
     def get_all_actions(self) -> List[int]:
         """Get list of all valid actions."""
@@ -64,7 +62,16 @@ class BaseLanguageBasedEnv(BaseEnv, ABC):
     """
 
     ACTION_LOOKUP = {} # TODO modify this as a method so can be called in a unified way
-    INVALID_ACTION = "" # default invalid action
 
     def get_all_actions(self):
         raise NotImplementedError("Language-based environment does not have a finite action space")
+
+
+
+class BaseEnvConfig(ABC):
+    """
+    Abstract base class for environment configurations.
+    """
+    def __init__(self):
+        self.invalid_act = ""
+        self.invalid_act_score = 0
