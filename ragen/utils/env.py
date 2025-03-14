@@ -17,7 +17,7 @@ def permanent_seed(seed: int) -> None:
 
 
 @contextmanager
-def set_seed(seed):
+def all_seed(seed):
     random_state = random.getstate()
     np_random_state = np.random.get_state()
 

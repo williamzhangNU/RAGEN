@@ -1,3 +1,4 @@
+# these code are adapted from the gym_sokoban repo at https://github.com/mpSchrader/gym-sokoban
 import random
 import numpy as np
 import marshal
@@ -146,13 +147,6 @@ def solve_sokoban(env, saved_animation_path):
         imgs.append(img_after_action)
     ani = plot_animation(imgs)
     ani.save(saved_animation_path)
-
-
-
-        
-
-
-
 
 
 def add_random_player_movement(room_state, room_structure, move_probability=0.5, continue_probability=0.5, max_steps=3):

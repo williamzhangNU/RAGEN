@@ -1,12 +1,11 @@
 import gymnasium as gym
 import numpy as np
-from typing import Optional
 from ragen.env.base import BaseDiscreteActionEnv
 from .config import BiArmBanditEnvConfig
 
 
 class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
-    def __init__(self, config: Optional[BiArmBanditEnvConfig] = None):
+    def __init__(self, config = None):
         BaseDiscreteActionEnv.__init__(self)
         self.config = config if config is not None else BiArmBanditEnvConfig()
         self.ACTION_SPACE = gym.spaces.discrete.Discrete(2, start=self.config.action_space_start)

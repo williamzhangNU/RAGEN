@@ -275,9 +275,6 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
         - Map custom action to gymnasium FrozenLakeEnv action and take the step
         - Check if the action is effective (whether player moves in the env).
         """
-        assert isinstance(action, int), "Action must be an integer"
-        assert not self.success(), "Agent has already reached the goal or hole"
-
         if action == self.INVALID_ACTION: # no penalty for invalid action
             return self.render(), 0, False, {"action_is_effective": False}
         

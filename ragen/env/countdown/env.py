@@ -1,9 +1,11 @@
 import gymnasium as gym
-import pandas as pd
 from ragen.env.base import BaseLanguageBasedEnv
 import datasets
 import re
 import itertools
+from ragen.env.countdown.config import CountdownEnvConfig
+
+"""We plan to generalize this environment to support any sort of static problem sets"""
 
 def check_format(equation, nums):
     try:
@@ -30,20 +32,15 @@ def compute_score(solution_str, ground_truth, format_score=0.1, score=1.0):
     else:
         return score
 
-class CountdownEnvConfig:
-    def __init__(self, invalid_act: str = "", invalid_act_score: float = 0, max_instances: int = 20000):
-        self.invalid_act = invalid_act
-        self.invalid_act_score = invalid_act_score
-        self.max_instances = max_instances
-
 def has_solution(nums, target):
     """Check if there is a valid equation using each number exactly once."""
     # pad nums all to 4 numbers
-    nums = nums + [0] * (4 - len(nums))
+    length = 4
+    nums = nums + [0] * (length - len(nums))
     # +- num1 +- num2 +- num3 +- num4 = target, try all
-    combinations = list(itertools.product([1, -1], repeat=4))
+    combinations = list(itertools.product([1, -1], repeat=length))
     for combination in combinations:
-        if sum(combination[i] * nums[i] for i in range(4)) == target:
+        if sum(combination[i] * nums[i] for i in range(length)) == target:
             return True
     return False
 
