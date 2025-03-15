@@ -1,4 +1,4 @@
-
+from dataclasses import dataclass
 @dataclass
 class BiArmBanditEnvConfig:
     lo_arm_name: str = "phoenix"

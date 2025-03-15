@@ -7,9 +7,7 @@ from ragen.env.base import BaseDiscreteActionEnv
 from ragen.env.sokoban.config import SokobanEnvConfig
 from ragen.utils import all_seed
 
-"""
-Adapted from the nicely written code from gym_sokoban
-"""
+
 
 class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
     def __init__(self, config=None, **kwargs):
@@ -48,15 +46,15 @@ class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
 
     def step(self, action: int):
         if action == self.INVALID_ACTION:
-            observation, reward, done, info = self.render(), 0, False, {"action_is_effective": False}
+            next_obs, reward, done, info = self.render(), 0, False, {"action_is_effective": False}
         else:
             previous_pos = self.player_position
             _, reward, done, _ = GymSokobanEnv.step(self, action)
-            observation = self.render()
+            next_obs = self.render()
             action_effective = not np.array_equal(previous_pos, self.player_position)
             info = {"action_is_effective": action_effective}
             
-        return observation, reward, done, info
+        return next_obs, reward, done, info
 
     def render(self, mode='text'):
         if mode == 'text':
@@ -66,6 +64,9 @@ class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
             return self.get_image(mode='rgb_array', scale=1)
         else:
             raise ValueError(f"Invalid mode: {mode}")
+    
+    def get_all_actions(self):
+        return list([k for k in self.ACTION_LOOKUP.keys() if k != self.INVALID_ACTION])
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

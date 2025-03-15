@@ -59,7 +59,8 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
             else:
                 reward = self._hi_arm_reward()                
             next_obs = f"{arm_name}: {reward} points"
-        return next_obs, reward, True, {"action_is_effective": action != self.invalid_act}
+        done, info = True, {"action_is_effective": action != self.invalid_act}
+        return next_obs, reward, done, info
 
     def get_all_actions(self):
         return [self.invalid_act, self.ACTION_SPACE.start, self.ACTION_SPACE.start + 1]

@@ -5,10 +5,6 @@ import re
 import itertools
 from ragen.env.countdown.config import CountdownEnvConfig
 
-"""
-Adapted from the nicely written code from TinyZero and veRL
-We plan to generalize this environment to support any sort of static problem sets
-"""
 
 def check_format(equation, nums):
     try:
@@ -72,10 +68,8 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
             return "", self.invalid_act_score, True, {"action_is_effective": False}
         
         reward = compute_score(action, self.data[self.index])
-        return "", reward, True, {"action_is_effective": True}
-
-    def render(self, mode='text'):
-        return ""
+        next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": True}
+        return next_obs, reward, done, info
 
 
 if __name__ == "__main__":

@@ -1,122 +1,47 @@
 import random
 import numpy as np
-import marshal
-import copy
-from collections import deque
-from ragen.env import FrozenLakeEnv
-import random
-import time
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+from typing import List, Optional
+from gymnasium.utils import seeding
+
+def is_valid(board: List[List[str]], max_size: int) -> bool:
+    frontier, discovered = [], set()
+    start_r, start_c = np.where(np.array(board) == "S")
+    frontier.append((start_r[0], start_c[0]))
+
+    while frontier:
+        r, c = frontier.pop()
+        if (r, c) not in discovered:
+            discovered.add((r, c))
+            for dr, dc in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
+                r_new, c_new = r + dr, c + dc
+                if 0 <= r_new < max_size and 0 <= c_new < max_size:
+                    if board[r_new][c_new] == "G":
+                        return True
+                    if board[r_new][c_new] != "H":
+                        frontier.append((r_new, c_new))
+    return False
 
 
-def get_shortest_action_path(
-        seed,
-        size=6,
-        p=0.8,
-        is_slippery=True,
-        MAX_DEPTH=100
-    ):
-        """
-        Get the shortest action path to push all boxes to the target spots.
-        Use BFS to find the shortest path.
-        NOTE use action sequence to recover the environment
-        =========================================================
-        Parameters:
-            env: frozen lake environment
-            MAX_DEPTH (int): the maximum depth of the search
-        =========================================================
-        Returns:
-            action_sequence (list): the action sequence to push all boxes to the target spots
-        """
-        env = FrozenLakeEnv(size=size, p=p, is_slippery=is_slippery, seed=seed)
-        env.reset(seed=seed)
-        action_sequence, state = [], env.s
-        queue = deque([(action_sequence, state)])
-        explored_states = set()
-
-
-        
-        actions = [1, 2, 3, 4] 
-        
-        
-        while queue:
-            action_sequence, state = queue.popleft()
-            if len(action_sequence) > MAX_DEPTH:
-                return [] # No solution found
-
-            if action_sequence:
-            # reduce the search space by checking if the state has been explored
-                state_tohash = marshal.dumps(state)
-                if state_tohash in explored_states:
-                    continue
-                explored_states.add(state_tohash)
-            
-                
-            # Try each direction
-            for a in actions:
-                # recover the environment
-                env.reset(seed=seed)
-                for prev_a in action_sequence:
-                    env.step(prev_a)
-
-
-                obs, reward, done, info = env.step(a)
-                # print(f"action: {a}, reward: {reward}, done: {done}")
-                # print(f"obs: {obs}")
-                if done and reward > 0: # succeed
-                    return action_sequence + [a]
-                elif done and reward == 0: # failed
-                    continue
-                else:
-                    queue.append((action_sequence + [a], env.s))
-                        
-        return [] # No solution found
-
-
-def plot_animation(imgs):
-    height, width = imgs[0].shape[:2]
-    fig = plt.figure(figsize=(width/100, height/100), dpi=500)
-    
-    ax = fig.add_axes([0, 0, 1, 1])
-    
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
-    
-    im = ax.imshow(imgs[0])
-    def init():
-        im.set_data(imgs[0])
-        return [im]
-    def update(i):
-        im.set_data(imgs[i])
-        return [im]
-    ani = animation.FuncAnimation(fig, update, frames=len(imgs), init_func=init, blit=True)
-    return ani
-
-def solve_frozenlake(seed, size=6, p=0.8, is_slippery=True, saved_animation_path=None):
+def generate_random_map(size: int = 8, p: float = 0.8, seed: Optional[int] = None) -> List[str]:
     """
-    Solve the given frozen lake environment and save the animation
+    Generates a random valid map with a path from start (S) to goal (G).
+    Args:
+        size: The size of the map.
+        p: The probability of generating a hole (H).
+        seed: The seed for the random number generator.
+    Returns:
+        A list of strings representing the map.
     """
-    actions = get_shortest_action_path(seed, size, p, is_slippery)
-    env = FrozenLakeEnv(size=size, p=p, is_slippery=is_slippery, seed=seed)
-    env.reset(seed=seed)
-    print(f"Found {len(actions)} actions: {actions}")
-    imgs = []
-    img_before_action = env.render('rgb_array')
-    imgs.append(img_before_action)
-    for action in actions:
-        env.step(action)
-        img_after_action = env.render('rgb_array')
-        imgs.append(img_after_action)
-    ani = plot_animation(imgs)
-    ani.save(saved_animation_path)
+    np_random, _ = seeding.np_random(seed)
 
+    while True:
+        board = np_random.choice(["F", "H"], (size, size), p=[p, 1 - p])
+        start_r, start_c = np_random.integers(size, size=2)
+        goal_r, goal_c = np_random.integers(size, size=2)
 
-if __name__ == "__main__":
-    seed = 10003
-    size = 6
-    p = 0.8
-    is_slippery = True
-    saved_animation_path = f"frozenlake_{seed}.gif"
-    solve_frozenlake(seed, size, p, is_slippery, saved_animation_path)
+        if (start_r, start_c) != (goal_r, goal_c):
+            board[start_r][start_c], board[goal_r][goal_c] = "S", "G"
+            if is_valid(board, size):
+                break
+
+    return ["".join(row) for row in board]
