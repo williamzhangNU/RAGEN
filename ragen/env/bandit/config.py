@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Dict
 @dataclass
 class BiArmBanditEnvConfig:
     lo_arm_name: str = "phoenix"
@@ -11,3 +12,4 @@ class BiArmBanditEnvConfig:
     
     invalid_act: int = 0
     invalid_act_score: float = 0
+    action_lookup: Dict[int, str] = None # defined in env.py

@@ -43,7 +43,7 @@ class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
         except (RuntimeError, RuntimeWarning) as e:
             next_seed = abs(hash(str(seed))) % (2 ** 32) if seed is not None else None
             return self.reset(next_seed)
-
+        
     def step(self, action: int):
         if action == self.INVALID_ACTION:
             next_obs, reward, done, info = self.render(), 0, False, {"action_is_effective": False}

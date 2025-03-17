@@ -37,8 +37,14 @@ class BaseEnv(ABC):
         """
         pass
 
+    # below are optional methods
+
     def render(self, mode: str = 'text') -> Any:
         """Render the environment. Optional method."""
+        pass
+
+    def compute_reward(self, action, **kwargs) -> float:
+        """Compute reward for the action."""
         pass
 
 
@@ -48,6 +54,18 @@ class BaseDiscreteActionEnv(BaseEnv, ABC):
     This class provides common functionality for environments like FrozenLakeEnv and SokobanEnv.
     """
 
+    @abstractmethod
+    def step(self, action: int) -> Tuple[Any, float, bool, Dict]:
+        """
+        Execute one step in the environment.
+        Args:
+            action: Action to take, must be in action space, or default invalid action
+        Returns:
+            observation (rendered environment), reward, done, info
+        """
+        pass
+
+    @abstractmethod
     def get_all_actions(self) -> List[int]:
         """Get list of all valid actions."""
         pass
@@ -59,9 +77,16 @@ class BaseLanguageBasedEnv(BaseEnv, ABC):
     This class provides common functionality for environments like countdown from TinyZero
     """
 
-    def get_all_actions(self):
-        raise NotImplementedError("Language-based environment does not have a finite action space")
-
+    @abstractmethod
+    def step(self, action: str) -> Tuple[Any, float, bool, Dict]:
+        """
+        Execute one step in the environment.
+        Args:
+            action: Action to take, must be in action space, or default invalid action
+        Returns:
+            observation (rendered environment), reward, done, info
+        """
+        pass
 
 
 class BaseEnvConfig(ABC):

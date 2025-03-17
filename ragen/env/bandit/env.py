@@ -18,13 +18,13 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
         start = self.config.action_space_start
         if self.np_random.random() < 0.5:
             self.ACTION_LOOKUP = {
-                self.invalid_act: "none",
+                self.invalid_act: "None",
                 start: self.lo_arm_name,
                 start + 1: self.hi_arm_name,
             }
         else:
             self.ACTION_LOOKUP = {
-                self.invalid_act: "none",
+                self.invalid_act: "None",
                 start: self.hi_arm_name,
                 start + 1: self.lo_arm_name,
             }
@@ -53,14 +53,18 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
             reward = self.invalid_act_score
             next_obs = f"Invalid action: {reward} points"
         else:
+            reward = self.compute_reward(action)
             arm_name = self.ARM_IDX_TO_NAME[action]
-            if arm_name == self.lo_arm_name:
-                reward = self._lo_arm_reward()
-            else:
-                reward = self._hi_arm_reward()                
             next_obs = f"{arm_name}: {reward} points"
         done, info = True, {"action_is_effective": action != self.invalid_act}
         return next_obs, reward, done, info
+    
+    def compute_reward(self, action):
+        arm_name = self.ARM_IDX_TO_NAME[action]
+        if arm_name == self.lo_arm_name:
+            return self._lo_arm_reward()
+        else:
+            return self._hi_arm_reward()
 
     def get_all_actions(self):
         return [self.invalid_act, self.ACTION_SPACE.start, self.ACTION_SPACE.start + 1]

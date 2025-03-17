@@ -1,14 +1,14 @@
 import gymnasium as gym
 from gymnasium.envs.toy_text.frozen_lake import FrozenLakeEnv as GymFrozenLakeEnv
 import numpy as np
-from .config import FrozenLakeConfig
+from .config import FrozenLakeEnvConfig
 from .utils import generate_random_map
 from ragen.utils import all_seed
 from ragen.env.base import BaseDiscreteActionEnv
 
 
 class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
-    def __init__(self, config: FrozenLakeConfig = FrozenLakeConfig()):
+    def __init__(self, config: FrozenLakeEnvConfig = FrozenLakeEnvConfig()):
         # Using mappings directly from config
         self.config = config
         self.GRID_LOOKUP = config.grid_lookup
@@ -30,10 +30,9 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
     def reset(self, seed=None):
         try:
             with all_seed(seed):
-                config = FrozenLakeConfig(
+                config = FrozenLakeEnvConfig(
                     size=self.config.size,
                     p=self.config.p,
-                    seed=seed,
                     is_slippery=self.config.is_slippery,
                 )
                 self.__init__(config)   
@@ -80,7 +79,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    config = FrozenLakeConfig(size=4, p=0.8, is_slippery=True, map_seed=42)
+    config = FrozenLakeEnvConfig(size=4, p=0.8, is_slippery=True, map_seed=42)
     env = FrozenLakeEnv(config)
     print(env.reset(seed=42))
     while True:

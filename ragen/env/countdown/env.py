@@ -20,17 +20,6 @@ def check_correctness(equation_str, target):
     except:
         return False
 
-def compute_score(solution_str, ground_truth, format_score=0.1, score=1.0):
-    """Score the countdown task solution."""
-    target = ground_truth['target']
-    nums = ground_truth['nums']
-    if not check_format(solution_str, nums):
-        return 0
-    if not check_correctness(solution_str, target):
-        return format_score
-    else:
-        return score
-
 def has_solution(nums, target):
     """Check if there is a valid equation using each number exactly once."""
     # pad nums all to 4 numbers
@@ -67,10 +56,20 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
         if not isinstance(action, str) or action == self.invalid_act:
             return "", self.invalid_act_score, True, {"action_is_effective": False}
         
-        reward = compute_score(action, self.data[self.index])
+        reward = self.compute_reward(action, self.data[self.index])
         next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": True}
         return next_obs, reward, done, info
 
+    def compute_reward(self, action, ground_truth):
+        """Score the countdown task solution."""
+        target = ground_truth['target']
+        nums = ground_truth['nums']
+        if not check_format(action, nums):
+            return 0
+        if not check_correctness(action, target):
+            return self.config.format_score
+        else:
+            return self.config.score
 
 if __name__ == "__main__":
     def test(path, seed=43):

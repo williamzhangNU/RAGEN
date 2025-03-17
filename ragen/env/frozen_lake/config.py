@@ -2,7 +2,7 @@ from typing import Optional, List, Dict
 from dataclasses import dataclass, field
 
 @dataclass
-class FrozenLakeConfig:
+class FrozenLakeEnvConfig:
     """Configuration for FrozenLake environment"""
     # Map config
     size: int = 8
