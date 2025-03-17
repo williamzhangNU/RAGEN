@@ -19,7 +19,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
 
         self.action_map = config.action_map
         self.MAP_LOOKUP = config.map_lookup
-        random_map = generate_random_map(size=config.size, p=config.p, seed=config.seed)
+        random_map = generate_random_map(size=config.size, p=config.p, seed=config.map_seed)
         BaseDiscreteActionEnv.__init__(self)
         GymFrozenLakeEnv.__init__(
             self,
@@ -80,7 +80,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    config = FrozenLakeConfig(size=4, p=0.8, seed=42, is_slippery=True)
+    config = FrozenLakeConfig(size=4, p=0.8, is_slippery=True, map_seed=42)
     env = FrozenLakeEnv(config)
     print(env.reset(seed=42))
     while True:

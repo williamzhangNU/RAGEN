@@ -44,12 +44,12 @@ def has_solution(nums, target):
     return False
 
 class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
-    def __init__(self, parquet_path: str, config=None):
+    def __init__(self, config=None):
         BaseLanguageBasedEnv.__init__(self)
         self.config = config if config is not None else CountdownEnvConfig()
         self.invalid_act = self.config.invalid_act
         self.invalid_act_score = self.config.invalid_act_score
-        self.data = self._get_data_from_parquet(parquet_path)
+        self.data = self._get_data_from_parquet(self.config.train_path)
         self.index = None
 
     def _get_data_from_parquet(self, path):
@@ -74,7 +74,8 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
 
 if __name__ == "__main__":
     def test(path, seed=43):
-        env = CountdownEnv(path)
+        config = CountdownEnvConfig(train_path=path)
+        env = CountdownEnv(config)
         obs = env.reset(seed=seed)
         problem = env.data[env.index]
         solution = f"- {problem['nums'][0]} + {problem['nums'][1]} + {problem['nums'][2]}"

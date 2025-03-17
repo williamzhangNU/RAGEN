@@ -1,6 +1,9 @@
 env:
   name: "frozenlake"
-  data_dir: "data/frozenlake"
   env_kwargs:
     size: 4
     p: 0.8
+    is_slippery: true
+    map_seed: 42
+    invalid_act: 0
+    invalid_act_score: 0

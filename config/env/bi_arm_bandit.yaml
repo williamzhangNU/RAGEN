@@ -1,8 +1,11 @@
 env:
   name: "bi_arm_bandit"
-  data_dir: "data/bi_arm_bandit"
   env_kwargs:
-    low_risk_name: "phoenix"
-    high_risk_name: "dragon"
-    low_risk_val_name: null
-    high_risk_val_name: null
+    lo_arm_name: "phoenix"
+    hi_arm_name: "dragon"
+    lo_arm_score: 0.2
+    hi_arm_loscore: 0.1
+    hi_arm_hiscore: 1.0
+    hi_arm_hiscore_prob: 0.25
+    invalid_act: 0
+    invalid_act_score: 0

@@ -87,20 +87,6 @@ bash train.sh sokoban \
 
 # Add for RAGEN w/o thinking
     training.no_think_rl=True
-
-# SFT Training
-bash train.sh sokoban \
-    rl_or_sft=sft \
-    sft.output_dir=outputs/sft/sokoban/Qwen2.5-[0.5B|3B]-Instruct \
-    sft.training.base_model=Qwen/Qwen2.5-[0.5B|3B]-Instruct \
-    sft.training.experiment_name=sokoban_[0_5B|3B]_instruct_sft \
-    sft.data_generation.train_size=10000 \
-    sft.data_generation.test_size=500 \
-    sft.training.micro_batch_size=4 \
-    sft.training.epochs=5 \
-    training.val_batch_size=10 \
-    training.n_rollout=1 \
-    ${BASE_PARAMS}
 ```
 
 ### FrozenLake
@@ -116,20 +102,6 @@ bash train.sh frozenlake \
 
 # Add for RAGEN w/o thinking
     training.no_think_rl=True
-
-# SFT Training
-bash train.sh frozenlake \
-    rl_or_sft=sft \
-    sft.output_dir=outputs/sft/frozenlake/Qwen2.5-[0.5B|3B]-Instruct \
-    sft.training.base_model=Qwen/Qwen2.5-[0.5B|3B]-Instruct \
-    sft.training.experiment_name=frozenlake_[0_5B|3B]_instruct_sft \
-    sft.data_generation.train_size=10000 \
-    sft.data_generation.test_size=500 \
-    sft.training.micro_batch_size=4 \
-    sft.training.epochs=5 \
-    training.val_batch_size=10 \
-    training.n_rollout=1 \
-    ${BASE_PARAMS}
 ```
 
 Usage notes:

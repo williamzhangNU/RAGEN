@@ -47,8 +47,6 @@ class BaseDiscreteActionEnv(BaseEnv, ABC):
     Abstract base class for environments with discrete action spaces
     This class provides common functionality for environments like FrozenLakeEnv and SokobanEnv.
     """
-    GRID_LOOKUP = {} # define the mapping from integer to string for rendering
-    ACTION_LOOKUP = {} # define the mapping from integer to action string
 
     def get_all_actions(self) -> List[int]:
         """Get list of all valid actions."""
@@ -60,8 +58,6 @@ class BaseLanguageBasedEnv(BaseEnv, ABC):
     Abstract base class for environments with language-based action space environment
     This class provides common functionality for environments like countdown from TinyZero
     """
-
-    ACTION_LOOKUP = {} # TODO modify this as a method so can be called in a unified way
 
     def get_all_actions(self):
         raise NotImplementedError("Language-based environment does not have a finite action space")
