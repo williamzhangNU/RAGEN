@@ -292,24 +292,6 @@ class MultiEnvInterface:
                 if any(term in response for term in action_name.lower().split()):
                     return [action_id]
         
-        # Environment-specific parsing for common terms
-        if env_type == "sokoban":
-            # Common directional terms for Sokoban
-            if "up" in response or "north" in response:
-                return [1]
-            elif "down" in response or "south" in response:
-                return [2]
-            elif "left" in response or "west" in response:
-                return [3]
-            elif "right" in response or "east" in response:
-                return [4]
-        elif env_type == "some_other_env":  # Example for another environment
-            if "forward" in response:
-                return ["forward"]  # Some environments might use string actions
-            elif "backward" in response:
-                return ["backward"]
-            # ... other action mappings
-        
         # Generic number extraction for numeric actions
         try:
             import re
