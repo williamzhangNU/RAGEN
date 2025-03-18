@@ -112,19 +112,19 @@ class MultiEnvInterface:
         text = text.lower().strip()
         
         # Try action lookup dictionary
-        if hasattr(env, "ACTION_LOOKUP"):
+        if hasattr(env, "ACTION_LOOKUP"): # textual actions
             actions = {v.lower(): k for k, v in env.ACTION_LOOKUP.items()}
             for name, action_id in actions.items():
                 if name == text:
                     return action_id
-                    
-        if hasattr(env, "get_all_actions"):
+
+        if hasattr(env, "get_all_actions"): # numerical actions
             actions = env.get_all_actions()
             for action in actions:
                 if str(action) == text:
                     return action
 
-        if isinstance(env, BaseLanguageBasedEnv):
+        if isinstance(env, BaseLanguageBasedEnv): # language based actions
             return text
 
         return getattr(env, "INVALID_ACTION", 'None')
@@ -162,8 +162,8 @@ if __name__ == "__main__":
     # Example of processing LLM responses with multiple actions
     llm_responses = {
         0: "up | right | down",
-        1: "1",
-        2: "up | down",
+        1: "1 | up",
+        2: "1 | bla | notfound | notparsed",
         3: "hello | up"
     }
     
