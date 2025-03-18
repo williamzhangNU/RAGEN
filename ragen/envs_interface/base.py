@@ -164,7 +164,7 @@ if __name__ == "__main__":
         0: "up | right | down",
         1: "1 | up",
         2: "1 | bla | notfound | notparsed",
-        3: "hello | up"
+        3: "49+41+73 | hello"
     }
     
     obs, rewards, dones, infos, actions_executed = multi_env.step(llm_responses)

@@ -57,7 +57,7 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
             return "You have made an invalid move.", self.PENALTY_FOR_INVALID, True, {"action_is_effective": False, "action_is_valid": False, "success": False}
         
         reward = self.compute_reward(action, self.data[self.index])
-        next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": True, "action_is_valid": True, "success": reward == self.config.score}
+        next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": reward > 0, "action_is_valid": True, "success": reward == self.config.score}
         return next_obs, reward, done, info
 
     def compute_reward(self, action, ground_truth):
