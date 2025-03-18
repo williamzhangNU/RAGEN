@@ -36,8 +36,8 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
     def __init__(self, config=None):
         BaseLanguageBasedEnv.__init__(self)
         self.config = config if config is not None else CountdownEnvConfig()
-        self.invalid_act = self.config.invalid_act
-        self.invalid_act_score = self.config.invalid_act_score
+        self.INVALID_ACTION = self.config.invalid_act
+        self.PENALTY_FOR_INVALID = self.config.invalid_act_score
         self.data = self._get_data_from_parquet(self.config.train_path)
         self.index = None
 
@@ -53,11 +53,11 @@ class CountdownEnv(BaseLanguageBasedEnv, gym.Env):
         return f"Target: {data['target']}, nums: {data['nums']}"
 
     def step(self, action):
-        if not isinstance(action, str) or action == self.invalid_act:
-            return "", self.invalid_act_score, True, {"action_is_effective": False}
+        if not isinstance(action, str) or action == self.INVALID_ACTION:
+            return "You have made an invalid move.", self.PENALTY_FOR_INVALID, True, {"action_is_effective": False, "action_is_valid": False, "success": False}
         
         reward = self.compute_reward(action, self.data[self.index])
-        next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": True}
+        next_obs, done, info = f"Your answer get {reward} points.", True, {"action_is_effective": True, "action_is_valid": True, "success": reward == self.config.score}
         return next_obs, reward, done, info
 
     def compute_reward(self, action, ground_truth):

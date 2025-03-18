@@ -46,13 +46,13 @@ class SokobanEnv(BaseDiscreteActionEnv, GymSokobanEnv):
         
     def step(self, action: int):
         if action == self.INVALID_ACTION:
-            next_obs, reward, done, info = self.render(), 0, False, {"action_is_effective": False}
+            next_obs, reward, done, info = self.render(), self.PENALTY_FOR_INVALID, False, {"action_is_effective": False, "action_is_valid": False, "success": False}
         else:
             previous_pos = self.player_position
             _, reward, done, _ = GymSokobanEnv.step(self, action)
             next_obs = self.render()
             action_effective = not np.array_equal(previous_pos, self.player_position)
-            info = {"action_is_effective": action_effective}
+            info = {"action_is_effective": action_effective, "action_is_valid": True, "success": done}
             
         return next_obs, reward, done, info
 

@@ -34,6 +34,7 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
                     size=self.config.size,
                     p=self.config.p,
                     is_slippery=self.config.is_slippery,
+                    map_seed=seed
                 )
                 self.__init__(config)   
                 GymFrozenLakeEnv.reset(self, seed=seed)
@@ -44,12 +45,12 @@ class FrozenLakeEnv(BaseDiscreteActionEnv, GymFrozenLakeEnv):
     
     def step(self, action: int):
         if action == self.INVALID_ACTION:
-            next_obs, reward, done, info = self.render(), 0, False, {"action_is_effective": False}
+            next_obs, reward, done, info = self.render(), self.PENALTY_FOR_INVALID, False, {"action_is_effective": False, "action_is_valid": False, "success": False}
         else:
             prev_pos = int(self.s)
             _, reward, done, _, _ = GymFrozenLakeEnv.step(self, self.action_map[action])
             next_obs = self.render()
-            info = {"action_is_effective": prev_pos != int(self.s)}
+            info = {"action_is_effective": prev_pos != int(self.s), "action_is_valid": True, "success": self.desc[self.player_pos] == b"G"}
 
         return next_obs, reward, done, info
      

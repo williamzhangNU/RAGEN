@@ -8,6 +8,6 @@ class CountdownEnvConfig:
     
     # Score config
     invalid_act: str = ""
-    invalid_act_score: float = 0
+    invalid_act_score: float = -0.1
     format_score: float = 0.1
     score: float = 1.0

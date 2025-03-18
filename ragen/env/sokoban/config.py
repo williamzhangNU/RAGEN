@@ -12,4 +12,4 @@ class SokobanEnvConfig:
     action_lookup: Optional[Dict[int, str]] = field(default_factory=lambda: {0:"None", 1:"Up", 2:"Down", 3:"Left", 4:"Right"})
     
     invalid_act: int = 0
-    invalid_act_score: float = -1
+    invalid_act_score: float = -0.1

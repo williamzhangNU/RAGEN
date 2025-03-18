@@ -1,4 +1,4 @@
-from .env import BiArmBanditEnv
-from .config import BiArmBanditEnvConfig
+from .env import BanditEnv
+from .config import BanditEnvConfig
 
-__all__ = ["BiArmBanditEnv", "BiArmBanditEnvConfig"]
+__all__ = ["BanditEnv", "BanditEnvConfig"]

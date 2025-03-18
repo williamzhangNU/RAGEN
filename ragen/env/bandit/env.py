@@ -1,16 +1,16 @@
 import gymnasium as gym
 import numpy as np
 from ragen.env.base import BaseDiscreteActionEnv
-from .config import BiArmBanditEnvConfig
+from .config import BanditEnvConfig
 
 
-class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
+class BanditEnv(BaseDiscreteActionEnv, gym.Env):
     def __init__(self, config = None):
         BaseDiscreteActionEnv.__init__(self)
-        self.config = config if config is not None else BiArmBanditEnvConfig()
+        self.config = config if config is not None else BanditEnvConfig()
         self.ACTION_SPACE = gym.spaces.discrete.Discrete(2, start=self.config.action_space_start)
-        self.invalid_act = self.config.invalid_act
-        self.invalid_act_score = self.config.invalid_act_score
+        self.INVALID_ACTION = self.config.invalid_act
+        self.PENALTY_FOR_INVALID = self.config.invalid_act_score
         self.lo_arm_name = self.config.lo_arm_name
         self.hi_arm_name = self.config.hi_arm_name
         
@@ -18,18 +18,18 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
         start = self.config.action_space_start
         if self.np_random.random() < 0.5:
             self.ACTION_LOOKUP = {
-                self.invalid_act: "None",
+                self.INVALID_ACTION: "None",
                 start: self.lo_arm_name,
                 start + 1: self.hi_arm_name,
             }
         else:
             self.ACTION_LOOKUP = {
-                self.invalid_act: "None",
+                self.INVALID_ACTION: "None",
                 start: self.hi_arm_name,
                 start + 1: self.lo_arm_name,
             }
         self.ARM_IDX_TO_NAME = self.ACTION_LOOKUP
-        self.NAME_TO_ARM_IDX = {name: idx for idx, name in self.ACTION_LOOKUP.items() if idx != self.invalid_act}
+        self.NAME_TO_ARM_IDX = {name: idx for idx, name in self.ACTION_LOOKUP.items() if idx != self.INVALID_ACTION}
 
     def _lo_arm_reward(self):
         return self.config.lo_arm_score
@@ -49,14 +49,14 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
         return f"Machines: {machine1}({pos1}), {machine2}({pos2}). Choose: {self.get_all_actions()}"
 
     def step(self, action: int):
-        if action == self.invalid_act:
-            reward = self.invalid_act_score
-            next_obs = f"Invalid action: {reward} points"
+        if action == self.INVALID_ACTION:
+            reward = self.PENALTY_FOR_INVALID
+            arm_name = "Invalid action"
         else:
             reward = self.compute_reward(action)
             arm_name = self.ARM_IDX_TO_NAME[action]
-            next_obs = f"{arm_name}: {reward} points"
-        done, info = True, {"action_is_effective": action != self.invalid_act}
+        next_obs = f"{arm_name}: {reward} points"
+        done, info = True, {"action_is_effective": action != self.INVALID_ACTION, "action_is_valid": action != self.INVALID_ACTION, "success": arm_name == self.hi_arm_name}
         return next_obs, reward, done, info
     
     def compute_reward(self, action):
@@ -67,7 +67,7 @@ class BiArmBanditEnv(BaseDiscreteActionEnv, gym.Env):
             return self._hi_arm_reward()
 
     def get_all_actions(self):
-        return [self.invalid_act, self.ACTION_SPACE.start, self.ACTION_SPACE.start + 1]
+        return [self.ACTION_SPACE.start, self.ACTION_SPACE.start + 1]
 
 
 if __name__ == "__main__":
@@ -85,6 +85,6 @@ if __name__ == "__main__":
             'action': env.ARM_IDX_TO_NAME[action]
         }
 
-    env = BiArmBanditEnv()
+    env = BanditEnv()
     stats = run_simulation(env)
     print(f"Arm: {stats['action']}, Reward: {stats['mean_reward']:.3f} ± {stats['std_reward']:.3f}")
