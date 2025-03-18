@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 from ragen.env import ENV_REGISTRY, ENV_CONFIG_REGISTRY
 from .config import MultiEnvInterfaceConfig
+from ragen.env.base import BaseLanguageBasedEnv
 
 
 class MultiEnvInterface:
@@ -32,9 +33,11 @@ class MultiEnvInterface:
                 self.env_data['types'][env_id] = env_type
                 env_id += 1
 
-    def reset(self, env_ids=None, seeds=None):
-        env_ids = env_ids or list(self.envs.keys())
+    def reset(self, seed=None):
+        env_ids = list(self.envs.keys())
         observations = {}
+        # generate a bunch of seeds based on the meta seed
+        seeds = [seed + i for i in range(len(env_ids))]
         
         for i, env_id in enumerate(env_ids):
             if env_id in self.envs:
@@ -70,23 +73,19 @@ class MultiEnvInterface:
             for action_text in response.split(self.config.multi_action_sep):
                 if not action_text.strip() or env_done:
                     continue
-                
-                for action in self._parse_action(action_text.strip(), env_id):
-                    if action == 'None':
-                        continue
-                    
-                    obs, reward, done, info = self.envs[env_id].step(action)
-                    actions_count += 1
-                    self.env_data['steps'][env_id] += 1
-                    self.env_data['rewards'][env_id] += reward
-                    reward_sum += reward
-                    last_obs = obs
-                    infos.append(info)
-                    done = done or self.env_data['steps'][env_id] >= self.config.max_episode_steps
-                    if done:
-                        self.env_data['dones'][env_id] = True
-                        env_done = True
-                        break
+                action = self._parse_action(action_text.strip(), env_id)
+                obs, reward, done, info = self.envs[env_id].step(action)
+                actions_count += 1
+                self.env_data['steps'][env_id] += 1
+                self.env_data['rewards'][env_id] += reward
+                reward_sum += reward
+                last_obs = obs
+                infos.append(info)
+                done = done or self.env_data['steps'][env_id] >= self.config.max_episode_steps
+                if done:
+                    self.env_data['dones'][env_id] = True
+                    env_done = True
+                    break
             
             # Record results
             if last_obs:
@@ -107,7 +106,7 @@ class MultiEnvInterface:
     def _parse_action(self, text, env_id):
         """Parse text to extract actions"""
         if not text:
-            return ['None']
+            return 'None'
             
         env = self.envs[env_id]
         text = text.lower().strip()
@@ -117,10 +116,18 @@ class MultiEnvInterface:
             actions = {v.lower(): k for k, v in env.ACTION_LOOKUP.items()}
             for name, action_id in actions.items():
                 if name == text:
-                    return [action_id]
-         
-        return [getattr(env, "INVALID_ACTION", 'None')]
+                    return action_id
+                    
+        if hasattr(env, "get_all_actions"):
+            actions = env.get_all_actions()
+            for action in actions:
+                if str(action) == text:
+                    return action
 
+        if isinstance(env, BaseLanguageBasedEnv):
+            return text
+
+        return getattr(env, "INVALID_ACTION", 'None')
 
 
 # Example usage
@@ -144,7 +151,7 @@ if __name__ == "__main__":
     
     multi_env = MultiEnvInterface(config=multi_config)
     
-    observations = multi_env.reset(seeds=[42, 100, 200, 300])
+    observations = multi_env.reset(seed=1)
     
     for env_id, obs in observations.items():
         env_type = multi_env.env_data['types'][env_id]
@@ -155,7 +162,7 @@ if __name__ == "__main__":
     # Example of processing LLM responses with multiple actions
     llm_responses = {
         0: "up | right | down",
-        1: "hello | right",
+        1: "1",
         2: "up | down",
         3: "hello | up"
     }
