@@ -2,6 +2,7 @@ IPython
 matplotlib
 gym
 gym_sokoban
+gymnasium
 peft
 accelerate
 codetiming

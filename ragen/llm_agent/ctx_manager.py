@@ -85,6 +85,8 @@ class ContextManager:
         prefixes = {}
         env_config_lookup = {}
         env_config = {}
+        print(f"[DEBUG] self.config.custom_envs: {self.config.custom_envs}")
+        print(f"[DEBUG] self.config.env_configs: {self.es_cfg.env_configs}")
         for env_tag, env_config in self.config.custom_envs.items():
             if env_tag not in self.es_cfg.env_configs.tags:
                 continue

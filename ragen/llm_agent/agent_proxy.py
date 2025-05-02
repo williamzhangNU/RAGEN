@@ -159,7 +159,7 @@ class LLMAgentProxy:
 
 @hydra.main(version_base=None, config_path="../../config", config_name="base")
 def main(config):
-	# detect config name from python -m ragen.llm_agent.agent_proxy --config_name frozen_lake
+	# detect config name from python -m ragen.llm_agent.agent_proxy --config-name frozen_lake
 	os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 	os.environ["CUDA_VISIBLE_DEVICES"] = str(config.system.CUDA_VISIBLE_DEVICES)
 	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
@@ -174,14 +174,19 @@ def main(config):
 	rm_scores = rollouts.batch["rm_scores"]
 	metrics = rollouts.meta_info["metrics"]
 	avg_reward = rm_scores.sum(-1).mean().item()
+	print(f'rollouts: {rollouts}')
 	print(f'rollout rewards: {avg_reward}')
 	print(f'metrics:')
 	for k, v in metrics.items():
 		print(f'{k}: {v}')
 
+	envs = [env['env'] for env in proxy.val_es_manager.envs]
+	for env in envs:
+		print(env.get_exp_efficiency())
+		print(env.get_eval_performance())
+
 # @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_api_llm")
 # def main(config):
-# 	# detect config name from python -m ragen.llm_agent.agent_proxy --config_name frozen_lake
 # 	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
 # 	actor_wg = ApiCallingWrapperWg(config, tokenizer)
 # 	proxy = LLMAgentProxy(config, actor_wg, tokenizer)
