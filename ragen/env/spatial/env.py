@@ -101,7 +101,7 @@ class SpatialGym(gym.Env):
                     "\n\nIf you choose to terminate with Term(), it should be the only action without any movement actions before it. Example: Term()"
                 )
             else:
-                exp_answer_format += "\n\nYou can only perform one query action at a time. Example: Query(table) or Term()"
+                exp_answer_format += "\n\nYou can only perform one query action at a time. Example: Query(table, plant) or Term()"
 
         return instruction.format(
             room_info=room_desc,
