@@ -13,7 +13,7 @@ class AutoExplore:
     def __init__(self, room: Room):
         self.room = room
 
-    def generate_history(self, no_inferable: bool = False, perspective: str = None, random_state: "np.random.RandomState | None" = None,) -> str:
+    def generate_history(self, no_inferable: bool = True, perspective: str = None, random_state: "np.random.RandomState | None" = None,) -> str:
         """
         Generate exploration history using DFS
 
@@ -33,6 +33,8 @@ class AutoExplore:
                     obj1, obj2 = self.room.objects[i].name, self.room.objects[j].name
                     lines.append(f"{obj1}, {obj2} {dir_pair}")
             return "\n".join(lines)
+        #perspective = perspective or ('ego' if self.room.agent is not None else 'allo')
+        perspective = None
         def dfs(cur_graph: DirectionalGraph,
         cur_hist: List[str]) -> Optional[List[str]]:
             unknown_pairs = cur_graph.get_unknown_pairs()     # still‑unknown
@@ -48,8 +50,7 @@ class AutoExplore:
                     obj1_id, obj2_id = obj2_id, obj1_id
 
                 # Direction Room (obj1  →  obj2)  in absolute coordinates
-                dir_pair: DirPair = self.room.get_direction(obj1_id, obj2_id)[0]
-
+                dir_pair, dir_pair_str = self.room.get_direction(obj1_id, obj2_id, perspective='ego')
                 # next‑state graph (deep copy) so we don’t need to back‑track
                 nxt_graph = cur_graph.copy()
                 nxt_graph.add_edge(obj1_id, obj2_id, dir_pair)
@@ -59,7 +60,7 @@ class AutoExplore:
                 obj2_name = self.room.objects[obj2_id].name
                 step_str = (
                     f"{obj1_name}, {obj2_name} "
-                    f"{dir_pair}"
+                    f"{dir_pair_str}"
                 )
 
                 # recurse
@@ -98,11 +99,6 @@ if __name__ == "__main__":
         ]
         return Room(objects=objs)
 
-    def _name_to_id(room, name):
-        for i, obj in enumerate(room.objects):
-            if obj.name == name:
-                return i
-        raise ValueError(name)
 
 
 
