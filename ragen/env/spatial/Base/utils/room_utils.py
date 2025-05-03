@@ -149,7 +149,7 @@ def generate_room_for_rotation_eval(
     # Add objects that satisfy constraints
     obj_count = 0
     while obj_count < n:
-        pos = random_generator.randint(room_range[0], room_range[1], (1, 2))[0]
+        pos = random_generator.integers(room_range[0], room_range[1], (1, 2))[0]
         obj = Object(name=names[obj_count], pos=pos)
         
         if _is_valid_placement(objects[1:], obj):

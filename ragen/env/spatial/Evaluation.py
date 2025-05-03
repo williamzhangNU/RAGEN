@@ -341,7 +341,6 @@ class ReverseDirEvaluationTask(BaseEvaluationTask):
     1. Add a new object and guarentee inferable direction
         - Given new_obj --> anchor_obj, ask **which (target) object** is also new_obj --> target_obj
         - Provide any one of correct answer is acceptable
-    TODO
     """
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
@@ -398,36 +397,27 @@ class RotEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _get_answer(self, room: Room) -> List[str]:
-        """
-        Get the object sequence when agent turns around at its original position
-        """
+    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+        """Generate reasoning for the evaluation task"""
+        return "Testing spatial reasoning between a new object and a random object"
+
+    def generate_question(self, room: Room) -> str:
+        room = room.copy()
+        
+        # Get the answer (object sequence when agent turns around)
         def _get_angle(pos: np.ndarray):
             # get angle from 0 (0, 1) to 90 (1, 0) to 180 (0, -1) to 270 (-1, 0)
             angle = np.arctan2(pos[0], pos[1])
             if angle < 0:
                 angle += 2 * np.pi  
             return angle
+        
         turn_direction = self.config.turn_direction
         objects = room.objects
         objects.sort(key=lambda x: _get_angle(x.pos), reverse=(turn_direction == 'counterclockwise'))
-        return [obj.name for obj in objects]
-    
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
-        """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
-    
-    def _get_question(self, room: Room) -> str:
-        """
-        Get the question for the rotation evaluation task
-        """
-        object_names = [obj.name for obj in room.objects]
-        return f"Objects in the room: {object_names}. What is the sequence of objects when agent turns around at its original position?"
-
-    def generate_question(self, room: Room) -> str:
-        room = room.copy()
-        self.answer = self._get_answer(room)
-        self.question = self._get_question(room)
+        self.answer = [obj.name for obj in objects]
+        self.question = f"What is the sequence of objects when agent turns around {turn_direction} at its original position?"
+        
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
@@ -610,7 +600,7 @@ if __name__ == "__main__":
     from gymnasium.utils import seeding
     import numpy as np
 
-    config = SpatialGymConfig(n_objects=3, generation_type='rand', perspective='ego')
+    config = SpatialGymConfig(n_objects=3, generation_type='rot', perspective='ego')
     np_random = seeding.np_random(10)[0]
     room = generate_room(**config.get_room_config(), np_random=np_random)
     print(room)
@@ -648,8 +638,16 @@ if __name__ == "__main__":
     # correct, info = task.evaluate("[0, 90, 180, 270]")
     # print(correct)
 
-    # E2A evaluation task
-    task = E2AEvaluationTask(np_random=np_random)
+    # # E2A evaluation task
+    # task = E2AEvaluationTask(np_random=np_random)
+    # question = task.generate_question(room)
+    # print(question)
+    # print(task.answer)
+    # correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
+    # print(correct)
+
+    # Rotation evaluation task
+    task = RotEvaluationTask(np_random=np_random, config=RotEvaluationConfig(turn_direction='counterclockwise'))
     question = task.generate_question(room)
     print(question)
     print(task.answer)
