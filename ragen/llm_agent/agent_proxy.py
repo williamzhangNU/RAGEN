@@ -157,6 +157,10 @@ class LLMAgentProxy:
 		# self.tokenizer.batch_decode(rollouts.batch['input_ids'], skip_special_tokens=False) # see all the trajectories
 		return rollouts
 
+
+def log_each_env_info(envs: List[Dict]):
+	raise NotImplementedError("Not implemented")
+
 @hydra.main(version_base=None, config_path="../../config", config_name="base")
 def main(config):
 	# detect config name from python -m ragen.llm_agent.agent_proxy --config-name frozen_lake
@@ -174,16 +178,31 @@ def main(config):
 	rm_scores = rollouts.batch["rm_scores"]
 	metrics = rollouts.meta_info["metrics"]
 	avg_reward = rm_scores.sum(-1).mean().item()
-	print(f'rollouts: {rollouts}')
 	print(f'rollout rewards: {avg_reward}')
 	print(f'metrics:')
 	for k, v in metrics.items():
 		print(f'{k}: {v}')
 
-	envs = [env['env'] for env in proxy.val_es_manager.envs]
-	for env in envs:
+	# specific analysis for spatial env
+	messages = rollouts.non_tensor_batch['messages_list'].tolist()
+	env_ids = rollouts.non_tensor_batch['env_ids'].tolist()
+	envs = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
+	
+	for i, (message, env_id) in enumerate(zip(messages, env_ids)):
+		print(f'Message {i} for env_id {env_id}:')
+		print(message)
+		env = envs[env_id]
+		env_info = env.get_env_info()
+		print(f'env_info for env_id {env_id}:')
+		print(env_info)
+		print(f'Exploration efficiency for env_id {env_id}:')
 		print(env.get_exp_efficiency())
+		print(f'Evaluation performance for env_id {env_id}:')
 		print(env.get_eval_performance())
+
+
+
+
 
 # @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_api_llm")
 # def main(config):

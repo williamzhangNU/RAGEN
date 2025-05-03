@@ -1,7 +1,7 @@
 defaults:
   - base
 
-model_path: Qwen/Qwen2.5-7B-Instruct
+model_path: Qwen/Qwen2.5-3B-Instruct
 
 trainer:
   experiment_name: spatial-main
@@ -9,7 +9,7 @@ trainer:
 actor_rollout_ref:
   rollout:
     max_model_len: 10000
-    gpu_memory_utilization: 0.9
+    gpu_memory_utilization: 0.8
 
 agent_proxy:
   max_turn: 8
@@ -26,8 +26,8 @@ es_manager:
       tags: ["SpatialGym"]
       n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
-    env_groups: 32
+    env_groups: 1
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       tags: ["SpatialGym"]
-      n_groups: [32] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation

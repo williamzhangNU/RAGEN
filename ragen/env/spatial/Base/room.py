@@ -169,6 +169,7 @@ class Room:
             self.exp_graph = DirectionalGraph(self._all_objects_exp, is_explore=True)
             self.exp_graph.add_edge(self._name_to_id(self.agent.name), self._name_to_id(self.agent_anchor.name), DirPair(Dir.SAME, Dir.SAME))
         else:
+            self.agent_anchor = None
             self._all_objects_exp = self.objects
             self.exp_graph = DirectionalGraph(self._all_objects_exp, is_explore=True)
         self._validate()
@@ -177,7 +178,7 @@ class Room:
     @classmethod
     def from_dict(cls, room_dict: dict) -> 'Room':
         objects = [Object.from_dict(obj_dict) for obj_dict in room_dict['objects']]
-        agent = Object.from_dict(room_dict['agent']) if room_dict['agent'] is not None else None
+        agent = Agent.from_dict(room_dict['agent']) if room_dict['agent'] is not None else None
         agent_anchor = Object.from_dict(room_dict['agent_anchor']) if room_dict['agent_anchor'] is not None else None
         exp_graph = DirectionalGraph.from_dict(room_dict['exp_graph'])
         instance = cls(
@@ -188,7 +189,7 @@ class Room:
         instance.agent_anchor = agent_anchor
         instance.exp_graph = exp_graph
         instance.backup = {
-            'agent': Object.from_dict(room_dict['backup']['agent']) if room_dict['backup']['agent'] is not None else None,
+            'agent': Agent.from_dict(room_dict['backup']['agent']) if room_dict['backup']['agent'] is not None else None,
             'objects': [Object.from_dict(obj_dict) for obj_dict in room_dict['backup']['objects']],
         }
         return instance
@@ -205,6 +206,7 @@ class Room:
                 'objects': [obj.to_dict() for obj in self.backup['objects']],
             }
         }
+
     
     def copy(self):
         room = Room(
@@ -212,7 +214,7 @@ class Room:
             objects=copy.deepcopy(self.objects),
             agent=copy.deepcopy(self.agent),
         )
-        room.agent_anchor = copy.deepcopy(self.agent_anchor)
+        room.agent_anchor = copy.deepcopy(self.agent_anchor) if self.agent_anchor is not None else None
         room.exp_graph = self.exp_graph.copy()
         room.backup = {
             'agent': copy.deepcopy(self.backup['agent']),
@@ -249,6 +251,23 @@ class Room:
         desc += f"Objects in the room are: {', '.join([obj.name for obj in self.objects])}\n"
         return desc
     
+    def get_objects_orientation(self):
+        """
+        Get the objects in the room with their orientation
+        """
+        ori_mapping = {
+            (0, 1): "north",
+            (0, -1): "south",
+            (1, 0): "east",
+            (-1, 0): "west",
+        }
+        desc = "Orientation of objects in the room are: \n"
+        for obj in self.all_objects:
+            if obj.name == self.agent.name:
+                continue
+            desc += f"{obj.name} facing {ori_mapping[tuple(obj.ori)]}\n"
+        return desc
+
 
 
     def explore(
@@ -404,30 +423,26 @@ class Room:
             direction (DirPair): direction of object2 relative to object1
             direction_str (str): direction of object2 relative to object1 in string format
         """
+        # Transform all inputs to object indices
+        obj1_idx = self._name_to_id(object1) if isinstance(object1, str) else object1
+        obj2_idx = self._name_to_id(object2) if isinstance(object2, str) else object2
+        anchor_obj_idx = None
+        if anchor_obj is not None:
+            anchor_obj_idx = self._name_to_id(anchor_obj) if isinstance(anchor_obj, str) else anchor_obj
+
         if from_exp_graph:
-            obj1_id = self._name_to_id(object1) if isinstance(object1, str) else object1
-            obj2_id = self._name_to_id(object2) if isinstance(object2, str) else object2
-            dir_pair = self.exp_graph.get_direction(obj1_id, obj2_id)
-            if anchor_obj is not None:
-                anchor_obj_id = self._name_to_id(anchor_obj) if isinstance(anchor_obj, str) else anchor_obj
-                dir_pair = DirectionSystem.transform(dir_pair, self._all_objects_exp[anchor_obj_id].ori)
+            dir_pair = self.exp_graph.get_direction(obj1_idx, obj2_idx)
+            if anchor_obj_idx is not None:
+                dir_pair = DirectionSystem.transform(dir_pair, self._all_objects_exp[anchor_obj_idx].ori)
 
         else:
-            if isinstance(object1, str):
-                object1 = self._get_object_by_name(object1)
-            elif isinstance(object1, int):
-                object1 = self._all_objects_exp[object1]
-
-            if isinstance(object2, str):
-                object2 = self._get_object_by_name(object2)
-            elif isinstance(object2, int):
-                object2 = self._all_objects_exp[object2]
-
-            if anchor_obj is not None:
-                if isinstance(anchor_obj, str):
-                    anchor_obj = self._get_object_by_name(anchor_obj)
-                elif isinstance(anchor_obj, int):
-                    anchor_obj = self._all_objects_exp[anchor_obj]
+            # We've already converted to indices above, so use those
+            object1 = self._all_objects_exp[obj1_idx]
+            object2 = self._all_objects_exp[obj2_idx]
+            
+            anchor_obj = None
+            if anchor_obj_idx is not None:
+                anchor_obj = self._all_objects_exp[anchor_obj_idx]
                 
             dir_pair = DirectionSystem.get_direction(object1.pos, object2.pos, anchor_obj.ori if anchor_obj is not None else None)
         
@@ -536,6 +551,7 @@ if __name__ == "__main__":
         agent=agent
     )
     print(room.get_room_desc())
+    print(room.get_objects_orientation())
 
 
     dir_pair, dir_pair_str = room.get_direction(obj1.name, obj2.name)

@@ -141,16 +141,31 @@ class AllPairsEvaluationConfig(BaseEvaluationConfig):
 class DirEvaluationConfig(BaseEvaluationConfig):
     """
     Config for the direction evaluation task
+    The movement can be 'static', 'object_move', 'agent_move', 'agent_turn'
+        - static: nothing moves, all objects remain in place
+        - object_move: the object moves <dir> of another object
+        - agent_move: the agent moves <dir> of another object
+        - agent_turn: the agent turns <degree>
     """
-    pass
+    movement: str = 'static'  # Options: 'static', 'object_move', 'agent_move', 'agent_turn'
+    def __post_init__(self):
+        assert self.movement in ['static', 'object_move', 'agent_move', 'agent_turn'],\
+            "movement must be one of ['static', 'object_move', 'agent_move', 'agent_turn']"
+
 
 
 @dataclass
 class RotEvaluationConfig(BaseEvaluationConfig):
     """
     Config for the rotation evaluation task
+    The rotation can be 'clockwise', 'counterclockwise'
+        - clockwise: the agent turns clockwise
+        - counterclockwise: the agent turns counterclockwise
     """
     turn_direction: str = 'clockwise'
+    def __post_init__(self):
+        assert self.turn_direction in ['clockwise', 'counterclockwise'],\
+            "turn_direction must be one of ['clockwise', 'counterclockwise']"
 
 @dataclass
 class PovEvaluationConfig(BaseEvaluationConfig):

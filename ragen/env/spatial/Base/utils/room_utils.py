@@ -205,8 +205,8 @@ def generate_allo2ego_objects(
         
         while True:
             # Choose random direction and step size
-            dir_idx = random_generator.randint(0, 4)
-            step_size = random_generator.randint(min_step, max_step + 1)
+            dir_idx = random_generator.integers(0, 4)
+            step_size = random_generator.integers(min_step, max_step + 1)
             
             # Calculate new position
             direction_vector = directions[dir_idx] * step_size

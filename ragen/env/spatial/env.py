@@ -59,6 +59,7 @@ class SpatialGym(gym.Env):
         # for state
         self.room_s_t = None  # latest/current state of the room
         self.room_s_0 = None  # initial state of the room
+        self.room_s_end = None  # final state of the room, agent may return to its original state
 
         # for action space
         # Set available actions based on exploration type
@@ -69,7 +70,7 @@ class SpatialGym(gym.Env):
         # for analysis
         self.n_novel_queries = None
         self.n_valid_queries = None
-        self.eval_performance = None
+        self.eval_results = None
 
     def _gen_initial_obs(self):
         """
@@ -132,7 +133,6 @@ class SpatialGym(gym.Env):
         self.max_exp_steps = self.config.max_exp_steps
         self.n_valid_queries = 0
         self.n_novel_queries = 0
-        self.eval_performance = []
 
         self.room_s_0: Room = generate_room(
             **self.config.get_room_config(),
@@ -140,6 +140,7 @@ class SpatialGym(gym.Env):
         )
         self.room_s_t = self.room_s_0.copy()
         self.eval_tasks = [get_eval_task(task['task_type'], self.np_random, task['task_kwargs']) for i, task in enumerate(self.config.eval_tasks)]
+        self.eval_results = []
             
 
         obs = self._gen_initial_obs()
@@ -175,12 +176,11 @@ class SpatialGym(gym.Env):
             # Check if exploration phase should end
             if query_action.action_type == ActionType.TERM or self.max_exp_steps < 0:
                 self.is_exp_stage = False
-                self.room_s_t.finish_exploration()
+                self.room_s_end = self.room_s_t.copy()
+                self.room_s_end.finish_exploration()
                 
                 # Transition to first evaluation task
                 question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
-                print(f"[DEBUG] eval_task question: {question}")
-                print(f"[DEBUG] eval_task answer: {self.eval_tasks[0].answer}")
                 self.render_cache = question
                 return question, 0, False, {}
             else:
@@ -198,7 +198,11 @@ class SpatialGym(gym.Env):
         else:
             # Evaluate current task answer
             correct, _info = self.eval_tasks[0].evaluate(action)
-            self.eval_performance.append(correct)
+            self.eval_results.append({
+                "task_type": self.eval_tasks[0].to_string(),
+                "correct": correct,
+                "info": _info,
+            })
             reward = 1 if correct else 0
             self.eval_tasks.pop(0)
             
@@ -208,8 +212,6 @@ class SpatialGym(gym.Env):
                 return "Task finished", reward, True, {}
             else:
                 question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
-                print(f"[DEBUG] eval_task question: {question}")
-                print(f"[DEBUG] eval_task answer: {self.eval_tasks[0].answer}")
                 self.render_cache = question
                 return question, reward, False, {}
         
@@ -217,6 +219,17 @@ class SpatialGym(gym.Env):
     def render(self):
         return self.render_cache
 
+
+
+
+    #=============== for analysis ===============
+    def get_env_info(self):
+        return {
+            "config": self.config.to_dict(),
+            "room_s_0": self.room_s_0.to_dict(),
+            "room_s_t": self.room_s_t.to_dict(),
+            "room_s_end": self.room_s_end.to_dict(),
+        }
 
     def get_exp_efficiency(self):
         """
@@ -240,10 +253,26 @@ class SpatialGym(gym.Env):
     def get_eval_performance(self):
         """
         Get the evaluation performance
+        - Accuracy: average accuracy across all evaluation tasks
+        - Task-specific results: detailed performance for each task type
         """
+        # Include unanswered evaluation tasks in the results
+        all_results = self.eval_results.copy()
+        
+        # Add unanswered tasks as incorrect answers
+        for task in self.eval_tasks[len(self.eval_results):]:
+            all_results.append({
+                "task_type": task.to_string(),
+                "correct": False,
+                "info": {}
+            })
+        
         return {
-            "accuracy": sum(self.eval_performance) / len(self.eval_performance) if len(self.eval_performance) > 0 else 0,
-            'eval_performance': self.eval_performance,
+            "accuracy": sum(result["correct"] for result in all_results) / len(all_results),
+            'accuracy_completed': sum(result["correct"] for result in self.eval_results) / len(self.eval_results),
+            "task_results": all_results,
+            "completed_tasks": len(self.eval_results),
+            "unanswered_tasks": len(self.eval_tasks)
         }
 
 

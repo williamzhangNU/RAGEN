@@ -17,7 +17,7 @@ class Matrices:
     horizontal: np.ndarray
     vertical_working: np.ndarray
     horizontal_working: np.ndarray
-
+    asked: np.ndarray
 
 
 class DirectionalGraph:
@@ -49,7 +49,7 @@ class DirectionalGraph:
             is_explore: If True, initialize empty matrices, otherwise, all known
             keep_original: If True, keep the original object if it is moved
         """
-        self.size = len(objects)
+        self.size = len(objects) # track valid objects in the graph
         
         if not is_explore:
             matrices = self._init_matrices(objects)
@@ -60,7 +60,7 @@ class DirectionalGraph:
         self._h_matrix = matrices.horizontal
         self._v_matrix_working = matrices.vertical_working
         self._h_matrix_working = matrices.horizontal_working
-        self._asked_matrix = np.zeros((self.size, self.size), dtype=bool) # record which relationship is asked
+        self._asked_matrix = matrices.asked
         
         self.is_explore = is_explore
         self.keep_original = keep_original
@@ -74,14 +74,16 @@ class DirectionalGraph:
         h_matrix = np.full((size, size), self.UNKNOWN_VALUE)
         v_matrix_working = np.zeros((size, size))
         h_matrix_working = np.zeros((size, size))
-        
+        asked = np.zeros((size, size), dtype=bool)
+
         # Set diagonal elements
         np.fill_diagonal(v_matrix, 0)
         np.fill_diagonal(h_matrix, 0)
         np.fill_diagonal(v_matrix_working, 1)
         np.fill_diagonal(h_matrix_working, 1)
-        
-        return Matrices(v_matrix, h_matrix, v_matrix_working, h_matrix_working)
+        np.fill_diagonal(asked, 1)
+
+        return Matrices(v_matrix, h_matrix, v_matrix_working, h_matrix_working, asked)
 
     def _dir_to_val(self, dir: Dir, axis: Literal['vertical', 'horizontal']) -> float:
         """Convert a Dir enum to its matrix value representation."""
@@ -140,6 +142,7 @@ class DirectionalGraph:
         # Update working matrices
         matrices.vertical_working[(matrices.vertical == 1) | (matrices.vertical == 0)] = 1
         matrices.horizontal_working[(matrices.horizontal == 1) | (matrices.horizontal == 0)] = 1
+        matrices.asked = np.ones((len(objects), len(objects)), dtype=bool)
 
         return matrices
 
@@ -159,7 +162,7 @@ class DirectionalGraph:
             - For working matrix, (B, A) = 0 => update (A, B) = 1 in final matrix (only A -> B)  
         """
 
-        unknown_mask = (self._v_matrix_working + self._v_matrix_working.T) == 0
+        unknown_mask = (self._v_matrix_working + self._v_matrix_working.T) == 0 # unknown if both 0
         self._v_matrix = self._v_matrix_working + self._v_matrix_working.T * (-1)
         self._v_matrix[unknown_mask] = self.UNKNOWN_VALUE
 
@@ -236,11 +239,13 @@ class DirectionalGraph:
         # Update working matrices
         self._v_matrix_working = v_expanded
         self._h_matrix_working = h_expanded
+        self._update_matrices_from_working()
 
         # Update asked matrix
-        new_asked_matrix = np.zeros((new_size, new_size))
+        new_asked_matrix = np.zeros((new_size, new_size), dtype=bool)
         new_asked_matrix[:-1, :-1] = self._asked_matrix
         self._asked_matrix = new_asked_matrix
+        np.fill_diagonal(self._asked_matrix, 1)
         
         # Update relationships
         self.add_edge(new_obj_id, obj_anchor_id, dir_pair)
@@ -263,7 +268,6 @@ class DirectionalGraph:
 
         # Create expanded matrices
         new_size = self._v_matrix_working.shape[0] + 1
-        self.size += 1
         v_expanded = np.zeros((new_size, new_size))
         h_expanded = np.zeros((new_size, new_size))
         
@@ -285,7 +289,7 @@ class DirectionalGraph:
         # Update working matrices
         self._v_matrix_working = v_expanded
         self._h_matrix_working = h_expanded
-
+        self._update_matrices_from_working()
         # Update asked matrix
         self._asked_matrix[obj1_id, :] = 0
         self._asked_matrix[:, obj1_id] = 0
@@ -299,7 +303,7 @@ class DirectionalGraph:
         if not self.keep_original:
             self._v_matrix_working = self._v_matrix_working[:-1, :-1]
             self._h_matrix_working = self._h_matrix_working[:-1, :-1]
-            self.size -= 1
+            self._update_matrices_from_working()
 
         
 
