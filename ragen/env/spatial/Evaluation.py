@@ -253,15 +253,20 @@ class DirEvaluationTask(BaseEvaluationTask):
     
     def __init__(self, np_random: np.random.Generator, config: DirEvaluationConfig = DirEvaluationConfig()):
         super().__init__(np_random, config)
-        if 'agent' in self.config.movement:
-            assert room.agent is not None, "Agent must be in the room for agent movement"
-
+        
     def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
         """Generate reasoning for the evaluation task"""
         return "Testing spatial reasoning between a new object and a random object"
 
     def generate_question(self, room: Room) -> str:
         room = room.copy()
+        if self.config.movement == 'agent_move':
+            if room.agent is None:
+                raise ValueError("Agent must be in the room for agent movement")
+        elif self.config.movement == 'agent_turn':
+            if room.agent is None:
+                raise ValueError("Agent must be in the room for agent turn")
+
         graph = DirectionalGraph(room.all_objects, is_explore=False)
         graph.is_explore = True
 
