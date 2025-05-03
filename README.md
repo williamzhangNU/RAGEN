@@ -295,7 +295,7 @@ We thank the [DeepSeek](https://github.com/deepseek-ai/DeepSeek-R1) team for pro
 
 
 ## Citation
-If you find RAGEN useful, please consider citing our work:
+If you find RAGEN useful, we would appreciate it if you consider citing our work:
 ```md
 @misc{ragen,
       title={RAGEN: Understanding Self-Evolution in LLM Agents via Multi-Turn Reinforcement Learning}, 
