@@ -13,7 +13,12 @@ class AutoExplore:
     def __init__(self, room: Room):
         self.room = room
 
-    def generate_history(self, no_inferable: bool = True, perspective: str = None, random_state: "np.random.RandomState | None" = None,) -> str:
+    def generate_history(
+            self,
+            np_random,
+            no_inferable: bool = True,
+            perspective: str = None,
+        ) -> str:
         """
         Generate exploration history using DFS
 
@@ -22,8 +27,8 @@ class AutoExplore:
             perspective: 'allo' or 'ego' 
         """
         
-        if random_state is None:
-            random_state = np.random.RandomState(seed=42)
+        if np_random is None:
+            np_random = np.random.default_rng(42)
         graph = DirectionalGraph(self.room.objects, is_explore=True)
         history: List[str] = []
         if not no_inferable:
@@ -43,16 +48,16 @@ class AutoExplore:
                 return cur_hist
 
             # reproducibly shuffle the exploration order
-            for idx in random_state.permutation(len(unknown_pairs)):
+            for idx in np_random.permutation(len(unknown_pairs)):
                 obj1_id, obj2_id = unknown_pairs[idx]
 
-                # random orientation – just for variety
-                if random_state.rand() < 0.5:
+                # random orientation – just for variety
+                if np_random.random() < 0.5:
                     obj1_id, obj2_id = obj2_id, obj1_id
 
-                # Direction Room (obj1  →  obj2)  in absolute coordinates
+                # Direction Room (obj1  →  obj2)  in absolute coordinates
                 dir_pair, dir_pair_str = self.room.get_direction(obj1_id, obj2_id, perspective=perspective)
-                # next‑state graph (deep copy) so we don’t need to back‑track
+                # next‑state graph (deep copy) so we don't need to back‑track
                 nxt_graph = cur_graph.copy()
                 nxt_graph.add_edge(obj1_id, obj2_id, dir_pair)
 
@@ -86,6 +91,7 @@ class AutoExplore:
 if __name__ == "__main__":
     import re
     from ragen.env.spatial.Base.object import Object
+    from gymnasium.utils import seeding
 
 
     # ---------------------------------------------------------------
@@ -100,26 +106,17 @@ if __name__ == "__main__":
         ]
         return Room(objects=objs)
 
-
-
-
+    room = _make_tiny_room()
     # ---------------------------------------------------------------
-    # 1) Basic “smoke test”
-    # ---------------------------------------------------------------
-    room      = _make_tiny_room()
-    explorer  = AutoExplore(room)
-    history   = explorer.generate_history()   # default seed 42
-    print(history)
-    assert isinstance(history, str) and history.strip(), "History is empty"
-
-    # ---------------------------------------------------------------
-    # 2) Deterministic with same seed
+    # Deterministic with same seed
     # ---------------------------------------------------------------
     seed = 99
-    rng1 = np.random.RandomState(seed)
-    rng2 = np.random.RandomState(seed)
-    hist1 = AutoExplore(room).generate_history(rng1)
-    hist2 = AutoExplore(room).generate_history(rng2)
+    rng1 = seeding.np_random(seed)[0]
+    rng2 = seeding.np_random(seed)[0]
+    hist1 = AutoExplore(room).generate_history(np_random=rng1)
+    hist2 = AutoExplore(room).generate_history(np_random=rng2)
+    print(hist1)
+    print(hist2)
     assert hist1 == hist2, "Same seed should yield identical history"
 
 
