@@ -50,47 +50,38 @@ Opposite direction pairs:
 - front ↔ back
 - same ↔ same
 
-## Core Rules
+# Reasoning Rules
 
-You are only allowed to deduce new relationships using the following:
+Only use the following rules:
 
-1. Direct Observation  
-   Use only the given exploration history.
+1. **Observation**: Use direct observations from the exploration history.
 
-2. Symmetry  
+2. **Symmetry**:  
    If (A, B): (X, Y), then (B, A): (opposite of X, opposite of Y)
 
-3. Transitivity (Single Axis Only)  
-You may only chain relations along the same axis.
+3. **Transitivity (One Axis Only)**:  
+   - You may **only chain along one axis** at a time (horizontal **or** vertical).  
+   - Example:  
+     (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)  
+     (A, B): (same, back), (B, C): (same, back) ⇒ (A, C): (same, back)
 
-**Valid horizontal example:**  
-(A, B): (left, same)  
-(B, C): (left, same)  
-⇒ (A, C): (left, same)
+!!! Invalid:  
+- (A, B): (left, front), (B, C): (same, back) ⇒ ✘ Rejected (mixed axes)  
+- Chaining two objects (A and C) via shared anchor (B), when both A→B and C→B are mixed-axis, is also ✘ invalid
 
-**Valid vertical example:**  
-(A, B): (same, back)  
-(B, C): (same, back)  
-⇒ (A, C): (same, back)
+# Movement Rule
+If an object moves, discard all earlier relationships involving it. Only use its **new** position.
 
-**Invalid (mixed axes):**  
-(A, B): (left, front)  
-(B, C): (same, back)  
-✘ Do not combine different axes.
+# Output Requirements
+- For each pair: show step-by-step inference using observation, symmetry, or transitivity  
+- If undeducible, output: `<answer>(unknown, unknown)</answer>`  
+- Do not guess or assume
 
-## Requirements
-
-For each object pair:
-- Start from known facts  
-- Show step-by-step inference  
-- Label each step as: observation, symmetry, or transitivity  
-- If not strictly deducible, skip it  
-- Make sure your final answer is based on the exploration history and your valid reasoning steps
-
-**Important:**
-If an object moves, all previous spatial relationships involving that object may no longer be valid.
-Only use relationships involving the new position of the moved object, based on the most recent observation.
-Do not guess. Do not mix axes. If a relationship cannot be strictly derived using only observation, symmetry, or single-axis transitivity, then you must leave it undetermined
+# Final Checklist (must include in your thinking process)
+- All chains follow a single axis  
+- Symmetry applied correctly  
+- No mixed-axis chaining  
+- No invalid anchor-based comparison (e.g., deducing A↔C from both to B)
 
 ## Room Description
 {room_info}
