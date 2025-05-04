@@ -81,7 +81,7 @@ class SpatialGym(gym.Env):
         exp_answer_format = ""
         if self.config.exp_type == 'passive':
             # TODO for passive, generate exploration history using DFS here
-            auto_explore = AutoExplore(self.room_s_0)
+            auto_explore = AutoExplore(self.room_s_0, self.np_random)
             exp_history = auto_explore.generate_history()
             exp_history = f"## Exploration History\n{exp_history}"
 
@@ -295,11 +295,19 @@ if __name__ == "__main__":
     # print(result)
 
 
+    config = SpatialGymConfig(eval_tasks=[{"task_type": "dir", "task_kwargs": {}}], exp_type="passive")
+    env = SpatialGym(config)
+    obs, _ = env.reset(seed=25)
+    print(env.room_s_0)
+    print(obs)
+
+
     config = SpatialGymConfig(eval_tasks=[{"task_type": "dir", "task_kwargs": {}}], exp_type="semi")
     env = SpatialGym(config)
     obs, _ = env.reset(seed=25)
     print(env.room_s_0)
     print(obs)
+
     result = env.step("Query(agent, flower)")
     print(result)
     print(env.room_s_t.exp_graph._v_matrix)
