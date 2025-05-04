@@ -16,20 +16,81 @@ from ragen.env.spatial.utils.parse_exp_input import parse_action
 from ragen.env.spatial.utils.get_eval_task import get_eval_task
 
 
-instruction = """\
-# Spatial Mapping Task
-You are exploring the room with several objects. 
-Your goal is to uncover spatial relationships between object pairs to build a complete mental map.
-You should terminate your exploration when you have explored the room and found all the spatial relationships.
+# instruction = """\
+# # Spatial Mapping Task
+# You are exploring the room with several objects. 
+# Your goal is to uncover spatial relationships between object pairs to build a complete mental map.
+# You should terminate your exploration when you have explored the room and found all the spatial relationships.
 
-## Spatial Relationships
-(A, B): (<Horizontal>, <Vertical>) means A is to the <Horizontal> and <Vertical> of B, where:
+# ## Spatial Relationships
+# (A, B): (<Horizontal>, <Vertical>) means A is to the <Horizontal> and <Vertical> of B, where:
+# - Horizontal: left, right, same
+# - Vertical: front, back, same
+# - "same" means objects are aligned on that axis, (e.g., (same, front) means directly front, not leaning left or right)
+# - Relationships are relative (if A is left of B, then B is right of A)
+# - Relationships can be transitive (if A is left of B and B is left of C, then A is left of C)
+# - No distance information is included
+instruction = """\
+You are a spatial reasoning assistant. Your task is to determine all spatial relationships between object pairs in a room. You must only use valid reasoning steps. Do not assume or guess.
+
+# Spatial Mapping Task
+There are several objects in a room. Your goal is to map their relative positions based on the observed relationships.
+
+## Spatial Relationship Format
+Each spatial relationship is written as:
+(A, B): (Horizontal, Vertical)
+Meaning: "A is to the Horizontal and Vertical of B"
+
+Possible values:
 - Horizontal: left, right, same
 - Vertical: front, back, same
-- "same" means objects are aligned on that axis, (e.g., (same, front) means directly front, not leaning left or right)
-- Relationships are relative (if A is left of B, then B is right of A)
-- Relationships can be transitive (if A is left of B and B is left of C, then A is left of C)
-- No distance information is included
+
+Opposite direction pairs:
+- left ↔ right
+- front ↔ back
+- same ↔ same
+
+## Core Rules
+
+You are only allowed to deduce new relationships using the following:
+
+1. Direct Observation  
+   Use only the given exploration history.
+
+2. Symmetry  
+   If (A, B): (X, Y), then (B, A): (opposite of X, opposite of Y)
+
+3. Transitivity (Single Axis Only)  
+You may only chain relations along the same axis.
+
+**Valid horizontal example:**  
+(A, B): (left, same)  
+(B, C): (left, same)  
+⇒ (A, C): (left, same)
+
+**Valid vertical example:**  
+(A, B): (same, back)  
+(B, C): (same, back)  
+⇒ (A, C): (same, back)
+
+**Invalid (mixed axes):**  
+(A, B): (left, front)  
+(B, C): (same, back)  
+✘ Do not combine different axes.
+
+## Requirements
+
+For each object pair:
+- Start from known facts  
+- Show step-by-step inference  
+- Label each step as: observation, symmetry, or transitivity  
+- If not strictly deducible, skip it  
+- Make sure your final answer is based on the exploration history and your valid reasoning steps
+
+**Important:**
+If an object moves, all previous spatial relationships involving that object may no longer be valid.
+Only use relationships involving the new position of the moved object, based on the most recent observation.
+Do not guess. Do not mix axes. If a relationship cannot be strictly derived using only observation, symmetry, or single-axis transitivity, then you must leave it undetermined
 
 ## Room Description
 {room_info}
@@ -84,6 +145,7 @@ class SpatialGym(gym.Env):
             auto_explore = AutoExplore(self.room_s_0, self.np_random)
             exp_history = auto_explore.generate_history()
             exp_history = f"## Exploration History\n{exp_history}"
+            exp_history += f"\n\n## Question\n{self.initial_question}"
 
         else:
             action_formats = []
@@ -140,6 +202,12 @@ class SpatialGym(gym.Env):
         )
         self.room_s_t = self.room_s_0.copy()
         self.eval_tasks = [get_eval_task(task['task_type'], self.np_random, task['task_kwargs']) for i, task in enumerate(self.config.eval_tasks)]
+        for task in self.eval_tasks:
+            task.generate_question(self.room_s_t)
+        if self.config.exp_type == 'passive':
+            self.room_s_end = self.room_s_t.copy()
+            self.room_s_end.finish_exploration()
+            self.initial_question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
         self.eval_results = []
             
 
@@ -214,7 +282,7 @@ class SpatialGym(gym.Env):
                 question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
                 self.render_cache = question
                 return question, reward, False, {}
-        
+         
 
     def render(self):
         return self.render_cache

@@ -307,7 +307,7 @@ class DirEvaluationTask(BaseEvaluationTask):
             # Get the direction between the new object and the chosen object
             dir_pair = DirectionSystem.get_direction(new_pos, anchor_obj.pos, anchor_obj.ori)
             dir_pair_str = DirectionSystem.to_string(dir_pair, perspective='ego' if room.agent is not None else 'allo')
-            obs += f"{target_name} moves {dir_pair_str} to {anchor_name}."
+            obs += f"{target_name} moves such that it is {dir_pair_str} of {anchor_name}."
 
             if self.config.movement == 'static':
                 graph.add_node(anchor_obj_idx, dir_pair)
@@ -328,12 +328,16 @@ class DirEvaluationTask(BaseEvaluationTask):
         
 
         # 4. Generate the QA
-        self.question = f"{obs} {target_name} is what direction to {query_obj.name}?"
+        self.question = f"{obs} {target_name} is what direction to {query_obj.name}?\n" \
+                "Answer format: <answer>(X, Y)</answer>. X can be left, right, or same; Y can be front, back, or same. " \
+                "If the relationship cannot be deduced, answer <answer>(unknown, unknown)</answer>."
         dir_pair_query = graph.get_direction(target_obj_idx, query_obj_idx)
         self.answer = DirectionSystem.to_string(dir_pair_query, perspective='ego' if room.agent is not None else 'allo')
         return self.question
         
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")
         return dir_eval_fn(answer, self.answer), {}
 
 
@@ -464,6 +468,8 @@ class PovEvaluationTask(BaseEvaluationTask):
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")
         return dir_eval_fn(answer, self.answer), {}
         
         
@@ -516,6 +522,8 @@ class E2AEvaluationTask(BaseEvaluationTask):
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")
         return obj_seq_eval_fn(answer, self.answer), {}
         
         
@@ -593,6 +601,8 @@ class A2EEvaluationTask(BaseEvaluationTask):
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")
         return deg_seq_eval_fn(answer, self.answer), {}
 
 
