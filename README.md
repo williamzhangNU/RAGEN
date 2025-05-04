@@ -21,6 +21,10 @@
 
 </p>
 
+**2025.5.2 Update:**
+We now release a [tracking document](https://docs.google.com/document/d/1bg7obeiKTExuHHBl5uOiSpec5uLDZ2Tgvxy6li5pHX4/edit?usp=sharing) to log minor updates in the RAGEN codebase. 
+
+
 **2025.4.20 Update:**
 
 Our RAGEN [paper](https://arxiv.org/abs/2504.20073) is out!

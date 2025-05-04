@@ -8,7 +8,7 @@ system:
 micro_batch_size_per_gpu: 4
 ppo_mini_batch_size: 32
 model_path: Qwen/Qwen2.5-0.5B-Instruct
-enable_response_mask: False
+enable_response_mask: True # in the RAGEN paper (https://arxiv.org/abs/2504.20073), we did not set enable_response_mask; we find enabling response mask could improve stability of rollout/old_log_prob, as P(st|s0, aT0, r0...) are no longer calculated here.
 grpo_advantage_length_weight: False # if you do not enable this and critic/advantage_estimator is GRPO, and the critic/advantages/mean is too low, then you can try enabling this to encourage reasoning and forbid collapse
 
 lora:
