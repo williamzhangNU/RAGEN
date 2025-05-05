@@ -4,6 +4,8 @@ The script defines the different evaluation metrics for the SpatialGym.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple, Any, List
+from textwrap import indent, dedent
+from collections import defaultdict
 import re
 import numpy as np
 from typing_extensions import override
@@ -36,7 +38,6 @@ class BaseEvaluationTask(ABC):
         self.question = None
         self.reasoning = None
         self.answer = None
-
     @abstractmethod
     def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
         """
@@ -121,7 +122,10 @@ class BaseEvaluationTask(ABC):
         
         task_type = data.get('type', cls.__name__)
         return task_types.get(task_type, cls).from_dict(data)
-    
+    def _wrap(self, reason: str, ans) -> str:
+        """Wrap reasoning + answer in the required XML‑like tags."""
+        return f"<think>\n{indent(reason.strip(), '    ')}\n</think> <answer> {ans} </answer>"
+
 
 class AllPairsEvaluationTask(BaseEvaluationTask):
     """
@@ -403,9 +407,97 @@ class RotEvaluationTask(BaseEvaluationTask):
         super().__init__(np_random, config)
 
     def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
-        """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
+        turn_dir = self.config.turn_direction       # 'clockwise' or 'counterclockwise'
+        agent_name = room.agent.name
 
+    # ---------- helper: determine quadrant ----------------------------
+        def quadrant(obj):
+            _, rel_str = room.get_direction(obj.name, agent_name)   # obj → agent
+            h, v = rel_str.strip("()").split(",")
+            h, v = h.strip().lower(), v.strip().lower()
+            if v == "front":
+                return "front‑right" if h == "right" else "front‑left"
+            elif v == "back":
+                return "back‑right" if h == "right" else "back‑left"
+            elif h == "right":        # exactly same row, treat as right
+                return "front‑right" if v == "same" else "back‑right"
+            else:                     # same row, left side
+                return "front‑left" if v == "same" else "back‑left"
+
+    # ---------- 1. group by quadrant ----------------------------------
+        quads = defaultdict(list)
+        for obj in room.objects:                       # excludes the agent
+            quads[quadrant(obj)].append(obj)
+
+    # ---------- 2. order inside each quadrant with explicit CoT -------
+    # clock‑wise: want object that is most front OR most right first
+        def cmp_clock(a, b):
+            _, rel = room.get_direction(a.name, b.name)
+            h, v = rel.strip("()").split(",")
+            return v.strip().lower() == "front" or h.strip().lower() == "right"
+
+        def cmp_counter(a, b):
+            _, rel = room.get_direction(a.name, b.name)
+            h, v = rel.strip("()").split(",")
+            return v.strip().lower() == "back" or h.strip().lower() == "left"
+
+        detailed_lines = []
+        ordered_quads = {}
+        for qname, objs in quads.items():
+            if len(objs) <= 1:
+                ordered_quads[qname] = [o.name for o in objs]
+                continue
+        # insertion sort with justification lines
+            ordered = [objs[0]]
+            for nxt in objs[1:]:
+                inserted = False
+                for i, cur in enumerate(ordered):
+                    take_first = (
+                        cmp_clock(nxt, cur) if turn_dir == "clockwise"
+                        else cmp_counter(nxt, cur)
+                    )
+                    if take_first:
+                        ordered.insert(i, nxt)
+                        detailed_lines.append(
+                            f"  • In {qname}: compare {nxt.name} vs {cur.name}: "
+                            f"{nxt.name} is {room.get_direction(nxt.name, cur.name)[1]} "
+                        f"of {cur.name}, so {nxt.name} appears earlier in a "
+                        f"{turn_dir} sweep."
+                        )
+                        inserted = True
+                        break
+                if not inserted:
+                    ordered.append(nxt)
+                    detailed_lines.append(
+                    f"  • In {qname}: {nxt.name} placed after previous objects "
+                    f"since no prior object lies further {('front/right' if turn_dir=='clockwise' else 'back/left')}."
+                    )
+            ordered_quads[qname] = [o.name for o in ordered]
+
+    # ---------- 3. sweep quadrants ------------------------------------
+        quad_ring = (["front‑right", "back‑right", "back‑left", "front‑left"]
+                 if turn_dir == "clockwise"
+                 else ["front‑left", "back‑left", "back‑right", "front‑right"])
+
+        final_order = []
+        sweep_lines = []
+        for q in quad_ring:
+            if q in ordered_quads:
+                sweep_lines.append(f"• Sweep hits {q}: " + ", ".join(ordered_quads[q]))
+                final_order.extend(ordered_quads[q])
+
+    # ---------- build reasoning text ----------------------------------
+        reasoning = dedent(f"""\
+        1. Divide objects into quadrants relative to the agent.
+        2. Inside each quadrant, decide order using pair‑wise relations:
+{chr(10).join(detailed_lines)}
+        3. Finally, sweep {turn_dir} through quadrants:
+{chr(10).join('    '+s for s in sweep_lines)}
+    """)
+        return (
+        f"<think>\n{indent(reasoning,'    ')}\n</think> "
+        f"<answer> {self.answer} </answer>"
+    )
     def generate_question(self, room: Room) -> str:
         room = room.copy()
         
@@ -605,7 +697,7 @@ if __name__ == "__main__":
     from gymnasium.utils import seeding
     import numpy as np
 
-    config = SpatialGymConfig(n_objects=3, generation_type='rot', perspective='ego')
+    config = SpatialGymConfig(n_objects=5, generation_type='rot', perspective='ego')
     np_random = seeding.np_random(10)[0]
     room = generate_room(**config.get_room_config(), np_random=np_random)
     print(room)
@@ -658,6 +750,8 @@ if __name__ == "__main__":
     print(task.answer)
     correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
     print(correct)
+    reasoning = task._generate_reasoning(env_state=room)
+    print(reasoning)
 
     
     

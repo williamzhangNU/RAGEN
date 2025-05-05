@@ -112,7 +112,7 @@ if __name__ == "__main__":
     )
     print(room)
 
-    hist1 = AutoExplore(room).generate_history(np_random=rng1)
+    hist1 = AutoExplore(room,rng1).generate_history()
     print(hist1)
 
 
