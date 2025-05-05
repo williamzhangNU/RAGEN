@@ -19,20 +19,33 @@ from tensordict import TensorDict
 from dataclasses import asdict
 register_resolvers()
 
-def get_masks_and_scores(input_ids: torch.Tensor, tokenizer: AutoTokenizer, all_scores: List[List[float]] = None, use_turn_scores: bool = False):
+def get_special_tokens(tokenizer: AutoTokenizer):
+    if "qwen" in tokenizer.name_or_path.lower():
+        special_token = tokenizer.encode("<|im_start|>")[0]
+        reward_token = tokenizer.encode("<|im_end|>")[0]
+    elif "llama-3" in tokenizer.name_or_path.lower():
+        special_token = 128006
+        reward_token = 128009
+    else:
+        raise ValueError(f"Unsupported model: {tokenizer.name_or_path}")
+    return special_token, reward_token
+
+def get_masks_and_scores(input_ids: torch.Tensor, tokenizer: AutoTokenizer, all_scores: List[List[float]] = None, use_turn_scores: bool = False, enable_response_mask: bool = False):
     """
     input_ids: shape (bsz, seq_len)
     Get loss mask that only learns between <|im_start|>assistant and <|im_end|>. Currently only supports qwen.
     NOTE: important! This assumes that the input_ids starts with system and then user & assistant in alternative ways
     """
-    special_token = tokenizer.encode("<|im_start|>")[0]
+    special_token, reward_token = get_special_tokens(tokenizer)
+    
     turn_starts = torch.where(input_ids == special_token, 1, 0)
     turn_indicators = torch.cumsum(turn_starts, dim=-1)
-    response_mask = (turn_indicators % 2 == 1) & (turn_indicators > 1) # only learns all assistant turns
-    loss_mask = (turn_indicators > 1) # learns everything after system prompt
-    # loss_mask = response_mask
-
-    reward_token = tokenizer.encode("<|im_end|>")[0]
+    if enable_response_mask:
+        loss_mask = (turn_indicators % 2 == 1) & (turn_indicators > 1) # only learns all assistant turns
+    else:
+        loss_mask = (turn_indicators > 1) # learns everything after system prompt
+    response_mask = (turn_indicators % 2 == 1) & (turn_indicators > 1)
+    
     score_tensor = torch.zeros_like(input_ids, dtype=torch.float32)
     if use_turn_scores:
         for idx, scores in enumerate(list(zip(*all_scores))):
@@ -43,11 +56,11 @@ def get_masks_and_scores(input_ids: torch.Tensor, tokenizer: AutoTokenizer, all_
     else:
         scores = [sum(i) for i in all_scores]
         score_tensor[:, -1] = torch.tensor(scores, dtype=torch.float32)
-    loss_mask = loss_mask[:, :-1] # remove the last token
     score_tensor = score_tensor[:, 1:] # remove the first token
-    response_mask = response_mask[:, :-1]
+    loss_mask = loss_mask[:, :-1] # remove the last token
+    response_mask = response_mask[:, :-1] # remove the last token
 
-    return loss_mask, score_tensor, response_mask
+    return score_tensor, loss_mask, response_mask
 
 
 
@@ -251,9 +264,7 @@ class ContextManager:
         position_ids = attention_mask.cumsum(dim=-1)
         if prepare_for_update:
             scores = [[i['reward'] for i in env_output['history']] for env_output in env_outputs]
-            loss_mask, score_tensor, response_mask = get_masks_and_scores(input_ids, self.tokenizer, scores, use_turn_scores=self.config.agent_proxy.use_turn_scores)
-            if self.config.enable_response_mask:
-                loss_mask = response_mask
+            score_tensor, loss_mask, response_mask = get_masks_and_scores(input_ids, self.tokenizer, scores, use_turn_scores=self.config.agent_proxy.use_turn_scores, enable_response_mask=self.config.enable_response_mask)
             normalized_score_tensor = self._normalize_score_tensor(score_tensor, env_outputs)
             response_length = response_mask.sum(dim=-1).float().mean().item()
 
