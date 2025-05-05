@@ -135,6 +135,11 @@ def add_dependency_and_validate_config(config):
         f"ppo_mini_batch_size ({config.actor_rollout_ref.actor.ppo_mini_batch_size}) must be divisible by micro_batch_size_per_gpu * n_gpus_per_node ({config.micro_batch_size_per_gpu * config.trainer.n_gpus_per_node})"
     assert "qwen" in config.model_path.lower() or (not config.enable_response_mask), \
         "response mask is currently only supported for qwen models"
+    assert len(config.system.CUDA_VISIBLE_DEVICES.split(',')) == config.trainer.n_gpus_per_node, \
+        f"CUDA_VISIBLE_DEVICES ({config.system.CUDA_VISIBLE_DEVICES}) must have the same number of GPUs as n_gpus_per_node ({config.trainer.n_gpus_per_node})"
+    assert (config.actor_rollout_ref.rollout.tensor_model_parallel_size == config.trainer.n_gpus_per_node) or (not config.actor_rollout_ref.rollout.tp_size_check), \
+        f"actor_rollout_ref.rollout.tensor_model_parallel_size ({config.actor_rollout_ref.rollout.tensor_model_parallel_size}) is recommended to be the same as n_gpus_per_node ({config.trainer.n_gpus_per_node}) to maximize rollout speed. You can set actor_rollout_ref.rollout.tp_size_check=False to disable this check."
+
     return config
 
 
