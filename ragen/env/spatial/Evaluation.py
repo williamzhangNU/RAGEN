@@ -318,7 +318,7 @@ class DirEvaluationTask(BaseEvaluationTask):
             anchor_name = ""
             degree = self.np_random.choice([90, 180, 270])
             graph.rotate_axis(degree)
-            obs += f"You turn {degree} degrees."
+            obs += f"You turn {degree} degrees clockwise."
 
         # 3. Randomly choose another object in the room as query object
         query_obj_idx = self.np_random.integers(0, len(room.all_objects))

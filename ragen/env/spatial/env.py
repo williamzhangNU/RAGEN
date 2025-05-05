@@ -31,62 +31,49 @@ from ragen.env.spatial.utils.get_eval_task import get_eval_task
 # - Relationships can be transitive (if A is left of B and B is left of C, then A is left of C)
 # - No distance information is included
 instruction = """\
-You are a spatial reasoning assistant. Your task is to determine all spatial relationships between object pairs in a room. You must only use valid reasoning steps. Do not assume or guess.
+You are an advanced AI assistant specialized in spatial reasoning tasks. Your goal is to determine the relative positions of objects in a room based on given information and specific rules. Please analyze the following scenario carefully and provide your reasoning and answer.
 
-# Spatial Mapping Task
-There are several objects in a room. Your goal is to map their relative positions based on the observed relationships.
-
-## Spatial Relationship Format
-Each spatial relationship is written as:
-(A, B): (Horizontal, Vertical)
-Meaning: "A is to the Horizontal and Vertical of B"
-
-Possible values:
-- Horizontal: left, right, same
-- Vertical: front, back, same
-
-Opposite direction pairs:
-- left ↔ right
-- front ↔ back
-- same ↔ same
-
-# Reasoning Rules
-
-Only use the following rules:
-
-1. **Observation**: Use direct observations from the exploration history.
-
-2. **Symmetry**:  
-   If (A, B): (X, Y), then (B, A): (opposite of X, opposite of Y)
-
-3. **Transitivity (One Axis Only)**:  
-   - You may **only chain along one axis** at a time (horizontal **or** vertical).  
-   - Example:  
-     (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)  
-     (A, B): (same, back), (B, C): (same, back) ⇒ (A, C): (same, back)
-
-!!! Invalid:  
-- (A, B): (left, front), (B, C): (same, back) ⇒ ✘ Rejected (mixed axes)  
-- Chaining two objects (A and C) via shared anchor (B), when both A→B and C→B are mixed-axis, is also ✘ invalid
-
-# Movement Rule
-If an object moves, discard all earlier relationships involving it. Only use its **new** position.
-
-# Output Requirements
-- For each pair: show step-by-step inference using observation, symmetry, or transitivity  
-- If undeducible, output: `<answer>(unknown, unknown)</answer>`  
-- Do not guess or assume
-
-# Final Checklist (must include in your thinking process)
-- All chains follow a single axis  
-- Symmetry applied correctly  
-- No mixed-axis chaining  
-- No invalid anchor-based comparison (e.g., deducing A↔C from both to B)
-
+First, here's the room description and exploration history:
 ## Room Description
 {room_info}
 
 {exp_history}
+
+Before answering, please carefully consider the following rules and guidelines:
+
+1. Spatial Relationship Format:
+   - Each spatial relationship is written as: (A, B): (Horizontal, Vertical)
+   - Meaning: "A is to the Horizontal and Vertical of B"
+   - Possible values:
+     - Horizontal: left, right, same
+     - Vertical: front, back, same
+
+2. Reasoning Rules:
+   a) Observation: Use direct observations from the exploration history.
+   b) Symmetry: If (A, B): (X, Y), then (B, A): (opposite of X, opposite of Y)
+   c) Transitivity (One Axis Only):
+      - You may only chain along one axis at a time (horizontal or vertical).
+      - Example: (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)
+   d) Anchor Ambiguity Rule:
+      - If two objects A and C are both described relative to a third object B, and there is no direct transitive chain connecting A and C, you must return (unknown, unknown).
+      - Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
+
+3. Rotation Rules:
+   - When rotation occurs, transform spatial directions accordingly.
+   - Apply transformations to both axes separately and then recombine them.
+   - Always keep the answer format as (horizontal, vertical). Adjust the answer format after rotation. Example: (front, right) is invalid since the first direction must be horizontal, (right, front) is valid.
+
+4. Output Requirements:
+   - Show step-by-step inference using observation, symmetry, or transitivity.
+   - If one axis is undeducible, output "unknown" for that axis.
+   - If both axes are undeducible, output "unknown" for both axes.
+   - Do not guess or assume any relationships.
+
+5. Final Checklist:
+   - Ensure all chains are on a single axis.
+   - Apply symmetry correctly.
+   - Avoid mixed-axis chaining.
+   - Use "unknown" whenever an axis cannot be strictly deduced.
 
 {exp_answer_format}
 """

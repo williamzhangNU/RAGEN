@@ -188,15 +188,21 @@ def main(config):
 	env_ids = rollouts.non_tensor_batch['env_ids'].tolist()
 	envs = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
 	
+	print("\n==== Environment messages ====")
 	for i, (message, env_id) in enumerate(zip(messages, env_ids)):
-		print(f'Message {i} for env_id {env_id}:')
+		print(f'\nMessage {i} for env_id {env_id}:')
 		print(message)
-		env = envs[env_id]
-		env_info = env.get_env_info()
-		print(f'env_info for env_id {env_id}:')
-		print(env_info)
-		print(f'Exploration efficiency for env_id {env_id}:')
-		print(env.get_exp_efficiency())
+		# env = envs[env_id]
+        # env_info = env.get_env_info()
+        # print(f'env_info for env_id {env_id}:')
+        # print(env_info)
+		
+	print("\n==== All environment evaluation results ====")
+	for env_id, env in envs.items():
+		print(f'\nEnvironment ID {env_id} evaluation results:')
+		if env.config.exp_type in ["active", "semi"]:
+			print(f'Exploration efficiency for env_id {env_id}:')
+			print(env.get_exp_efficiency())
 		print(f'Evaluation performance for env_id {env_id}:')
 		print(env.get_eval_performance())
 

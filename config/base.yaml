@@ -7,7 +7,7 @@ system:
 
 micro_batch_size_per_gpu: 4
 ppo_mini_batch_size: 32
-model_path: Qwen/Qwen2.5-0.5B-Instruct
+model_path: Qwen/Qwen2.5-3B-Instruct
 enable_response_mask: False
 grpo_advantage_length_weight: False # if you do not enable this and critic/advantage_estimator is GRPO, and the critic/advantages/mean is too low, then you can try enabling this to encourage reasoning and forbid collapse
 

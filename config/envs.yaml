@@ -141,6 +141,9 @@ custom_envs:
       eval_tasks:
         - task_type: "dir"
           task_kwargs: 
-            movement: "object_move" # 'static', 'object_move', 'agent_move', 'agent_turn'
+            movement: "static" # 'static', 'object_move', 'agent_move', 'agent_turn'
             # turn_direction: "clockwise"
-            
+      # eval_tasks:
+      #   - task_type: "rot"
+      #     task_kwargs: 
+      #       turn_direction: "clockwise"
