@@ -31,13 +31,7 @@ from ragen.env.spatial.utils.get_eval_task import get_eval_task
 # - Relationships can be transitive (if A is left of B and B is left of C, then A is left of C)
 # - No distance information is included
 instruction = """\
-You are an advanced AI assistant specialized in spatial reasoning tasks. Your goal is to determine the relative positions of objects in a room based on given information and specific rules. Please analyze the following scenario carefully and provide your reasoning and answer.
-
-First, here's the room description and exploration history:
-## Room Description
-{room_info}
-
-{exp_history}
+You are an advanced AI assistant specialized in spatial reasoning tasks. Your goal is to determine the relative positions of objects in a room by exploring the room. You should terminate your exploration when you have explored the room and found all the spatial relationships.
 
 Before answering, please carefully consider the following rules and guidelines:
 
@@ -56,24 +50,29 @@ Before answering, please carefully consider the following rules and guidelines:
       - Example: (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)
    d) Anchor Ambiguity Rule:
       - If two objects A and C are both described relative to a third object B, and there is no direct transitive chain connecting A and C, you must return (unknown, unknown).
-      - Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
+        Correct Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
+        Incorrect Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (left, back)
+      - Given: (apple, table): (left, back) ,(book, table): (right, back). We can deduce that apple is left of book and book is right of table, so book must be right of apple. But we cannot deduce the vertical relationship, so the relationship available is (Apple, Book): (left, unknown).
 
 3. Rotation Rules:
    - When rotation occurs, transform spatial directions accordingly.
    - Apply transformations to both axes separately and then recombine them.
-   - Always keep the answer format as (horizontal, vertical). Adjust the answer format after rotation. Example: (front, right) is invalid since the first direction must be horizontal, (right, front) is valid.
-
+  
 4. Output Requirements:
    - Show step-by-step inference using observation, symmetry, or transitivity.
-   - If one axis is undeducible, output "unknown" for that axis.
-   - If both axes are undeducible, output "unknown" for both axes.
-   - Do not guess or assume any relationships.
+   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown, front/back) or (left/right, unknown)).
+   - If both axes are undeducible, output "unknown" for both axes (e.g., (unknown, unknown)).
 
-5. Final Checklist:
-   - Ensure all chains are on a single axis.
-   - Apply symmetry correctly.
-   - Avoid mixed-axis chaining.
-   - Use "unknown" whenever an axis cannot be strictly deduced.
+**Now think step by step, the final checklist is as follows:**
+   - Use the observation, symmetry, and transitivity to deduce the relative positions of the objects. If an object moves, the relative position of the other object must change accordingly/become unknown.
+   - Use "unknown" in the axis that cannot be strictly deduced (partially unknown encouraged). If you cannot deduce anything, the relationship is (unknown, unknown).
+   - Do not guess or assume any relationships.
+## Room Description
+{room_info}
+
+Please take action to explore the room.
+{exp_history}
+
 
 {exp_answer_format}
 """
@@ -302,23 +301,25 @@ class SpatialGym(gym.Env):
         - Accuracy: average accuracy across all evaluation tasks
         - Task-specific results: detailed performance for each task type
         """
-        # Include unanswered evaluation tasks in the results
-        all_results = self.eval_results.copy()
         
-        # Add unanswered tasks as incorrect answers
-        for task in self.eval_tasks[len(self.eval_results):]:
-            all_results.append({
-                "task_type": task.to_string(),
-                "correct": False,
-                "info": {}
-            })
+        if not hasattr(self, 'eval_results') or len(self.eval_results) == 0:
+            return {
+                'accuracy': 0.0,
+                'accuracy_completed': 0.0,
+                'task_results': [],
+                'completed_tasks': 0,
+                'unanswered_tasks': 0
+            }
+        
+        completed_tasks = sum(1 for result in self.eval_results if result["correct"] is not None)
+        unanswered_tasks = len(self.eval_results) - completed_tasks
         
         return {
-            "accuracy": sum(result["correct"] for result in all_results) / len(all_results),
-            'accuracy_completed': sum(result["correct"] for result in self.eval_results) / len(self.eval_results),
-            "task_results": all_results,
-            "completed_tasks": len(self.eval_results),
-            "unanswered_tasks": len(self.eval_tasks)
+            'accuracy': sum(1 for result in self.eval_results if result["correct"]) / len(self.eval_results),
+            'accuracy_completed': sum(1 for result in self.eval_results if result["correct"]) / completed_tasks if completed_tasks > 0 else 0.0,
+            'task_results': self.eval_results,
+            'completed_tasks': completed_tasks,
+            'unanswered_tasks': unanswered_tasks
         }
 
 

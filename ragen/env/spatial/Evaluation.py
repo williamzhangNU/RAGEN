@@ -392,6 +392,8 @@ class ReverseDirEvaluationTask(BaseEvaluationTask):
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")
         return answer.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
 
 
@@ -425,11 +427,13 @@ class RotEvaluationTask(BaseEvaluationTask):
         objects = room.objects
         objects.sort(key=lambda x: _get_angle(x.pos), reverse=(turn_direction == 'counterclockwise'))
         self.answer = [obj.name for obj in objects]
-        self.question = f"What is the sequence of objects when agent turns around {turn_direction} at its original position?"
+        self.question = f"What is the sequence of objects when agent turns around {turn_direction} at its original position? Answer format: `['<object1>', '<object2>', ...]` Note: Agent cannot see itself."
         
         return self.question
     
     def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+        print(f"[DEBUG] GT Answer: {self.answer}")
+        print(f"[DEBUG] Model Answer: {answer}")    
         correct = obj_seq_eval_fn(answer, self.answer)
         return correct, {}
     

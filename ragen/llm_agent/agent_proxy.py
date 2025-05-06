@@ -1,4 +1,3 @@
-
 from .ctx_manager import ContextManager
 from .es_manager import EnvStateManager
 from vllm import LLM, SamplingParams
@@ -24,7 +23,7 @@ class VllmWrapperWg: # Thi is a developing class for eval and test
             tensor_parallel_size=ro_config.tensor_model_parallel_size,
             dtype=ro_config.dtype,
             enforce_eager=ro_config.enforce_eager,
-            gpu_memory_utilization=ro_config.gpu_memory_utilization,
+            gpu_memory_utilization=0.9,
             disable_custom_all_reduce=True,
             disable_mm_preprocessor_cache=True,
             skip_tokenizer_init=False,

@@ -47,7 +47,7 @@ class ActionType(Enum):
             ActionType.MOVE: "Move to an object by specifying: Move(<object_name>). Example: Move(chair)",
             ActionType.ROTATE: "Rotate by a specific degree (90, 180, or 270) clockwise: Rotate(<degree>). Example: Rotate(90)",
             ActionType.RETURN: "Return to your starting position and orientation: Return()",
-            ActionType.TERM: "End the current exploration: Term()"
+            ActionType.TERM: "End the current exploration: Term() **Only use this action at the end of exploration, you are not allowed to make any actions after this action**"
         }
         
         if action_type == ActionType.QUERY:

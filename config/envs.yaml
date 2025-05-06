@@ -133,16 +133,16 @@ custom_envs:
 
   SpatialGym:
     env_type: SpatialGym
-    max_actions_per_traj: 10
+    max_actions_per_traj: 8
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
-      exp_type: "passive"
+      exp_type: "active" # 'passive', 'active','semi'
       eval_tasks:
         - task_type: "dir"
           task_kwargs: 
-            movement: "static" # 'static', 'object_move', 'agent_move', 'agent_turn'
-            # turn_direction: "clockwise"
+            movement: "agent_move" # 'static', 'object_move', 'agent_move', 'agent_turn'
+           
       # eval_tasks:
       #   - task_type: "rot"
       #     task_kwargs: 
