@@ -3,6 +3,8 @@ This is the context manager for the LLM agent.
 author: Kangrui Wang, Zihan Wang
 date: 2025-03-30
 """
+from itertools import zip_longest
+
 import torch
 import numpy as np
 from typing import List, Dict, Any, Optional, Union
@@ -48,10 +50,12 @@ def get_masks_and_scores(input_ids: torch.Tensor, tokenizer: AutoTokenizer, all_
     
     score_tensor = torch.zeros_like(input_ids, dtype=torch.float32)
     if use_turn_scores:
-        for idx, scores in enumerate(list(zip(*all_scores))):
+        for idx, scores in enumerate(zip_longest(*all_scores, fillvalue=0)):
             scores = torch.tensor(scores, dtype=torch.float32)
             turn_indicator = idx * 2 + 3 # 0: pad. 1: system. 2+2n: user. 3+2n: assistant
             reward_position = (input_ids == reward_token) & (turn_indicators == turn_indicator)
+            # Set the last token of the rows where all positions are False to True
+            reward_position[~reward_position.any(dim=-1), -1] = True
             score_tensor[reward_position] = scores
     else:
         scores = [sum(i) for i in all_scores]
@@ -265,7 +269,10 @@ class ContextManager:
         if prepare_for_update:
             scores = [[i['reward'] for i in env_output['history']] for env_output in env_outputs]
             score_tensor, loss_mask, response_mask = get_masks_and_scores(input_ids, self.tokenizer, scores, use_turn_scores=self.config.agent_proxy.use_turn_scores, enable_response_mask=self.config.enable_response_mask)
-            normalized_score_tensor = self._normalize_score_tensor(score_tensor, env_outputs)
+
+            normalized_score_tensor = score_tensor
+            if not self.config.agent_proxy.use_turn_scores:
+                normalized_score_tensor = self._normalize_score_tensor(score_tensor, env_outputs)
             response_length = response_mask.sum(dim=-1).float().mean().item()
 
         llm_inputs = DataProto()
