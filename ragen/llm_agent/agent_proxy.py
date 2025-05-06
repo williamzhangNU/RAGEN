@@ -27,7 +27,7 @@ class VllmWrapperWg: # Thi is a developing class for eval and test
             tensor_parallel_size=ro_config.tensor_model_parallel_size,
             dtype=ro_config.dtype,
             enforce_eager=ro_config.enforce_eager,
-            gpu_memory_utilization=0.9,
+            gpu_memory_utilization=ro_config.gpu_memory_utilization,
             disable_custom_all_reduce=True,
             disable_mm_preprocessor_cache=True,
             skip_tokenizer_init=False,
@@ -232,6 +232,7 @@ def main(config):
 	Usage: python -m ragen.llm_agent.agent_proxy --config-name evaluate_spatial
 	"""
 	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
+	print(config.system.CUDA_VISIBLE_DEVICES)
 	if config.eval_model_type == "vllm":
 		os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 		os.environ["CUDA_VISIBLE_DEVICES"] = str(config.system.CUDA_VISIBLE_DEVICES)

@@ -72,21 +72,27 @@ class EvaluationData:
             return is_perfect, info
         
         elif self.task_type == 'DirEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return dir_eval_fn(pred, self.answer), {}
         
         elif self.task_type == 'RotEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return obj_seq_eval_fn(pred, self.answer), {}
         
         elif self.task_type == 'PovEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return dir_eval_fn(pred, self.answer), {}
         
         elif self.task_type == 'ReverseDirEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return pred.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
         
         elif self.task_type == 'E2AEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return obj_seq_eval_fn(pred, self.answer), {}
         
         elif self.task_type == 'A2EEvaluationTask':
+            print(f"[DEBUG] pred: {pred}, answer: {self.answer}")
             return deg_seq_eval_fn(pred, self.answer), {}
         
         
@@ -374,7 +380,7 @@ class DirEvaluationTask(BaseEvaluationTask):
             # Get the direction between the new object and the chosen object
             dir_pair = DirectionSystem.get_direction(new_pos, anchor_obj.pos, anchor_obj.ori)
             dir_pair_str = DirectionSystem.to_string(dir_pair, perspective='ego' if room.agent is not None else 'allo')
-            obs += f"{target_name} moves such that it is {dir_pair_str} of {anchor_name}."
+            obs += f"{target_name} moves {dir_pair_str} to {anchor_name}."
 
             if self.config.movement == 'static':
                 graph.add_node(anchor_obj_idx, dir_pair)
@@ -395,10 +401,7 @@ class DirEvaluationTask(BaseEvaluationTask):
         
 
         # 4. Generate the QA
-        self.question = f"{obs} {target_name} is what direction to {query_obj.name}?\n" \
-                "Answer format: <answer>(X, Y)</answer>. X can be left, right, or same; Y can be front, back, or same. " \
-                "If the relationship cannot be deduced, answer <answer>(unknown, unknown)</answer>."
-        question = f"{obs} {target_name} is what direction to {query_obj.name}?"
+        question = f"{obs} {target_name} is at what direction to {query_obj.name}? Include only the direction (horizontal, vertical) in your answer."
         dir_pair_query = graph.get_direction(target_obj_idx, query_obj_idx)
         answer = DirectionSystem.to_string(dir_pair_query, perspective='ego' if room.agent is not None else 'allo')
         self.eval_data.question = question
@@ -477,7 +480,7 @@ class RotEvaluationTask(BaseEvaluationTask):
 
     QUESTION_TEMPLATE = (
         "What is the sequence of objects when agent turns around {turn_direction} at its original position?\n"
-        "Format your answer as a comma-separated list of objects, e.g., '[chair, eraser, ...]'"
+        "Format your answer as a comma-separated list of objects, e.g., '['chair', 'eraser', ...]'. Note that agent cannot see itself."
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
@@ -522,7 +525,7 @@ class PovEvaluationTask(BaseEvaluationTask):
 
     QUESTION_TEMPLATE = (
         "{obj_orientation_str}\n"
-        "From {anchor_obj_name}'s perspective, {obj1_name} is what direction to {obj2_name}?"
+        "From {anchor_obj_name}'s perspective, {obj1_name} is atwhat direction to {obj2_name}?"
         "Format your answer as a single direction '(<horiz>, <vert>)', e.g., '(right, back)'"
     )
     
@@ -571,7 +574,7 @@ class E2AEvaluationTask(BaseEvaluationTask):
         "- answer: ['A', 'B', 'C']\n"
         "Given a list of coordinates: {coordinates_str}\n"
         "What is the sequence of objects that corresponds to each coordinate?"
-        "Format your answer as a comma-separated list of objects, e.g., '[chair, eraser, ...]'"
+        "Format your answer as a comma-separated list of objects, e.g., '['chair', 'eraser', ...]'"
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):

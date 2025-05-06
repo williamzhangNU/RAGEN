@@ -4,10 +4,11 @@ defaults:
 
 output_dir: results/spatial/passive/e2a
 
-eval_model_type: api # api or vllm
+eval_model_type: vllm # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 model_config:
-  model_name: gpt-4o
+  model_name: Qwen2.5-3B-Instruct #gpt-4o
+  
   max_concurrency: 8
 
 actor_rollout_ref:

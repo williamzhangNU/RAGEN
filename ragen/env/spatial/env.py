@@ -30,10 +30,19 @@ from ragen.env.spatial.utils.get_eval_task import get_eval_task
 # - Relationships are relative (if A is left of B, then B is right of A)
 # - Relationships can be transitive (if A is left of B and B is left of C, then A is left of C)
 # - No distance information is included
-instruction = """\
-You are an advanced AI assistant specialized in spatial reasoning tasks. Your goal is to determine the relative positions of objects in a room by exploring the room. You should terminate your exploration when you have explored the room and found all the spatial relationships.
 
-Before answering, please carefully consider the following rules and guidelines:
+# ## Room Description
+# {room_info}
+
+# {exp_history}
+
+# {exp_answer_format}
+# """
+
+instruction = """\
+You are an expert in spatial reasoning tasks. Your goal is to explore and determine the relative positions of objects in a room. You should terminate your exploration when you have explored the room and is able to deduce all the spatial relationships.
+
+Please carefully consider the following rules and guidelines:
 
 1. Spatial Relationship Format:
    - Each spatial relationship is written as: (A, B): (Horizontal, Vertical)
@@ -48,36 +57,33 @@ Before answering, please carefully consider the following rules and guidelines:
    c) Transitivity (One Axis Only):
       - You may only chain along one axis at a time (horizontal or vertical).
       - Example: (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)
-   d) Anchor Ambiguity Rule:
-      - If two objects A and C are both described relative to a third object B, and there is no direct transitive chain connecting A and C, you must return (unknown, unknown).
+   d) Ambiguity Cases:
+      - If two objects A and C are to the same direction relative to a third object B, see following examples:
         Correct Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
         Incorrect Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (left, back)
-      - Given: (apple, table): (left, back) ,(book, table): (right, back). We can deduce that apple is left of book and book is right of table, so book must be right of apple. But we cannot deduce the vertical relationship, so the relationship available is (Apple, Book): (left, unknown).
+      - Given: (apple, table): (left, back) ,(book, table): (right, back). We can deduce that apple is left of table and book is right of table, so book must be right of apple. But we cannot deduce the vertical relationship, so the relationship available is (Apple, Book): (left, unknown).
 
 3. Rotation Rules:
-   - When rotation occurs, transform spatial directions accordingly.
-   - Apply transformations to both axes separately and then recombine them.
+   - When rotation occurs, transform spatial directions accordingly. E.g., (A,B):(left, back) → Rotate 90° clockwise → (A,B):(left to front, back to left) → (A,B):(front, left).
+   - Then you MUST check format (Horizontal, Vertical), transform when needed. E.g., (A,B):(front,left) is invalid → (A,B):(left, front) is valid.
   
 4. Output Requirements:
    - Show step-by-step inference using observation, symmetry, or transitivity.
-   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown, front/back) or (left/right, unknown)).
-   - If both axes are undeducible, output "unknown" for both axes (e.g., (unknown, unknown)).
+   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown, front/back) or (left/right, unknown)). (unknown, unknown) is also allowed.
 
 **Now think step by step, the final checklist is as follows:**
    - Use the observation, symmetry, and transitivity to deduce the relative positions of the objects. If an object moves, the relative position of the other object must change accordingly/become unknown.
-   - Use "unknown" in the axis that cannot be strictly deduced (partially unknown encouraged). If you cannot deduce anything, the relationship is (unknown, unknown).
-   - Do not guess or assume any relationships.
+   - Do not guess or assume any relationships. Use "unknown" in the axis that cannot be strictly deduced.
+
 ## Room Description
 {room_info}
 
-Please take action to explore the room.
+## Exploration History
 {exp_history}
 
-
+## Response Format
 {exp_answer_format}
 """
-
-
 
 class SpatialGym(gym.Env):
     """
@@ -122,7 +128,6 @@ class SpatialGym(gym.Env):
             auto_explore = AutoExplore(self.room_s_0, self.np_random)
             exp_history = auto_explore.generate_history()
             exp_history = f"## Exploration History\n{exp_history}"
-            exp_history += f"\n\n## Question\n{self.initial_question}"
 
         else:
             action_formats = []
@@ -186,12 +191,9 @@ class SpatialGym(gym.Env):
         )
         self.room_s_t = self.room_s_0.copy()
         self.eval_tasks = [get_eval_task(task['task_type'], self.np_random, task['task_kwargs']) for i, task in enumerate(self.config.eval_tasks)]
-        for task in self.eval_tasks:
-            task.generate_question(self.room_s_t)
         if self.config.exp_type == 'passive':
-            self.room_s_end = self.room_s_t.copy()
-            self.room_s_end.finish_exploration()
-            self.initial_question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
+            for task in self.eval_tasks:
+                task.generate_question(self.room_s_0.copy())
         self.eval_results = []
             
 
@@ -266,7 +268,7 @@ class SpatialGym(gym.Env):
                 question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
                 self.render_cache = question
                 return question, reward, False, {}
-         
+        
 
     def render(self):
         return self.render_cache
@@ -316,6 +318,7 @@ class SpatialGym(gym.Env):
         - Accuracy: average accuracy across all evaluation tasks
         - Task-specific results: detailed performance for each task type
         """
+        # Include unanswered evaluation tasks in the results
         all_results = self.eval_results.copy()
         
         # Add unanswered tasks as incorrect answers
@@ -333,7 +336,6 @@ class SpatialGym(gym.Env):
             "completed_tasks": len(self.eval_results),
             "unanswered_tasks": len(self.eval_tasks)
         }
-
 
 
     
