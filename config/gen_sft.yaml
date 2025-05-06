@@ -1,0 +1,24 @@
+defaults:
+  - base
+
+output_path: data/spatial/sft_train.json
+model_path: Qwen/Qwen2.5-0.5B-Instruct # for tokenizer (no effect)
+enable_think: false
+output_prompt_key: question
+output_response_key: answer
+mode: train # train or val
+seed: 49 # for setting train, val seed is fixed as 123
+
+es_manager:
+  train:
+    env_groups: 1
+    group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
+    env_configs:
+      tags: ["PassiveE2A"]
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+  val:
+    env_groups: 1
+    group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
+    env_configs:
+      tags: ["PassiveE2A"]
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation

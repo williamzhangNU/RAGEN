@@ -557,7 +557,7 @@ class E2AEvaluationTask(BaseEvaluationTask):
     Q: Given a list of coordinates, what is the sequence of objects that corresponds to each coordinate?
     A: [<obj1>, <obj2>, ...]
 
-    TODO check uniqueness of the answer
+    TODO change it to directly output the coordinates
     """
 
     QUESTION_TEMPLATE = (
@@ -609,19 +609,17 @@ class A2EEvaluationTask(BaseEvaluationTask):
     A: [<degree1>, <degree2>, ...]
 
     TODO 
-    1. from A -> B: turn {dir 1}
-    2. from B -> C: turn {dir 2}
-    Question: what is {dir 1}, {dir 2}?
-    Answer: [{dir 1}, {dir 2}]
+    1. from A -> B: turn {dir 1 placeholder}
+    2. from B -> C: turn {dir 2 placeholder}
+    Question: what is dir 1, dir 2?
+    Answer: [{dir 1 placeholder}, {dir 2 placeholder}]
     """
 
     QUESTION_TEMPLATE = (
-        "After exploring the room from bird-eye view, you'll now traverse it from an egocentric view. \n"
-        "Starting at the first object facing north, report the clockwise turning degrees (0, 90, 180, or 270) "
-        "needed to face each subsequent object before moving to it. Your orientation remains fixed while moving."
-        "Given a sequence of objects:\n"
+        "After exploring the room from bird-eye view, you'll now traverse objects from an egocentric view. \n"
+        "You start by facing north."
         "{object_sequence_str}\n"
-        "What is the sequence of degrees you need to turn to traverse all objects in order?"
+        "What is the sequence of degrees?"
         "Format your answer as a comma-separated list of degrees, e.g., '[0, 90, 180, 270]'"
     )
     

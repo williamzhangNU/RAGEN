@@ -21,8 +21,8 @@ shift 2
 
 torchrun --standalone --nnodes=1 --nproc_per_node=$nproc_per_node \
      -m ragen.trainer.fsdp_sft_trainer \
-    data.train_files=data/spatial_qa/sft_format/train_no_think.json \
-    data.val_files=data/spatial_qa/sft_format/val_no_think.json \
+    data.train_files=data/spatial/sft_train.json \
+    data.val_files=data/spatial/sft_val.json \
     data.prompt_key=question \
     data.response_key=answer \
     optim.lr=1e-4 \
@@ -30,8 +30,8 @@ torchrun --standalone --nnodes=1 --nproc_per_node=$nproc_per_node \
     data.max_length=512 \
     model.partial_pretrain=Qwen/Qwen2.5-3B-Instruct \
     trainer.default_local_dir=$save_path \
-    trainer.project_name=spatial-qa-sft \
-    trainer.experiment_name=spatial-qa-sft-qwen-2.5-3b-instruct \
+    trainer.project_name=spatial-sft \
+    trainer.experiment_name=spatial-sft-qwen-2.5-3b-instruct \
     trainer.logger=['console'] \
     trainer.total_epochs=50 \
     trainer.default_hdfs_dir=null $@ \
