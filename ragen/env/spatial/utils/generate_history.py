@@ -11,6 +11,7 @@ class AutoExplore:
     Automatically explore the environment
     TODO: use BFS to get shortest path
     """
+    
     def __init__(self, room: Room, np_random: np.random.Generator):
         self.room = room.copy()
         self.np_random = np_random

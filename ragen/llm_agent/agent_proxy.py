@@ -1,15 +1,19 @@
+
+from transformers import AutoTokenizer
+import hydra
+import os
+from typing import List, Dict
+import time
+import json
+import datetime
+
+from verl import DataProto
+from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from .ctx_manager import ContextManager
 from .es_manager import EnvStateManager
 from vllm import LLM, SamplingParams
 from verl.single_controller.ray.base import RayWorkerGroup
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from verl import DataProto
-import hydra
-import os
-from typing import List, Dict
-from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from .base_llm import ConcurrentLLM
-import time
 
 class VllmWrapperWg: # Thi is a developing class for eval and test
 	def __init__(self, config, tokenizer):
@@ -157,18 +161,87 @@ class LLMAgentProxy:
 		return rollouts
 
 
-def log_each_env_info(envs: List[Dict]):
-	raise NotImplementedError("Not implemented")
+def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_dir):
+	saved_data = {
+		'meta_info': {
+			'model_name': config.actor_rollout_ref.model.path if config.eval_model_type == "api" else config.model_config.model_name,
+			'n_envs': len(envs),
+		},
+		'overall_performance': {
+			'exploration_efficiency': {
+				'avg_coverage': 0.0,
+				'avg_novelty': 0.0,
+			},
+			'evaluation_performance': {
+				'avg_accuracy': 0.0,
+			}
+		},
+		'env_data': [],
+	}
+	
+	# Collect data from all environments
+	total_envs = 0
+	exp_eff_sum = {'coverage': 0.0, 'novelty': 0.0}
+	eval_perf_sum = {'accuracy': 0.0}
+	
+	for _, (message, env_id) in enumerate(zip(messages, env_ids)):
+		env = envs[env_id]
+		env_info = env.get_env_info()
+		exp_efficiency = env.get_exp_efficiency()
+		eval_performance = env.get_eval_performance()
+		
+		saved_data['env_data'].append({
+			"message": message,
+			"env_info": env_info,
+			"config": env_info.get("config", {}),
+			"exploration_efficiency": exp_efficiency,
+			"evaluation_performance": eval_performance
+		})
+		
+		# Accumulate for overall statistics
+		total_envs += 1
+		for key in exp_eff_sum:
+			exp_eff_sum[key] += exp_efficiency.get(key, 0)
+		for key in eval_perf_sum:
+			eval_perf_sum[key] += eval_performance.get(key, 0)
+	
+	# Calculate averages for overall performance
+	if total_envs > 0:
+		saved_data['overall_performance']['exploration_efficiency'] = {
+			'avg_coverage': exp_eff_sum['coverage'] / total_envs,
+			'avg_novelty': exp_eff_sum['novelty'] / total_envs,
+		}
+		saved_data['overall_performance']['evaluation_performance'] = {
+			'avg_accuracy': eval_perf_sum['accuracy'] / total_envs,
+		}
+	
+	
 
-@hydra.main(version_base=None, config_path="../../config", config_name="base")
+	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+	os.makedirs(output_dir, exist_ok=True)
+	log_filename = f"{output_dir}/env_log_{timestamp}.json"
+	with open(log_filename, "w") as f:
+		json.dump(saved_data, f, indent=2)
+	
+	print(f"Environment data logged to {log_filename}")
+	return log_filename
+
+@hydra.main(version_base=None, config_path="../../config", config_name="evaluate_spatial")
 def main(config):
-	# detect config name from python -m ragen.llm_agent.agent_proxy --config-name frozen_lake
-	os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
-	os.environ["CUDA_VISIBLE_DEVICES"] = str(config.system.CUDA_VISIBLE_DEVICES)
+	"""
+	Usage: python -m ragen.llm_agent.agent_proxy --config-name evaluate_spatial
+	"""
 	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
-	actor_wg = VllmWrapperWg(config, tokenizer)
+	if config.eval_model_type == "vllm":
+		os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
+		os.environ["CUDA_VISIBLE_DEVICES"] = str(config.system.CUDA_VISIBLE_DEVICES)
+		actor_wg = VllmWrapperWg(config, tokenizer)
+	elif config.eval_model_type == "api":
+		actor_wg = ApiCallingWrapperWg(config, tokenizer)
+	else:
+		raise ValueError(f"Unsupported eval model type: {config.eval_model_type}")
 	proxy = LLMAgentProxy(config, actor_wg, tokenizer)
-	import time
+
 	start_time = time.time()
 	rollouts = proxy.rollout(DataProto(batch=None, non_tensor_batch=None, meta_info={'eos_token_id': 151645, 'pad_token_id': 151643, 'recompute_log_prob': False, 'do_sample':config.actor_rollout_ref.rollout.do_sample, 'validate': True}), val=True)
 	end_time = time.time()
@@ -182,54 +255,15 @@ def main(config):
 	for k, v in metrics.items():
 		print(f'{k}: {v}')
 
+
 	# specific analysis for spatial env
-	messages = rollouts.non_tensor_batch['messages_list'].tolist()
-	env_ids = rollouts.non_tensor_batch['env_ids'].tolist()
-	envs = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
-	
-	print("\n==== Environment messages ====")
-	for i, (message, env_id) in enumerate(zip(messages, env_ids)):
-		print(f'\nMessage {i} for env_id {env_id}:')
-		print(message)
-		# env = envs[env_id]
-        # env_info = env.get_env_info()
-        # print(f'env_info for env_id {env_id}:')
-        # print(env_info)
-		
-	print("\n==== All environment evaluation results ====")
-	for env_id, env in envs.items():
-		print(f'\nEnvironment ID {env_id} evaluation results:')
-		if env.config.exp_type in ["active", "semi"]:
-			print(f'Exploration efficiency for env_id {env_id}:')
-			print(env.get_exp_efficiency())
-		print(f'Evaluation performance for env_id {env_id}:')
-		print(env.get_eval_performance())
-
-
-
-
-
-# @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_api_llm")
-# def main(config):
-# 	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
-# 	actor_wg = ApiCallingWrapperWg(config, tokenizer)
-# 	proxy = LLMAgentProxy(config, actor_wg, tokenizer)
-# 	import time
-# 	start_time = time.time()
-# 	rollouts = proxy.rollout(DataProto(batch=None, non_tensor_batch=None, meta_info={'eos_token_id': 151645, 'pad_token_id': 151643, 'recompute_log_prob': False, 'do_sample': False, 'validate': True}), val=True)
-# 	print(f'[DEBUG] rollouts: {rollouts}')
-# 	end_time = time.time()
-# 	print(f'rollout time: {end_time - start_time} seconds')
-# 	# print rollout rewards from the rm_scores
-# 	rm_scores = rollouts.batch["rm_scores"]
-# 	metrics = rollouts.meta_info["metrics"]
-# 	avg_reward = rm_scores.sum(-1).mean().item()
-# 	print(f'rollout rewards: {avg_reward}')
-# 	print(f'metrics:')
-# 	for k, v in metrics.items():
-# 		print(f'{k}: {v}')
-
-
+	log_each_env_info(
+		envs={env['env_id']: env['env'] for env in proxy.val_es_manager.envs},
+		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
+		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),
+		config=config,
+		output_dir=config.output_dir
+	)
 
 if __name__ == "__main__":
 	main()

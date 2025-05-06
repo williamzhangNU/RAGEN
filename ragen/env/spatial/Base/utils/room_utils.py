@@ -63,8 +63,13 @@ def generate_random_objects(
     indices = random_generator.choice(len(candidate_list), n, replace=False)
     names = [candidate_list[i] for i in indices]
     
-    # Generate random positions and orientations
-    positions = random_generator.integers(room_range[0], room_range[1], (n, 2))
+    # Generate random positions ensuring no two objects are at the same position
+    positions = [np.array([0, 0])]
+    while len(positions) < n:
+        pos = random_generator.integers(room_range[0], room_range[1], (1, 2))[0]
+        if not any(np.array_equal(pos, existing_pos) for existing_pos in positions):
+            positions.append(pos)
+    positions = np.array(positions[1:])
     print(f'[DEBUG] positions: {positions}')
     orientations = random_generator.integers(0, 4, n)
     

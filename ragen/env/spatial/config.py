@@ -20,9 +20,9 @@ class SpatialGymConfig:
         render_mode: Rendering mode
     """
     # Room config parameters
-    room_range: Tuple[int, int] = (-10, 10)
+    room_range: List[int] = field(default_factory=lambda: [-10, 10])
     n_objects: int = 3
-    candidate_objects: List[Object] = field(default_factory=lambda: CANDIDATE_OBJECTS)
+    candidate_objects: List[str] = field(default_factory=lambda: CANDIDATE_OBJECTS)
     generation_type: str = "rand"
     
     # Spatial gym parameters
@@ -51,7 +51,7 @@ class SpatialGymConfig:
 
 
         # Validate eval_tasks
-        valid_eval_tasks = ["dir", "rot", "pov", "a2e", "e2a"]
+        valid_eval_tasks = ["dir", "rot", "pov", "a2e", "e2a", "rev"]
         assert len(self.eval_tasks) > 0, "eval_tasks must be non-empty"
         assert all(task['task_type'] in valid_eval_tasks for task in self.eval_tasks), f"eval_tasks must be a subset of {valid_eval_tasks}"
 
@@ -73,8 +73,22 @@ class SpatialGymConfig:
             'perspective': self.perspective,  
         }
     
+    # def to_dict(self):
+    #     return {field.name: getattr(self, field.name) for field in fields(self)}
     def to_dict(self):
-        return {field.name: getattr(self, field.name) for field in fields(self)}
+        from omegaconf import OmegaConf
+        return {
+            'room_range': self.room_range,
+            'candidate_objects': self.candidate_objects,
+            'generation_type': self.generation_type,
+            'n_objects': self.n_objects,    
+            'exp_type': self.exp_type,
+            'perspective': self.perspective,
+            'eval_tasks': OmegaConf.to_container(self.eval_tasks, resolve=True),
+            'max_exp_steps': self.max_exp_steps,
+            'render_mode': self.render_mode,
+        }
+    
 
 @dataclass
 class BaseEvaluationConfig:
@@ -98,6 +112,9 @@ class BaseEvaluationConfig:
             'dir': DirEvaluationConfig,
             'rot': RotEvaluationConfig,
             'pov': PovEvaluationConfig,
+            'rev': ReverseDirEvaluationConfig,
+            'a2e': A2EEvaluationConfig,
+            'e2a': E2AEvaluationConfig,
         }
         
         if config_type not in config_map:
@@ -174,7 +191,28 @@ class PovEvaluationConfig(BaseEvaluationConfig):
     """
     pass
 
+@dataclass
+class ReverseDirEvaluationConfig(BaseEvaluationConfig):
+    """
+    Config for the reverse direction evaluation task
+    """
+    pass
 
+
+@dataclass
+class A2EEvaluationConfig(BaseEvaluationConfig):
+    """
+    Config for the A2E evaluation task
+    """
+    pass
+
+
+@dataclass
+class E2AEvaluationConfig(BaseEvaluationConfig):
+    """
+    Config for the E2A evaluation task
+    """
+    pass
 
 if __name__ == "__main__":
     config = RotEvaluationConfig()

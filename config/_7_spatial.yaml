@@ -2,6 +2,7 @@ defaults:
   - base
 
 model_path: Qwen/Qwen2.5-3B-Instruct
+output_dir: results/spatial/passive/e2a
 
 trainer:
   experiment_name: spatial-main
@@ -12,7 +13,7 @@ actor_rollout_ref:
     gpu_memory_utilization: 0.8
 
 agent_proxy:
-  max_turn: 8
+  max_turn: 1 # 1 for passive, 8 for active
   action_sep: "||"
   max_actions_per_turn: 1 # how many actions can be output at most in a single turn
 
@@ -23,11 +24,16 @@ es_manager:
     # under the same group, the env config and env seed are ensured to be equal
     group_size: 16
     env_configs:
-      tags: ["SpatialGym"]
+      tags: ["ActiveSpatialGym"]
       n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
-    env_groups: 10
+    env_groups: 1
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       tags: ["SpatialGym"]
-      n_groups: [10] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+    # env_groups: 8
+    # group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
+    # env_configs:
+    #   tags: ["PassiveE2A"]
+    #   n_groups: [8]

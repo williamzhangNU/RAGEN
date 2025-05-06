@@ -131,19 +131,96 @@ custom_envs:
   #       rot:
   #         turn_direction: "clockwise"
 
-  SpatialGym:
+  PassiveRot:
     env_type: SpatialGym
-    max_actions_per_traj: 8
+    max_actions_per_traj: 1
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
-      exp_type: "active" # 'passive', 'active','semi'
+      exp_type: "passive"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+  
+  ActiveRotCounter:
+    env_type: SpatialGym
+    max_actions_per_traj: 10
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "active"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "counterclockwise"
+
+  PassiveRotCounter:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "counterclockwise"
+
+  PassiveDir:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
       eval_tasks:
         - task_type: "dir"
-          task_kwargs: 
-            movement: "agent_move" # 'static', 'object_move', 'agent_move', 'agent_turn'
-           
-      # eval_tasks:
-      #   - task_type: "rot"
-      #     task_kwargs: 
-      #       turn_direction: "clockwise"
+          task_kwargs:
+            movement: "static"
+
+  PassiveRev:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      eval_tasks:
+        - task_type: "rev"
+          task_kwargs: {}
+
+  PassivePov:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      eval_tasks:
+        - task_type: "pov"
+          task_kwargs: {}
+
+  PassiveE2A:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      eval_tasks:
+        - task_type: "e2a"
+          task_kwargs: {}
+
+  ActiveSpatialGym:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "active"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+            

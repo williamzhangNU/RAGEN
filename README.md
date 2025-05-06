@@ -21,6 +21,10 @@
 
 </p>
 
+**2025.5.2 Update:**
+We now release a [tracking document](https://docs.google.com/document/d/1bg7obeiKTExuHHBl5uOiSpec5uLDZ2Tgvxy6li5pHX4/edit?usp=sharing) to log minor updates in the RAGEN codebase. 
+
+
 **2025.4.20 Update:**
 
 Our RAGEN [paper](https://arxiv.org/abs/2504.20073) is out!
@@ -287,11 +291,14 @@ We welcome all forms of feedback! Please raise an issue for bugs, questions, or 
 ## Acknowledgements
 We thank the [DeepSeek](https://github.com/deepseek-ai/DeepSeek-R1) team for providing the DeepSeek-R1 model and early conceptual inspirations. We are grateful to the [veRL](https://github.com/volcengine/verl) team for their infrastructure support. We thank the [TinyZero](https://github.com/Jiayi-Pan/TinyZero) team for their discoveries that informed our initial exploration. We would like to appreciate insightful discussions with Han Liu, Xinyu Xing, Li Erran Li, John Schulman, Akari Asai, Eiso Kant, Lu Lu, Runxin Xu, Huajian Xin, Zijun Liu, Weiyi Liu, Weimin Wu, Yibo Wen, Jiarui Liu, Lorenzo Xiao, Ishan Mukherjee, Anabella Isaro, Haosen Sun, How-Yeh Wan, Lester Xue, Matthew Khoriaty, Haoxiang Sun, Jiajun Liu.
 
+## Star History
 
-
+<p align="center" style="display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto;">
+    <img src="public/star-history-202556.png" alt="" />
+</p>
 
 ## Citation
-If you find RAGEN useful, please consider citing our work:
+If you find RAGEN useful, we would appreciate it if you consider citing our work:
 ```md
 @misc{ragen,
       title={RAGEN: Understanding Self-Evolution in LLM Agents via Multi-Turn Reinforcement Learning}, 
