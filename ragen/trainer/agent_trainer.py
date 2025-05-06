@@ -28,8 +28,8 @@ from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from verl.single_controller.base import Worker
 from verl.single_controller.ray import RayClassWithInitArgs, RayResourcePool, RayWorkerGroup
 from verl.single_controller.ray.base import create_colocated_worker_cls
-from verl.trainer.ppo import core_algos
-from verl.trainer.ppo.core_algos import agg_loss
+from ragen.trainer import core_algos
+from ragen.trainer.core_algos import agg_loss
 from verl.trainer.ppo.metric_utils import (
     compute_data_metrics,
     compute_throughout_metrics,
@@ -47,7 +47,7 @@ from verl.workers.rollout.async_server import AsyncLLMServerManager
 WorkerType = Type[Worker]
 
 
-from verl.trainer.ppo.ray_trainer import Role, AdvantageEstimator, ResourcePoolManager, compute_advantage, compute_response_mask, _timer, apply_kl_penalty
+from verl.trainer.ppo.ray_trainer import Role, ResourcePoolManager, compute_response_mask, _timer, apply_kl_penalty, AdvantageEstimator
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer as VerlRayPPOTrainer
 
 import torch
@@ -55,6 +55,86 @@ from verl.utils.torch_functional import masked_mean
 
 from ragen.llm_agent.agent_proxy import LLMAgentProxy
 from ragen.utils import GenerationsLogger
+
+
+def compute_advantage(data: DataProto, adv_estimator, gamma=1.0, lam=1.0, num_repeat=1, multi_turn=False, norm_adv_by_std_in_grpo=True, bi_level_gae=False, high_level_gamma=1.0):
+    # Back-compatible with trainers that do not compute response mask in fit
+    if "response_mask" not in data.batch:
+        data.batch["response_mask"] = compute_response_mask(data)
+    # prepare response group
+    # TODO: add other ways to estimate advantages
+    if adv_estimator == AdvantageEstimator.GAE:
+        if bi_level_gae:
+            advantages, returns = core_algos.compute_bi_level_gae_advantage_return(
+                token_level_rewards=data.batch["token_level_rewards"],
+                values=data.batch["values"],
+                loss_mask=data.batch["response_mask"],
+                gamma=gamma,
+                lam=lam,
+                high_level_gamma=high_level_gamma,
+            )
+        else:
+            advantages, returns = core_algos.compute_gae_advantage_return(
+                token_level_rewards=data.batch["token_level_rewards"],
+                values=data.batch["values"],
+                response_mask=data.batch["response_mask"],
+                gamma=gamma,
+                lam=lam,
+            )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.GRPO:
+        # TODO: test on more adv estimator type
+        grpo_calculation_mask = data.batch["response_mask"]
+        if multi_turn:
+            # If multi-turn, replace the mask with the relevant part of loss_mask
+            response_length = grpo_calculation_mask.size(1)  # Get length from the initial response mask
+            grpo_calculation_mask = data.batch["loss_mask"][:, -response_length:]  # This mask is the one intended for GRPO
+        # Call compute_grpo_outcome_advantage with parameters matching its definition
+        advantages, returns = core_algos.compute_grpo_outcome_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            response_mask=grpo_calculation_mask,
+            index=data.non_tensor_batch["uid"],
+            norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.REINFORCE_PLUS_PLUS_BASELINE:
+        advantages, returns = core_algos.compute_reinforce_plus_plus_baseline_outcome_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            response_mask=data.batch["response_mask"],
+            index=data.non_tensor_batch["uid"],
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.REINFORCE_PLUS_PLUS:
+        advantages, returns = core_algos.compute_reinforce_plus_plus_outcome_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            response_mask=data.batch["response_mask"],
+            gamma=gamma,
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.REMAX:
+        advantages, returns = core_algos.compute_remax_outcome_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            reward_baselines=data.batch["reward_baselines"],
+            response_mask=data.batch["response_mask"],
+        )
+
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    elif adv_estimator == AdvantageEstimator.RLOO:
+        advantages, returns = core_algos.compute_rloo_outcome_advantage(
+            token_level_rewards=data.batch["token_level_rewards"],
+            response_mask=data.batch["response_mask"],
+            index=data.non_tensor_batch["uid"],
+        )
+        data.batch["advantages"] = advantages
+        data.batch["returns"] = returns
+    else:
+        raise NotImplementedError
+    return data
 
 
 class RayAgentTrainer(VerlRayPPOTrainer):
@@ -539,7 +619,7 @@ class RayAgentTrainer(VerlRayPPOTrainer):
                     # compute advantages, executed on the driver process
 
                     norm_adv_by_std_in_grpo = self.config.algorithm.get("norm_adv_by_std_in_grpo", True)  # GRPO adv normalization factor
-
+                    assert self.config.algorithm.bi_level_gae == False or self.config.algorithm.adv_estimator == AdvantageEstimator.GAE, "BI_LEVEL_GAE is enabled, so config.algorithm.adv_estimator should be set to GAE"
                     batch = compute_advantage(
                         batch,
                         adv_estimator=self.config.algorithm.adv_estimator,
@@ -548,6 +628,8 @@ class RayAgentTrainer(VerlRayPPOTrainer):
                         num_repeat=self.config.actor_rollout_ref.rollout.n,
                         norm_adv_by_std_in_grpo=norm_adv_by_std_in_grpo,
                         multi_turn=True,
+                        high_level_gamma=self.config.algorithm.high_level_gamma,
+                        bi_level_gae=self.config.algorithm.bi_level_gae,
                     )
 
                 ##### A very different setting, just here for testing: Can I normalize the advantages to have a mean of 0?
