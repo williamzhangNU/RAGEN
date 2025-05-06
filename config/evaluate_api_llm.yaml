@@ -17,12 +17,6 @@ model_info:
     generation_kwargs:
       temperature: 0
       max_tokens: 1024
-  gpt-4o:
-    provider_name: openai
-    model_name: gpt-4o
-    generation_kwargs:
-      temperature: 0
-      max_tokens: 1024
   deepseek-r1:
     provider_name: deepseek
     model_name: deepseek-reasoner
@@ -33,11 +27,23 @@ model_info:
     provider_name: deepseek
     model_name: deepseek-chat
     generation_kwargs:
-      temperature: 1
+      temperature: 0
+      max_completion_tokens: 512
+  gpt-4o:
+    provider_name: openai
+    model_name: gpt-4o
+    generation_kwargs:
+      temperature: 0
+      max_tokens: 512
+  o3-mini:
+    provider_name: openai
+    model_name: o3-mini
+    generation_kwargs:
+      temperature: 0
       max_completion_tokens: 8192
   o4-mini:
     provider_name: openai
     model_name: o4-mini
     generation_kwargs:
-      temperature: 1
-      max_completion_tokens: 4096
+      temperature: 0
+      max_completion_tokens: 8192
