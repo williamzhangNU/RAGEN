@@ -1,11 +1,14 @@
 defaults:
   - base
+  - evaluate_api_llm
 
-model_path: Qwen/Qwen2.5-3B-Instruct
 output_dir: results/spatial/passive/e2a
 
-trainer:
-  experiment_name: spatial-main
+eval_model_type: api # api or vllm
+model_path: Qwen/Qwen2.5-3B-Instruct
+model_config:
+  model_name: gpt-4o
+  max_concurrency: 8
 
 actor_rollout_ref:
   rollout:
@@ -18,14 +21,6 @@ agent_proxy:
   max_actions_per_turn: 1 # how many actions can be output at most in a single turn
 
 es_manager:
-  format_penalty: -0.1
-  train:
-    env_groups: 8
-    # under the same group, the env config and env seed are ensured to be equal
-    group_size: 16
-    env_configs:
-      tags: ["ActiveSpatialGym"]
-      n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
     env_groups: 8
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.

@@ -104,11 +104,18 @@ class SpatialGym(gym.Env):
             else:
                 exp_answer_format += "\n\nYou can only perform one query action at a time. Example: Query(table, plant) or Term()"
 
-        return instruction.format(
+        obs = instruction.format(
             room_info=room_desc,
             exp_history=exp_history,
             exp_answer_format=exp_answer_format
         )
+
+        if self.config.exp_type == 'passive':
+            obs = obs + "\n\n" + self.eval_tasks[0].generate_question(self.room_s_0.copy())
+
+        return obs
+
+        
 
 
     
@@ -140,6 +147,9 @@ class SpatialGym(gym.Env):
         )
         self.room_s_t = self.room_s_0.copy()
         self.eval_tasks = [get_eval_task(task['task_type'], self.np_random, task['task_kwargs']) for i, task in enumerate(self.config.eval_tasks)]
+        if self.config.exp_type == 'passive':
+            for task in self.eval_tasks:
+                task.generate_question(self.room_s_0.copy())
         self.eval_results = []
             
 
@@ -224,11 +234,12 @@ class SpatialGym(gym.Env):
 
     #=============== for analysis ===============
     def get_env_info(self):
+        print(self.config.to_dict())
         return {
             "config": self.config.to_dict(),
             "room_s_0": self.room_s_0.to_dict(),
             "room_s_t": self.room_s_t.to_dict(),
-            "room_s_end": self.room_s_end.to_dict(),
+            "room_s_end": self.room_s_end.to_dict() if self.room_s_end else None,
         }
 
     def get_exp_efficiency(self):
@@ -237,7 +248,14 @@ class SpatialGym(gym.Env):
         - Coverage: percentage of pairs covered (known / all relations)
         - Novelty: percentage of novel pairs (inferable / all queries)
         """
-        assert self.config.exp_type in ["active", "semi"]
+        assert self.config.exp_type in ["active", "semi", "passive"]
+        if self.config.exp_type == 'passive':
+            return {
+                "coverage": 0,
+                "novelty": 0,
+                "n_valid_queries": 0,
+                "n_novel_queries": 0,
+            }
         self.room_s_t.finish_exploration()
         unknown_pairs = self.room_s_t.get_unknown_pairs()
 
@@ -268,8 +286,8 @@ class SpatialGym(gym.Env):
             })
         
         return {
-            "accuracy": sum(result["correct"] for result in all_results) / len(all_results),
-            'accuracy_completed': sum(result["correct"] for result in self.eval_results) / len(self.eval_results),
+            "accuracy": sum(result["correct"] for result in all_results) / len(all_results) if len(all_results) > 0 else 0,
+            'accuracy_completed': sum(result["correct"] for result in self.eval_results) / len(self.eval_results) if len(self.eval_results) > 0 else 0,
             "task_results": all_results,
             "completed_tasks": len(self.eval_results),
             "unanswered_tasks": len(self.eval_tasks)

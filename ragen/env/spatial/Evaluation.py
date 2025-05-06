@@ -8,6 +8,7 @@ import re
 import numpy as np
 from typing_extensions import override
 import copy
+from dataclasses import dataclass
 
 from ragen.env.spatial.Base.room import Room
 from ragen.env.spatial.utils.parse_eval import dir_eval_fn, obj_seq_eval_fn, deg_seq_eval_fn, list_dir_eval_fn
@@ -21,6 +22,94 @@ from ragen.env.spatial.config import (BaseEvaluationConfig,
                                       RotEvaluationConfig,
                                       PovEvaluationConfig)
 
+@dataclass
+class EvaluationData:
+    question: str
+    answer: str
+    reasoning: str
+    task_type: str
+
+    def __post_init__(self):
+        valid_task_types = [
+            'AllPairsEvaluationTask',
+            'DirEvaluationTask',
+            'RotEvaluationTask',
+            'PovEvaluationTask',
+            'ReverseDirEvaluationTask',
+            'E2AEvaluationTask',
+            'A2EEvaluationTask'
+        ]
+        assert self.task_type in valid_task_types, f"Invalid task type: {self.task_type}"
+    
+    def evaluate(self, pred: Any) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Evaluate an answer to the given question
+        
+        Args:
+            pred: Predicted answer
+            
+        Returns:
+            Tuple of (correct, info)
+        """
+        if self.task_type == 'AllPairsEvaluationTask':
+            info = {
+                "score": 0.0,
+                "correct_count": 0,
+                "total_count": 0,
+            }
+            correct_count = list_dir_eval_fn(pred, self.answer)
+            
+            # Calculate score as percentage of correct answers
+            total_answers = len(self.answer)
+            score = correct_count / total_answers if total_answers > 0 else 0.0
+            
+            # Set results
+            is_perfect = correct_count == total_answers
+            info["score"] = score
+            info["correct_count"] = correct_count
+            info["total_count"] = total_answers
+
+            return is_perfect, info
+        
+        elif self.task_type == 'DirEvaluationTask':
+            return dir_eval_fn(pred, self.answer), {}
+        
+        elif self.task_type == 'RotEvaluationTask':
+            return obj_seq_eval_fn(pred, self.answer), {}
+        
+        elif self.task_type == 'PovEvaluationTask':
+            return dir_eval_fn(pred, self.answer), {}
+        
+        elif self.task_type == 'ReverseDirEvaluationTask':
+            return pred.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
+        
+        elif self.task_type == 'E2AEvaluationTask':
+            return obj_seq_eval_fn(pred, self.answer), {}
+        
+        elif self.task_type == 'A2EEvaluationTask':
+            return deg_seq_eval_fn(pred, self.answer), {}
+        
+        
+    
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the evaluation data to a dictionary
+        """
+        return {
+            'question': self.question,
+            'answer': self.answer,
+            'reasoning': self.reasoning,
+            'task_type': self.task_type,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EvaluationData':
+        """
+        Initialize the evaluation data from a dictionary
+        """
+        return cls(**data)
+
 class BaseEvaluationTask(ABC):
     """Base class for all spatial evaluation tasks"""
     
@@ -33,10 +122,25 @@ class BaseEvaluationTask(ABC):
         """
         self.config = config
         self.np_random = np_random
-        self.question = None
-        self.reasoning = None
-        self.answer = None
+        self.eval_data = EvaluationData(
+            question=None,
+            answer=None,
+            reasoning=None,
+            task_type=self.__class__.__name__
+        )
 
+    @property
+    def answer(self) -> Any:
+        return self.eval_data.answer
+    
+    @property
+    def question(self) -> str:
+        return self.eval_data.question
+    
+    @property
+    def reasoning(self) -> str:
+        return self.eval_data.reasoning
+    
     @abstractmethod
     def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
         """
@@ -63,18 +167,9 @@ class BaseEvaluationTask(ABC):
         """
         pass
     
-    @abstractmethod
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        """
-        Evaluate an answer to the given question
+    def evaluate(self, pred: Any) -> Tuple[bool, Dict[str, Any]]:
+        return self.eval_data.evaluate(pred)
         
-        Args:
-            answer: Agent's answer
-            
-        Returns:
-            Tuple of (correct, info)
-        """
-        pass
 
     def to_string(self) -> str:
         """
@@ -145,6 +240,15 @@ class AllPairsEvaluationTask(BaseEvaluationTask):
     2. (<horiz>, <vert>)
     ...
     """
+
+    QUESTION_TEMPLATE = (
+        "Consider the following spatial relationships:\n"
+        "{obj_pairs_str}\n"
+        "List all of these relationships in the format:\n"
+        "1. (<horiz>, <vert>)\n"
+        "2. (<horiz>, <vert>)\n"
+        "..."
+    )
     
     def __init__(self, np_random: np.random.Generator, config: AllPairsEvaluationConfig = AllPairsEvaluationConfig()):
         super().__init__(np_random, config)
@@ -166,6 +270,7 @@ class AllPairsEvaluationTask(BaseEvaluationTask):
             Question string
         """
         room = room.copy()
+        answer = []
 
         n = len(room.all_objects)
         pairs = [(i, j) if self.np_random.random() >= 0.5 else (j, i) 
@@ -177,54 +282,16 @@ class AllPairsEvaluationTask(BaseEvaluationTask):
             obj1 = room.all_objects[i]
             obj2 = room.all_objects[j]
             _, dir_pair_str = room.get_direction(obj1.name, obj2.name)
-            self.answer.append(dir_pair_str)
+            answer.append(dir_pair_str)
             rel_questions.append(f"({obj1.name}, {obj2.name})")
         
         # Generate the question
-        self.question = "Consider the following spatial relationships:\n"
-        for i, question in enumerate(rel_questions, 1):
-            self.question += f"{i}. {question}\n"
+        rel_questions_str = "\n".join([f"{i}. {question}" for i, question in enumerate(rel_questions, 1)])
         
-        self.question += "\nList all of these relationships in the format:\n1. (<horiz>, <vert>)\n2. (<horiz>, <vert>)\n..."
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        """
-        Evaluate an answer to the given question
-        
-        Args:
-            answer: Agent's answer formatted as a list of relationships
-            
-        Returns:
-            Tuple of (correct, info)
-        """
-        # Default response
-        info = {
-            "score": 0.0,
-            "correct_count": 0,
-            "total_count": 0,
-        }
-        
-        # Validate input
-        if not isinstance(answer, str):
-            info["message"] = "Answer must be a string"
-            return False, info
-        
-        # Use list_dir_eval_fn to check all pairs
-        correct_count = list_dir_eval_fn(answer, self.answer)
-        
-        # Calculate score as percentage of correct answers
-        total_answers = len(self.answer)
-        score = correct_count / total_answers if total_answers > 0 else 0.0
-        
-        # Set results
-        is_perfect = correct_count == total_answers
-        info["score"] = score
-        info["correct_count"] = correct_count
-        info["total_count"] = total_answers
-
-        return is_perfect, info
-
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(obj_pairs_str=rel_questions_str)
+        self.eval_data.answer = answer
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
     
 
 class DirEvaluationTask(BaseEvaluationTask):
@@ -328,13 +395,13 @@ class DirEvaluationTask(BaseEvaluationTask):
         
 
         # 4. Generate the QA
-        self.question = f"{obs} {target_name} is what direction to {query_obj.name}?"
+        question = f"{obs} {target_name} is what direction to {query_obj.name}?"
         dir_pair_query = graph.get_direction(target_obj_idx, query_obj_idx)
-        self.answer = DirectionSystem.to_string(dir_pair_query, perspective='ego' if room.agent is not None else 'allo')
-        return self.question
-        
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        return dir_eval_fn(answer, self.answer), {}
+        answer = DirectionSystem.to_string(dir_pair_query, perspective='ego' if room.agent is not None else 'allo')
+        self.eval_data.question = question
+        self.eval_data.answer = answer
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return question
 
 
 class ReverseDirEvaluationTask(BaseEvaluationTask):
@@ -347,6 +414,12 @@ class ReverseDirEvaluationTask(BaseEvaluationTask):
         - Given new_obj --> anchor_obj, ask **which (target) object** is also new_obj --> target_obj
         - Provide any one of correct answer is acceptable
     """
+
+    QUESTION_TEMPLATE = (
+        "A new object {new_obj_name} is {dir_pair_str} to {anchor_obj_name}.\n"
+        "Which object is also {dir_pair_str} to {new_obj_name}?"
+        "Format your answer as a single object name, e.g., 'chair'"
+    )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
@@ -380,15 +453,15 @@ class ReverseDirEvaluationTask(BaseEvaluationTask):
         graph.is_explore = True
         graph.add_node(anchor_obj_idx, dir_pair)
         inferable_pairs = graph.get_inferable_pairs()
-        self.answer = [room.all_objects[j].name for i, j in inferable_pairs if i == new_obj_idx]
-        self.answer.extend([room.all_objects[i].name for i, j in inferable_pairs if j == new_obj_idx])
 
-        self.question = f"A new object {new_obj_name} is {dir_pair_str} to {anchor_obj.name}. {new_obj_name} is also {dir_pair_str} to which object, give ONLY one of the possible answers."
-        
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        return answer.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
+        answer = [room.all_objects[j].name for i, j in inferable_pairs if i == new_obj_idx]
+        answer.extend([room.all_objects[i].name for i, j in inferable_pairs if j == new_obj_idx])
+
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(new_obj_name=new_obj_name, dir_pair_str=dir_pair_str, anchor_obj_name=anchor_obj.name)
+        self.eval_data.answer = answer
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
+
 
 
 
@@ -398,6 +471,11 @@ class RotEvaluationTask(BaseEvaluationTask):
     Q: What is the sequence of objects when agent turns around at its original position?
     A: [<obj1>, <obj2>, ...]
     """
+
+    QUESTION_TEMPLATE = (
+        "What is the sequence of objects when agent turns around {turn_direction} at its original position?\n"
+        "Format your answer as a comma-separated list of objects, e.g., '[chair, eraser, ...]'"
+    )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
@@ -420,14 +498,11 @@ class RotEvaluationTask(BaseEvaluationTask):
         turn_direction = self.config.turn_direction
         objects = room.objects
         objects.sort(key=lambda x: _get_angle(x.pos), reverse=(turn_direction == 'counterclockwise'))
-        self.answer = [obj.name for obj in objects]
-        self.question = f"What is the sequence of objects when agent turns around {turn_direction} at its original position?"
-        
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        correct = obj_seq_eval_fn(answer, self.answer)
-        return correct, {}
+
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(turn_direction=turn_direction)
+        self.eval_data.answer = [obj.name for obj in objects]
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
     
     @override
     def to_string(self) -> str:
@@ -441,6 +516,12 @@ class PovEvaluationTask(BaseEvaluationTask):
     A: <dir>
 
     """
+
+    QUESTION_TEMPLATE = (
+        "{obj_orientation_str}\n"
+        "From {anchor_obj_name}'s perspective, {obj1_name} is what direction to {obj2_name}?"
+        "Format your answer as a single direction '(<horiz>, <vert>)', e.g., '(right, back)'"
+    )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
@@ -457,17 +538,18 @@ class PovEvaluationTask(BaseEvaluationTask):
         while obj2_idx == obj1_idx:
             obj2_idx = self.np_random.integers(0, len(room.all_objects))
 
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(
+            obj_orientation_str=room.get_objects_orientation(),
+            anchor_obj_name=room.all_objects[anchor_obj_idx].name,
+            obj1_name=room.all_objects[obj1_idx].name,
+            obj2_name=room.all_objects[obj2_idx].name
+        )
         _, dir_pair_str = room.get_direction(obj1_idx, obj2_idx, anchor_obj_idx)
-        self.question = room.get_objects_orientation()    
-        self.question += f"From {room.all_objects[anchor_obj_idx].name}'s perspective, {room.all_objects[obj1_idx].name} is what direction to {room.all_objects[obj2_idx].name}?"
-        self.answer = dir_pair_str
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        return dir_eval_fn(answer, self.answer), {}
+        self.eval_data.answer = dir_pair_str
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
         
         
-
 class E2AEvaluationTask(BaseEvaluationTask):
     """
     Evaluation task for ego2allo questions
@@ -477,6 +559,17 @@ class E2AEvaluationTask(BaseEvaluationTask):
 
     TODO check uniqueness of the answer
     """
+
+    QUESTION_TEMPLATE = (
+        "Map objects to coordinates in the given order.\n"
+        "Example:\n"
+        "- Ground truth: A at (0, 0), B at (1, 1), C at (2, 2)\n"
+        "- Given coordinates: (0, 0), (1, 1), (2, 2)\n"
+        "- answer: ['A', 'B', 'C']\n"
+        "Given a list of coordinates: {coordinates_str}\n"
+        "What is the sequence of objects that corresponds to each coordinate?"
+        "Format your answer as a comma-separated list of objects, e.g., '[chair, eraser, ...]'"
+    )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
@@ -495,31 +588,17 @@ class E2AEvaluationTask(BaseEvaluationTask):
         coordinates = np.array([obj.pos for obj in objects])
         
         min_x, max_x, min_y, max_y = room.get_boundary()
-        random_offset = np.column_stack([
-            self.np_random.integers(min_x, max_x, len(objects)),
-            self.np_random.integers(min_y, max_y, len(objects))
+        random_offset = np.array([
+            self.np_random.integers(min_x, max_x),
+            self.np_random.integers(min_y, max_y)
         ])
         coordinates = coordinates + random_offset
-
         coordinates_str = ", ".join([f"({coord[0]},{coord[1]})" for coord in coordinates])
-        instruction_str = (
-            "Map objects to coordinates in the given order.\n"
-            "Example:\n"
-            "- Ground truth: A at (0, 0), B at (1, 1), C at (2, 2)"
-            "- Given coordinates: (0, 0), (1, 1), (2, 2)\n"
-            "- answer: ['A', 'B', 'C']\n"
-        )
-        format_str = "Answer format: `[<object1>, <object2>, ...]`"
-        question = f"Given a list of coordinates: {coordinates_str}, what is the sequence of objects that corresponds to each coordinate?"
-        self.question = instruction_str + "\n" + question + "\n" + format_str
-        self.answer = [obj.name for obj in objects]
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        return obj_seq_eval_fn(answer, self.answer), {}
         
-        
-
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(coordinates_str=coordinates_str)
+        self.eval_data.answer = [obj.name for obj in objects]
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
 
 
 class A2EEvaluationTask(BaseEvaluationTask):
@@ -528,7 +607,23 @@ class A2EEvaluationTask(BaseEvaluationTask):
     Exploration from allocentric view, evaluate how it performs in ego-centric view
     Q: What is the sequence of degrees you need to turn to traverse all objects in order?
     A: [<degree1>, <degree2>, ...]
+
+    TODO 
+    1. from A -> B: turn {dir 1}
+    2. from B -> C: turn {dir 2}
+    Question: what is {dir 1}, {dir 2}?
+    Answer: [{dir 1}, {dir 2}]
     """
+
+    QUESTION_TEMPLATE = (
+        "After exploring the room from bird-eye view, you'll now traverse it from an egocentric view. \n"
+        "Starting at the first object facing north, report the clockwise turning degrees (0, 90, 180, or 270) "
+        "needed to face each subsequent object before moving to it. Your orientation remains fixed while moving."
+        "Given a sequence of objects:\n"
+        "{object_sequence_str}\n"
+        "What is the sequence of degrees you need to turn to traverse all objects in order?"
+        "Format your answer as a comma-separated list of degrees, e.g., '[0, 90, 180, 270]'"
+    )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
@@ -581,22 +676,10 @@ class A2EEvaluationTask(BaseEvaluationTask):
             traverse_agent.pos = next_obj.pos
 
         object_sequence_str = ", ".join([obj.name for obj in room.all_objects])
-        format_str = "Format your answer as a comma-separated list of degrees, e.g., '[0, 90, 180, 270]'."
-        instruction_str = (
-            "After exploring the room from bird-eye view, you'll now traverse it from an egocentric view. \n"
-            "Starting at the first object facing north, report the clockwise turning degrees (0, 90, 180, or 270) "
-            "needed to face each subsequent object before moving to it. Your orientation remains fixed while moving."
-        )
-        question = f"Given a sequence of objects:\n{object_sequence_str}\nWhat is the sequence of degrees you need to turn to traverse all objects in order?"
-        self.question = instruction_str + "\n" + question + "\n" + format_str
-        self.answer = gt_turning_degrees
-        return self.question
-    
-    def evaluate(self, answer: Any) -> Tuple[bool, Dict[str, Any]]:
-        return deg_seq_eval_fn(answer, self.answer), {}
-
-
-
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(object_sequence_str=object_sequence_str)
+        self.eval_data.answer = gt_turning_degrees
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        return self.eval_data.question
 
 
 if __name__ == "__main__":
@@ -656,7 +739,7 @@ if __name__ == "__main__":
     question = task.generate_question(room)
     print(question)
     print(task.answer)
-    correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
+    correct, info = task.evaluate("['eraser', 'microphone', 'television']")
     print(correct)
 
     
