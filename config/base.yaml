@@ -98,9 +98,9 @@ trainer:
   logger: [ 'console', 'wandb' ]
 
 agent_proxy:
-  max_turn: 5
+  max_turn: 1
   action_sep: "||"
-  max_actions_per_turn: 5 # how many actions can be output at most in a single turn
+  max_actions_per_turn: 1 # how many actions can be output at most in a single turn
   use_turn_scores: False # important to GAE when applying token-level rewards to token-level advantages. If False, will take the sum of scores as the reward for the last turn.
   enable_think: True # False -> no think RL
   reward_normalization:
@@ -110,17 +110,17 @@ agent_proxy:
 es_manager:
   format_penalty: -0.1
   train:
-    env_groups: 8
+    env_groups: 16
     # under the same group, the env config and env seed are ensured to be equal
     group_size: 16
     env_configs:
-      tags: ["SimpleSokoban"]
-      n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["PassiveRot"]
+      n_groups: [16] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
     env_groups: 256
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["SimpleSokoban"]
+      tags: ["PassiveRot"]
       n_groups: [256] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
 
 ctx_manager:

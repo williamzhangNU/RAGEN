@@ -401,7 +401,7 @@ class DirEvaluationTask(BaseEvaluationTask):
         
 
         # 4. Generate the QA
-        question = f"{obs} {target_name} is at what direction to {query_obj.name}? Include only the direction (horizontal, vertical) in your answer."
+        question = f"{obs} Where is {target_name} with respect to {query_obj.name}? Include only the direction (horizontal, vertical) in your answer."
         dir_pair_query = graph.get_direction(target_obj_idx, query_obj_idx)
         answer = DirectionSystem.to_string(dir_pair_query, perspective='ego' if room.agent is not None else 'allo')
         self.eval_data.question = question
@@ -480,7 +480,7 @@ class RotEvaluationTask(BaseEvaluationTask):
 
     QUESTION_TEMPLATE = (
         "What is the sequence of objects when agent turns around {turn_direction} at its original position?\n"
-        "Format your answer as a comma-separated list of objects, e.g., '['chair', 'eraser', ...]'. Note that agent cannot see itself."
+        "Format your answer like this: '<answer>['object1', 'object2', ...]</answer>'"
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
@@ -574,7 +574,7 @@ class E2AEvaluationTask(BaseEvaluationTask):
         "- answer: ['A', 'B', 'C']\n"
         "Given a list of coordinates: {coordinates_str}\n"
         "What is the sequence of objects that corresponds to each coordinate?"
-        "Format your answer as a comma-separated list of objects, e.g., '['chair', 'eraser', ...]'"
+        "Format your answer like this: '<answer>['object1', 'object2', ...]</answer>'"
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):

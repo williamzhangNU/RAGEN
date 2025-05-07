@@ -21,15 +21,15 @@ agent_proxy:
 es_manager:
   format_penalty: -0.1
   train:
-    env_groups: 8
+    env_groups: 10
     # under the same group, the env config and env seed are ensured to be equal
     group_size: 16
     env_configs:
-      tags: ["PassiveE2A"]
-      n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["ActiveDir"]
+      n_groups: [10] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
     env_groups: 10
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["PassiveE2A"]
+      tags: ["ActiveDir"]
       n_groups: [10] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation

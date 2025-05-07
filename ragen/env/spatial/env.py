@@ -40,7 +40,7 @@ from ragen.env.spatial.utils.get_eval_task import get_eval_task
 # """
 
 instruction = """\
-You are an expert in spatial reasoning tasks. Your goal is to explore and determine the relative positions of objects in a room. You should terminate your exploration when you have explored the room and is able to deduce all the spatial relationships.
+You are an expert in spatial reasoning tasks. Your goal is to explore and determine the relative positions of objects in a room. 
 
 Please carefully consider the following rules and guidelines:
 
@@ -57,7 +57,7 @@ Please carefully consider the following rules and guidelines:
    c) Transitivity (One Axis Only):
       - You may only chain along one axis at a time (horizontal or vertical).
       - Example: (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)
-   d) Ambiguity Cases:
+   d) *** Ambiguity Cases ***:
       - If two objects A and C are to the same direction relative to a third object B, see following examples:
         Correct Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
         Incorrect Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (left, back)
@@ -65,20 +65,15 @@ Please carefully consider the following rules and guidelines:
 
 3. Rotation Rules:
    - When rotation occurs, transform spatial directions accordingly. E.g., (A,B):(left, back) → Rotate 90° clockwise → (A,B):(left to front, back to left) → (A,B):(front, left).
-   - Then you MUST check format (Horizontal, Vertical), transform when needed. E.g., (A,B):(front,left) is invalid → (A,B):(left, front) is valid.
+   - Then you MUST check format (Horizontal, Vertical)： invalid (front,left) → valid (left, front).
   
-4. Output Requirements:
-   - Show step-by-step inference using observation, symmetry, or transitivity.
-   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown, front/back) or (left/right, unknown)). (unknown, unknown) is also allowed.
-
-**Now think step by step, the final checklist is as follows:**
-   - Use the observation, symmetry, and transitivity to deduce the relative positions of the objects. If an object moves, the relative position of the other object must change accordingly/become unknown.
-   - Do not guess or assume any relationships. Use "unknown" in the axis that cannot be strictly deduced.
+Final Checklist:
+   - Show step-by-step inference using observation, symmetry, or transitivity. If an object moves, the relative position of the other object must change accordingly/become unknown.
+   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown,front) or (right, unknown)). (unknown, unknown) is also allowed. NEVER guess or assume any relationships.
 
 ## Room Description
 {room_info}
 
-## Exploration History
 {exp_history}
 
 ## Response Format
@@ -142,11 +137,11 @@ class SpatialGym(gym.Env):
                     ") separated by commas, and use semicolons to separate groups of movement actions from the final query action (" + 
                     ", ".join([action.value for action in self.query_action]) + 
                     ").\n\nExample: Move(chair), Rotate(90); Query(table)" +
-                    "\n\nThe last action must always be a query action and you can only perform one query action at a time."
-                    "\n\nIf you choose to terminate with Term(), it should be the only action without any movement actions before it. Example: Term()"
+                    "\n\nThe last action must always be a query action and you can only perform one query action at a time. After Move(object), you're at the same position as the object. Use Query only for other objects."
+                    "\n\nIf you choose to terminate with Term(), you can no longer make queries, so do it after you can infer all the relationships/ is out of actions. It should be the only action without any movement actions before it. Example: Term()"
                 )
             else:
-                exp_answer_format += "\n\nYou can only perform one query action at a time. Example: Query(table, plant) or Term()"
+                exp_answer_format += "\n\nYou can only perform one query action at a time. Example: Query(table, plant) or Term(). If you choose to terminate with Term(), you can no longer make queries, so do it after you can infer all the relationships. Example: Term()."
 
         obs = instruction.format(
             room_info=room_desc,

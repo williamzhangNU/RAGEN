@@ -44,7 +44,7 @@ class ActionType(Enum):
             String describing the proper format for the specified action type
         """
         formats = {
-            ActionType.MOVE: "Move to an object by specifying: Move(<object_name>). Example: Move(chair)",
+            ActionType.MOVE: "Move to the location of the object by specifying: Move(<object_name>). Example: Move(chair)",
             ActionType.ROTATE: "Rotate by a specific degree (90, 180, or 270) clockwise: Rotate(<degree>). Example: Rotate(90)",
             ActionType.RETURN: "Return to your starting position and orientation: Return()",
             ActionType.TERM: "End the current exploration: Term()"
@@ -263,7 +263,7 @@ class Room:
         }
         desc = "Orientation of objects in the room are: \n"
         for obj in self.all_objects:
-            if obj.name == self.agent.name:
+            if self.agent is not None and obj.name == self.agent.name:
                 continue
             desc += f"{obj.name} facing {ori_mapping[tuple(obj.ori)]}\n"
         return desc
