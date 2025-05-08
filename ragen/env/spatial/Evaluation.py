@@ -39,12 +39,12 @@ class BaseEvaluationTask(ABC):
         self.reasoning = None
         self.answer = None
     @abstractmethod
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+    def _generate_reasoning(self, room) -> str:
         """
         Generate reasoning for the evaluation task
 
         Args:
-            env_state: Current state of the environment
+            room: Current state of the environment
             
         Returns:
             Reasoning string
@@ -125,6 +125,25 @@ class BaseEvaluationTask(ABC):
     def _wrap(self, reason: str, ans) -> str:
         """Wrap reasoning + answer in the required XML‑like tags."""
         return f"<think>\n{indent(reason.strip(), '    ')}\n</think> <answer> {ans} </answer>"
+    def _pair_to_xy(self, pair: DirPair) -> Tuple[int, int]:
+        """Convert DirPair → (dx, dy) in {-1,0,1}×{-1,0,1}."""
+        h = {Dir.LEFT: -1, Dir.SAME: 0, Dir.RIGHT: 1}.get(pair.horiz, 0)
+        v = {Dir.BACKWARD: -1, Dir.SAME: 0, Dir.FORWARD: 1}.get(pair.vert, 0)
+        return h, v
+
+    def _xy_to_pair(self, dx: int, dy: int) -> DirPair:
+        """Inverse of _pair_to_xy(…) with saturation to ±1."""
+        h_dir = Dir.LEFT if dx < 0 else Dir.RIGHT if dx > 0 else Dir.SAME
+        v_dir = Dir.BACKWARD if dy < 0 else Dir.FORWARD if dy > 0 else Dir.SAME
+        return DirPair(h_dir, v_dir)
+
+    def _compose(self, p1: DirPair, p2: DirPair) -> DirPair:
+        """Return p1 ⊕ p2 (vector addition in {-1,0,1} with clipping)."""
+        dx1, dy1 = self._pair_to_xy(p1)
+        dx2, dy2 = self._pair_to_xy(p2)
+        dx = max(-1, min(1, dx1 + dx2))
+        dy = max(-1, min(1, dy1 + dy2))
+        return self._xy_to_pair(dx, dy)
 
 
 class AllPairsEvaluationTask(BaseEvaluationTask):
@@ -257,10 +276,123 @@ class DirEvaluationTask(BaseEvaluationTask):
     
     def __init__(self, np_random: np.random.Generator, config: DirEvaluationConfig = DirEvaluationConfig()):
         super().__init__(np_random, config)
-        
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+    def _parse_dir_pair(self, s: str) -> Tuple[Dir, Dir]:
+        m = re.match(r"\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", s)
+        to_dir = lambda w: (
+            Dir.LEFT if w.lower()=='left' else
+            Dir.RIGHT if w.lower()=='right' else
+            Dir.FORWARD if w.lower() in ('front','north') else
+            Dir.BACKWARD if w.lower() in ('back','south') else
+            Dir.SAME
+        )
+        return to_dir(m.group(1)), to_dir(m.group(2)) if m else (Dir.UNKNOWN, Dir.UNKNOWN)
+
+    def _generate_reasoning(self, room) -> str:
         """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
+        # 1) Grab the full movement block (may be one or two sentences),
+        #    the target name, and the query name.
+        #
+        #    e.g. movement_desc = 
+        #      "A new object pen is placed.\npen moves (left,front) to desk."
+        #    or "You turn 90 degrees."
+        pattern = re.compile(
+            r'^(?P<movement>[\s\S]+?)\s*'      # up to just before "<tgt>"
+            r'(?P<tgt>\S+)\s+is what direction to\s+'  
+            r'(?P<qry>\S+)\?',  
+            flags=re.DOTALL
+        )
+        m = pattern.match(self.question)
+        if not m:
+            raise ValueError(f"Couldn’t parse question: {self.question!r}")
+
+        movement_desc = m.group("movement").strip()   # full movement text
+        tgt_name      = m.group("tgt")               # e.g. "cabinet"
+        qry_name      = m.group("qry")               # e.g. "agent"
+        post_str      = self.answer                  # e.g. "(right, front)"
+
+        # 2) Compute the "before" relationship on a fresh, allocentric graph
+        g0 = DirectionalGraph(room.all_objects, is_explore=False)
+        idx = {obj.name: i for i, obj in enumerate(room.all_objects)}
+        pre_pair = g0.get_direction(idx[tgt_name], idx[qry_name])
+        persp = "ego" if room.agent is not None else "allo"
+        pre_str = DirectionSystem.to_string(pre_pair, perspective=persp)
+
+        # 3) Branch on movement type
+        mv = self.config.movement
+        if mv in ("static", "object_move", "agent_move"):
+            # extract the (h,v) tuple and the anchor from movement_desc
+            # works for all three since they end with "... moves (h,v) to X."
+            m2 = re.search(rf"{re.escape(tgt_name)} moves \(([^)]+)\) to (\S+)\.", movement_desc)
+            if not m2:
+                raise ValueError(f"Couldn’t parse move in: {movement_desc!r}")
+            dir_str, anchor = m2.group(1), m2.group(2)
+
+            reasoning = dedent(f"""\
+                Because {tgt_name} was {pre_str} of {qry_name} before movement,
+                and we moved {tgt_name} {dir_str} relative to {anchor},
+                it is now {post_str}.
+            """).strip()
+
+        else:  # agent_turn
+            # 1) extract the angle
+            deg_match = re.search(r"(\d+)", movement_desc)
+            deg = int(deg_match.group(1)) if deg_match else None
+
+            # 2) parse the original pair into “h” and “v”
+            orig_h, orig_v = pre_str.strip("()").split(", ")
+            orig_h, orig_v = orig_h.strip(), orig_v.strip()
+
+            # 3) helper to flip a component
+            def opposite(comp: str) -> str:
+                return {
+                    "left":    "right",
+                    "right":   "left",
+                    "front":   "back",
+                    "back":    "front",
+                    "same":    "same"
+                }[comp]
+            def rotate_90(h: str) -> str:
+                mapping = {
+                    "right": "front",
+                    "left":  "back",
+                    "back":  "right",
+                    "front": "left",
+                    "same":  "same"
+                }
+                return mapping[h]
+
+            # 4) compute new h/v under each rotation
+            if deg == 90:
+                new_h = rotate_90(orig_v)
+                new_v = rotate_90(orig_h)
+                rule = (
+                    f"horizontally, what was {orig_v} is now {new_h}; "
+                    f"vertically, what was {orig_h} is now {new_v}"
+                )
+            elif deg == 180:
+                new_h = opposite(orig_h)
+                new_v = opposite(orig_v)
+                rule = (
+                    f"horizontally, left/right are swapped {orig_h} → {new_h}; "
+                    f"vertically, front/back are swapped {orig_v} → {new_v}"
+                )
+            elif deg == 270:
+                new_h = opposite(rotate_90(orig_v))
+                new_v = opposite(rotate_90(orig_h))
+                rule = (
+                    f"horizontally, what was {orig_v} is now {new_h}; "
+                    f"vertically, what was {orig_h} is now {new_v}"
+                )
+
+            # 5) format the rule description
+            reasoning = dedent(f"""\
+                {tgt_name} was {pre_str} of {qry_name} before turning {deg}°:
+                 and {rule},
+                it is now {post_str}.
+            """).strip()
+
+        # 4) Wrap in <think> and return
+        return f"<think>\n{reasoning}\n</think> <answer> {post_str} </answer>"
 
     def generate_question(self, room: Room) -> str:
         room = room.copy()
@@ -355,9 +487,35 @@ class ReverseDirEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+    def _generate_reasoning(self, room) -> str:
         """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
+        q = self.question
+
+        # 1) pull out the new object, the direction string, and the anchor
+        m = re.match(r"A new object (\S+) is (.+?) to (\S+)\.", q)
+        if not m:
+            raise ValueError(f"Couldn't parse question for reasoning: {q!r}")
+        new_obj, dir_str, anchor = m.group(1), m.group(2), m.group(3)
+
+        # 2) pick one of the acceptable answers
+        #    (self.answer is a list of all objects that satisfy the relation)
+        if isinstance(self.answer, (list, tuple)):
+            ans_obj = self.answer[0]
+        else:
+            ans_obj = self.answer
+
+        # 3) compute the original anchor→answer relation
+        _, pre_str = room.get_direction(anchor, ans_obj)
+
+        # 4) build a simple two‐step reasoning
+        lines = [
+            f"1. Before adding anything, {anchor} is {pre_str} of {ans_obj}.",
+            f"2. Then we place {new_obj} so that it is {dir_str} of {anchor}.",
+            f"3. Horizontally, what is {pre_str[1:pre_str.index('t')+1]} of {pre_str[1:pre_str.index('t')+1]} is also {pre_str[1:pre_str.index('t')+1]};",
+            f" Vertically, what is {pre_str[pre_str.index('t')+3:len(pre_str)-1]} of {pre_str[pre_str.index('t')+3:len(pre_str)-1]} is also {pre_str[pre_str.index('t')+3:len(pre_str)-1]}. Therefore {new_obj} is also {pre_str} of {ans_obj}."]
+        think = "\n".join(lines)
+
+        return f"<think>\n{think}\n</think> <answer> {ans_obj} </answer>"
 
     def generate_question(self, room: Room) -> str:
         room = room.copy()
@@ -406,98 +564,134 @@ class RotEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
-        turn_dir = self.config.turn_direction       # 'clockwise' or 'counterclockwise'
-        agent_name = room.agent.name
+    def _generate_reasoning(self, room) -> str:
+        turn_dir = self.config.turn_direction  # 'clockwise' or 'counterclockwise'
+        agent = room.agent.name
 
-    # ---------- helper: determine quadrant ----------------------------
+        # 1) group into quadrants
         def quadrant(obj):
-            _, rel_str = room.get_direction(obj.name, agent_name)   # obj → agent
-            h, v = rel_str.strip("()").split(",")
-            h, v = h.strip().lower(), v.strip().lower()
+            _, rel = room.get_direction(obj.name, agent)
+            h, v = (x.strip().lower() for x in rel.strip("()").split(","))
             if v == "front":
-                return "front‑right" if h == "right" else "front‑left"
-            elif v == "back":
-                return "back‑right" if h == "right" else "back‑left"
-            elif h == "right":        # exactly same row, treat as right
-                return "front‑right" if v == "same" else "back‑right"
-            else:                     # same row, left side
-                return "front‑left" if v == "same" else "back‑left"
+                return "front-right" if h == "right" else "front-left"
+            if v == "back":
+                return "back-right"  if h == "right" else "back-left"
+            if h == "right":
+                return "front-right" if v == "same"  else "back-right"
+            return "front-left"      if v == "same"  else "back-left"
 
-    # ---------- 1. group by quadrant ----------------------------------
         quads = defaultdict(list)
-        for obj in room.objects:                       # excludes the agent
+        for obj in room.objects:
             quads[quadrant(obj)].append(obj)
 
-    # ---------- 2. order inside each quadrant with explicit CoT -------
-    # clock‑wise: want object that is most front OR most right first
-        def cmp_clock(a, b):
-            _, rel = room.get_direction(a.name, b.name)
-            h, v = rel.strip("()").split(",")
-            return v.strip().lower() == "front" or h.strip().lower() == "right"
-
-        def cmp_counter(a, b):
-            _, rel = room.get_direction(a.name, b.name)
-            h, v = rel.strip("()").split(",")
-            return v.strip().lower() == "back" or h.strip().lower() == "left"
-
-        detailed_lines = []
+        detailed = []
         ordered_quads = {}
+
+        # 2) sort within each quadrant
         for qname, objs in quads.items():
-            if len(objs) <= 1:
+            if len(objs) < 2:
                 ordered_quads[qname] = [o.name for o in objs]
                 continue
-        # insertion sort with justification lines
+
+            is_up    = qname.startswith("front")
+            is_right = qname.endswith("right")
+
+            # horizontal policy
+            if turn_dir == "clockwise":
+                left_first = is_up
+            else:  # counterclockwise
+                left_first = not is_up
+
             ordered = [objs[0]]
             for nxt in objs[1:]:
-                inserted = False
+                placed = False
                 for i, cur in enumerate(ordered):
-                    take_first = (
-                        cmp_clock(nxt, cur) if turn_dir == "clockwise"
-                        else cmp_counter(nxt, cur)
-                    )
-                    if take_first:
+                    _, rel = room.get_direction(nxt.name, cur.name)
+                    h, v   = (x.strip().lower() for x in rel.strip("()").split(","))
+
+                    if h != "same":
+                        # horizontal ordering
+                        take = (h == "left"  and left_first) or \
+                               (h == "right" and not left_first)
+                        policy = "horizontal"
+                    else:
+                        # vertical tie-break
+                        if turn_dir == "counterclockwise":
+                            take = (v == "back") if is_right else (v == "front")
+                        else:  # clockwise
+                            take = (v == "front") if is_right else (v == "back")
+                        policy = "vertical"
+
+                    if take:
                         ordered.insert(i, nxt)
-                        detailed_lines.append(
-                            f"  • In {qname}: compare {nxt.name} vs {cur.name}: "
-                            f"{nxt.name} is {room.get_direction(nxt.name, cur.name)[1]} "
-                        f"of {cur.name}, so {nxt.name} appears earlier in a "
-                        f"{turn_dir} sweep."
-                        )
-                        inserted = True
+                        if policy == "horizontal":
+                            detailed.append(
+                                f"  • In {qname}: comparing {nxt.name} vs {cur.name}, "
+                                f"{nxt.name} is {rel} of {cur.name}; "
+                                f"{turn_dir} sweep → {nxt.name} comes before {cur.name}."
+                            )
+                        else:
+                            # describe tie-break policy
+                            tie_policy = (
+                                "back-first" if (turn_dir == "counterclockwise" and is_right)
+                                           or (turn_dir == "clockwise"      and not is_right)
+                                else "front-first"
+                            )
+                            detailed.append(
+                                f"  • In {qname}: {nxt.name} vs {cur.name} share the same horizontal; "
+                                f"{nxt.name} is {rel} of {cur.name}; "
+                                f"{turn_dir} sweep → "
+                                f"{nxt.name} comes before {cur.name}."
+                            )
+                        placed = True
                         break
-                if not inserted:
+
+                if not placed:
                     ordered.append(nxt)
-                    detailed_lines.append(
-                    f"  • In {qname}: {nxt.name} placed after previous objects "
-                    f"since no prior object lies further {('front/right' if turn_dir=='clockwise' else 'back/left')}."
-                    )
-            ordered_quads[qname] = [o.name for o in ordered]
+                    if h != "same":
+                        detailed.append(
+                            f"  • In {qname}: {nxt.name} is {rel} of {cur.name}; "
+                            f"{turn_dir} sweep → placed after."
+                        )
+                    else:
+                        tie_policy = (
+                            "back-first" if (turn_dir == "counterclockwise" and is_right)
+                                       or (turn_dir == "clockwise"      and not is_right)
+                            else "front-first"
+                        )
+                        detailed.append(
+                            f"  • In {qname}: {nxt.name} is {rel} of {cur.name}; horizontal tie; {turn_dir} sweep → placed after."
+                        )
 
-    # ---------- 3. sweep quadrants ------------------------------------
-        quad_ring = (["front‑right", "back‑right", "back‑left", "front‑left"]
-                 if turn_dir == "clockwise"
-                 else ["front‑left", "back‑left", "back‑right", "front‑right"])
+                ordered_quads[qname] = [o.name for o in ordered]
 
-        final_order = []
-        sweep_lines = []
+        # 3) sweep quadrants
+        quad_ring = (
+            ["front-right","back-right","back-left","front-left"]
+            if turn_dir == "clockwise"
+            else ["front-left","back-left","back-right","front-right"]
+        )
+
+        final = []
+        sweep = []
         for q in quad_ring:
             if q in ordered_quads:
-                sweep_lines.append(f"• Sweep hits {q}: " + ", ".join(ordered_quads[q]))
-                final_order.extend(ordered_quads[q])
+                names = ordered_quads[q]
+                sweep.append(f"• Sweep hits {q}: {', '.join(names)}")
+                final.extend(names)
 
-    # ---------- build reasoning text ----------------------------------
         reasoning = dedent(f"""\
-        1. Divide objects into quadrants relative to the agent.
-        2. Inside each quadrant, decide order using pair‑wise relations:
-{chr(10).join(detailed_lines)}
-        3. Finally, sweep {turn_dir} through quadrants:
-{chr(10).join('    '+s for s in sweep_lines)}
-    """)
+            1. Divide objects into quadrants relative to the agent.
+            2. Sweep {turn_dir} through quadrants:
+        {chr(10).join('    '+s for s in sweep)}
+            3. Within each quadrant, decide orders using pair-wise relationships
+        {chr(10).join(detailed)}
+        """)
+
         return (
-        f"<think>\n{indent(reasoning,'    ')}\n</think> "
-        f"<answer> {self.answer} </answer>"
-    )
+            f"<think>\n{indent(reasoning,'    ')}\n</think> "
+            f"<answer> {self.answer} </answer>"
+        )
     def generate_question(self, room: Room) -> str:
         room = room.copy()
         
@@ -537,9 +731,111 @@ class PovEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
-        """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
+    def _generate_reasoning(self, room) -> str:
+        # 1. Extract the POV line
+        pov_line = None
+        for line in self.question.splitlines():
+            if line.strip().lower().startswith("from ") and " is what direction to " in line.lower():
+                pov_line = line.strip()
+                break
+        if not pov_line:
+            raise ValueError(f"Could not find POV question in:\n{self.question!r}")
+
+        # 2. Parse perspective, A, and B
+        m = re.match(
+            r"From\s+(.+?)'s perspective,\s+(.+?)\s+is what direction to\s+(.+?)\?",
+            pov_line,
+            flags=re.IGNORECASE
+        )
+        if not m:
+            raise ValueError(f"Couldn't parse POV line: {pov_line!r}")
+        pov_name, a_name, b_name = m.group(1), m.group(2), m.group(3)
+
+        # 3. Build index map
+        idx = {obj.name: i for i, obj in enumerate(room.all_objects)}
+        agent_idx, a_idx, b_idx, pov_idx = idx[room.agent.name], idx[a_name], idx[b_name], idx[pov_name]
+        
+        # 4. Re‐compute relative directions in the pov frame
+        _, dir_agent = room.get_direction(a_idx, b_idx, agent_idx)
+        _, dir_ab = room.get_direction(a_idx, b_idx, pov_idx)       # final answer
+        def orientation_to_string(ori: np.ndarray) -> int:
+            direction_map = {
+        (1, 0): 0,
+        (0, 1): 90,
+        (-1, 0): 180,
+        (0, -1): 270
+        }
+    
+            ori_tuple = tuple(ori.tolist())
+            if ori_tuple not in direction_map:
+                raise ValueError(f"Invalid orientation vector: {ori}. Must be one of the four cardinal directions.")
+    
+            return direction_map[ori_tuple]
+        pov_ori = orientation_to_string(room.objects[pov_idx-1].ori)
+        agent_ori = orientation_to_string(room.agent.ori)
+        turn_angle = (pov_ori-agent_ori)%360
+        orig_h, orig_v = dir_agent.strip("()").split(", ")
+        # 3) helper to flip a component
+        def opposite(comp: str) -> str:
+            return {
+                    "left":    "right",
+                    "right":   "left",
+                    "front":   "back",
+                    "back":    "front",
+                    "same":    "same"
+                }[comp]
+        def rotate_90(h: str) -> str:
+            mapping = {
+                    "right": "back",
+                    "left":  "front",
+                    "back":  "left",
+                    "front": "right",
+                    "same":  "same"
+                }
+            return mapping[h]
+
+            # 4) compute new h/v under each rotation
+        if turn_angle == 90:
+            new_h = rotate_90(orig_v)
+            new_v = rotate_90(orig_h)
+            rule = (
+                    f"horizontally, what was {orig_v} is now {new_h}; "
+                    f"vertically, what was {orig_h} is now {new_v}"
+                )
+        elif turn_angle == 180:
+            new_h = opposite(orig_h)
+            new_v = opposite(orig_v)
+            rule = (
+                    f"horizontally, left/right are swapped {orig_h} → {new_h}; "
+                    f"vertically, front/back are swapped {orig_v} → {new_v}"
+                )
+        elif turn_angle == 270:
+            new_h = opposite(rotate_90(orig_v))
+            new_v = opposite(rotate_90(orig_h))
+            rule = (
+                    f"horizontally, what was {orig_v} is now {new_h}; "
+                    f"vertically, what was {orig_h} is now {new_v}"
+                )
+        elif turn_angle == 0:
+            new_h = orig_h
+            new_v = orig_v
+            rule = (
+                    f"horizontally, what was {orig_h} is now {new_h}; "
+                    f"vertically, what was {orig_v} is now {new_v}"
+                )
+        # 5. Compose detailed reasoning
+        lines = [
+            f"1. From agent's(my) perspective, {a_name} is {dir_agent} to {b_name}.",
+            f"2. Because {pov_name} is at {pov_ori} degrees, I need to turn {turn_angle} clockwise to think at its perspective.",
+            f"3. {rule}.",
+            f"4. Therefore, the direction from {b_name} to {a_name} is {dir_ab!r}."
+        ]
+        if agent_idx == pov_idx:
+            think = f"From agent's(my) perspective, {a_name} is {dir_agent} to {b_name}."
+        else:
+            think = "\n".join(lines)
+
+        return f"<think>\n{think}\n</think> <answer> {dir_ab} </answer>"
     
     def generate_question(self, room: Room) -> str:
         room = room.copy()
@@ -573,9 +869,53 @@ class E2AEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+    def _generate_reasoning(self, room) -> str:
         """Generate reasoning for the evaluation task"""
-        return "Testing spatial reasoning between a new object and a random object"
+        # 1. Extract the coordinate list from the question
+        coords_line = next(
+            (line for line in self.question.splitlines() if "Given a list of coordinates:" in line),
+            None
+        )
+        if not coords_line:
+            raise ValueError(f"Couldn't find coordinates in question:\n{self.question!r}")
+        coords = re.findall(r"\((-?\d+),\s*(-?\d+)\)", coords_line)
+        coords = [(int(x), int(y)) for x, y in coords]
+
+        # 2. Build a map from each allocentric direction to its object
+        graph   = DirectionalGraph(room.all_objects, is_explore=False)
+        idx_map = {obj.name: i for i, obj in enumerate(room.all_objects)}
+        agent_idx = idx_map[room.agent.name]
+
+        dir_to_obj = {}
+        for name, i in idx_map.items():
+            # get_direction(a, b) with a=agent, b=object
+            dp, _ = graph.get_direction(agent_idx, i)
+            dp_str = DirectionSystem.to_string(dp, perspective="ego")
+            dir_to_obj[dp_str] = name
+
+        # 3. For each coordinate, derive its direction tuple and look up the object
+        seq = []
+        for x, y in coords:
+            h = "right" if x > 0 else "left" if x < 0 else "same"
+            v = "front" if y > 0 else "back" if y < 0 else "same"
+            dp_str = f"({h},{v})"
+            obj = dir_to_obj.get(dp_str, None)
+            seq.append(obj)
+
+        # 4. Compose the reasoning
+        lines = [
+            "1. We don’t know the true (x,y) of each object, but we can infer allocentric directions relative to the agent.",
+            "2. Query each object’s direction from the agent and record:",
+        ]
+        for dp_str, name in dir_to_obj.items():
+            lines.append(f"   - {name} is {dp_str} of agent.")
+        lines.append("3. For each given coordinate, we translate it to a direction tuple:")
+        for (x, y), dp_str, obj in zip(coords, [f"({('right' if x>0 else 'left' if x<0 else 'same')},{('front' if y>0 else 'back' if y<0 else 'same')})" for x,y in coords], seq):
+            lines.append(f"   - Coordinate ({x},{y}) → direction {dp_str} → {obj}")
+        lines.append(f"4. Thus the sequence of objects is {seq!r}.")
+
+        think = "\n".join(lines)
+        return f"<think>\n{think}\n</think> <answer> {seq} </answer>"
     
     def generate_question(self, room: Room) -> str:
         """
@@ -625,7 +965,7 @@ class A2EEvaluationTask(BaseEvaluationTask):
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
         super().__init__(np_random, config)
 
-    def _generate_reasoning(self, env_state: Dict[str, Any]) -> str:
+    def _generate_reasoning(self, room) -> str:
         """Generate reasoning for the evaluation task"""
         return "Testing spatial reasoning between a new object and a random object"
     
@@ -697,61 +1037,70 @@ if __name__ == "__main__":
     from gymnasium.utils import seeding
     import numpy as np
 
-    config = SpatialGymConfig(n_objects=5, generation_type='rot', perspective='ego')
+    config = SpatialGymConfig(n_objects=8, generation_type='pov', perspective='ego')
     np_random = seeding.np_random(10)[0]
     room = generate_room(**config.get_room_config(), np_random=np_random)
     print(room)
     
 
     # # Direction evaluation task
-    # task = DirEvaluationTask(np_random=np_random, config=DirEvaluationConfig(movement='agent_turn'))
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("(unknown, back)")
-    # print(correct)
+    task = DirEvaluationTask(np_random=np_random, config=DirEvaluationConfig(movement='agent_turn'))
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("(unknown, back)")
+    print(correct)
+    reasoning = task._generate_reasoning(room=room)
+    print(reasoning)
 
     # # Reverse direction evaluation task
-    # task = ReverseDirEvaluationTask(np_random=np_random)
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("folder")
-    # print(correct)
+    """task = ReverseDirEvaluationTask(np_random=np_random)
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("folder")
+    print(correct)
+    reasoning = task._generate_reasoning(room=room)
+    print(reasoning)"""
 
     # # Pov evaluation task
-    # task = PovEvaluationTask(np_random=np_random)
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("(right, back)")
-    # print(correct)
+    """task = PovEvaluationTask(np_random=np_random)
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("(right, back)")
+    print(correct)
+    reasoning = task._generate_reasoning(room=room)
+    print(reasoning)"""
     
     # # A2E evaluation task
-    # task = A2EEvaluationTask(np_random=np_random)
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("[0, 90, 180, 270]")
-    # print(correct)
-
+    """task = A2EEvaluationTask(np_random=np_random)
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("[0, 90, 180, 270]")
+    print(correct)
+    reasoning = task._generate_reasoning(room=room)
+    print(reasoning)"""
     # # E2A evaluation task
-    # task = E2AEvaluationTask(np_random=np_random)
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
-    # print(correct)
-
-    # Rotation evaluation task
-    task = RotEvaluationTask(np_random=np_random, config=RotEvaluationConfig(turn_direction='counterclockwise'))
+    """task = E2AEvaluationTask(np_random=np_random)
     question = task.generate_question(room)
     print(question)
     print(task.answer)
     correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
     print(correct)
-    reasoning = task._generate_reasoning(env_state=room)
+    reasoning = task._generate_reasoning(room=room)
+    print(reasoning)"""
+    # Rotation evaluation task
+    """
+    task = RotEvaluationTask(np_random=np_random, config=RotEvaluationConfig(turn_direction='clockwise'))
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
+    print(correct)
+    reasoning = task._generate_reasoning(room=room)
     print(reasoning)
-
+"""
     
     
