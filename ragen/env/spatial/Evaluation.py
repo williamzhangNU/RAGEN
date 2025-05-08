@@ -122,28 +122,6 @@ class BaseEvaluationTask(ABC):
         
         task_type = data.get('type', cls.__name__)
         return task_types.get(task_type, cls).from_dict(data)
-    def _wrap(self, reason: str, ans) -> str:
-        """Wrap reasoning + answer in the required XML‑like tags."""
-        return f"<think>\n{indent(reason.strip(), '    ')}\n</think> <answer> {ans} </answer>"
-    def _pair_to_xy(self, pair: DirPair) -> Tuple[int, int]:
-        """Convert DirPair → (dx, dy) in {-1,0,1}×{-1,0,1}."""
-        h = {Dir.LEFT: -1, Dir.SAME: 0, Dir.RIGHT: 1}.get(pair.horiz, 0)
-        v = {Dir.BACKWARD: -1, Dir.SAME: 0, Dir.FORWARD: 1}.get(pair.vert, 0)
-        return h, v
-
-    def _xy_to_pair(self, dx: int, dy: int) -> DirPair:
-        """Inverse of _pair_to_xy(…) with saturation to ±1."""
-        h_dir = Dir.LEFT if dx < 0 else Dir.RIGHT if dx > 0 else Dir.SAME
-        v_dir = Dir.BACKWARD if dy < 0 else Dir.FORWARD if dy > 0 else Dir.SAME
-        return DirPair(h_dir, v_dir)
-
-    def _compose(self, p1: DirPair, p2: DirPair) -> DirPair:
-        """Return p1 ⊕ p2 (vector addition in {-1,0,1} with clipping)."""
-        dx1, dy1 = self._pair_to_xy(p1)
-        dx2, dy2 = self._pair_to_xy(p2)
-        dx = max(-1, min(1, dx1 + dx2))
-        dy = max(-1, min(1, dy1 + dy2))
-        return self._xy_to_pair(dx, dy)
 
 
 class AllPairsEvaluationTask(BaseEvaluationTask):
@@ -871,7 +849,7 @@ class E2AEvaluationTask(BaseEvaluationTask):
 
     def _generate_reasoning(self, room) -> str:
         """Generate reasoning for the evaluation task"""
-        # 1. Extract the coordinate list from the question
+        """# 1. Extract the coordinate list from the question
         coords_line = next(
             (line for line in self.question.splitlines() if "Given a list of coordinates:" in line),
             None
@@ -916,6 +894,7 @@ class E2AEvaluationTask(BaseEvaluationTask):
 
         think = "\n".join(lines)
         return f"<think>\n{think}\n</think> <answer> {seq} </answer>"
+    """
     
     def generate_question(self, room: Room) -> str:
         """
