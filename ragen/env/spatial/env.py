@@ -207,6 +207,9 @@ class SpatialGym(gym.Env):
                 - done: Whether episode is complete
                 - info: Additional information dictionary
         """
+        # 根据当前阶段创建info字典
+        info = {}
+        
         # Check if transitioning from exploration to evaluation
         if self.is_exp_stage:
             self.max_exp_steps -= 1
@@ -251,10 +254,19 @@ class SpatialGym(gym.Env):
             reward = 1 if correct else 0
             self.eval_tasks.pop(0)
             
+            # add all metrics
+            exp_efficiency = self.get_exp_efficiency()
+            eval_performance = self.get_eval_performance()
+            info.update({
+                "coverage": exp_efficiency["coverage"],
+                "novelty": exp_efficiency["novelty"],
+                "accuracy": eval_performance["accuracy"]
+            })
+            
             # Check if all tasks are completed
             if len(self.eval_tasks) == 0:
                 self.render_cache = "Task finished"
-                return "Task finished", reward, True, {}
+                return "Task finished", reward, True, info
             else:
                 question = self.eval_tasks[0].generate_question(self.room_s_0.copy())
                 self.render_cache = question
