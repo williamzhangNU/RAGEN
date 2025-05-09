@@ -40,7 +40,7 @@ from ragen.env.spatial.utils.get_eval_task import get_eval_task
 # """
 
 instruction = """\
-You are an expert in spatial reasoning tasks. Your goal is to explore and determine the relative positions of objects in a room. 
+You are an expert in exploring and determining the relative positions of objects in a room. 
 
 Please carefully consider the following rules and guidelines:
 
@@ -58,18 +58,14 @@ Please carefully consider the following rules and guidelines:
       - You may only chain along one axis at a time (horizontal or vertical).
       - Example: (A, B): (left, same), (B, C): (left, same) ⇒ (A, C): (left, same)
    d) *** Ambiguity Cases ***:
-      - If two objects A and C are to the same direction relative to a third object B, see following examples:
-        Correct Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
-        Incorrect Example: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (left, back)
-      - Given: (apple, table): (left, back) ,(book, table): (right, back). We can deduce that apple is left of table and book is right of table, so book must be right of apple. But we cannot deduce the vertical relationship, so the relationship available is (Apple, Book): (left, unknown).
-
-3. Rotation Rules:
-   - When rotation occurs, transform spatial directions accordingly. E.g., (A,B):(left, back) → Rotate 90° clockwise → (A,B):(left to front, back to left) → (A,B):(front, left).
-   - Then you MUST check format (Horizontal, Vertical)： invalid (front,left) → valid (left, front).
-  
+      - When A and C are to the same direction relative to a third object B, our information is limited:
+        Example 1: (A, B): (left, back), (C, B): (left, back) ⇒ (A, C): (unknown, unknown)
+        Example 2: (A, B): (left, back) ,(C, B): (right, back). We can deduce that A is left of B and C is right of B, so A must be left of C.
+         But we cannot deduce the vertical relationship, so the relationship available is (A, C): (left, unknown).
+ 
 Final Checklist:
-   - Show step-by-step inference using observation, symmetry, or transitivity. If an object moves, the relative position of the other object must change accordingly/become unknown.
-   - If one axis is undeducible, output "unknown" for that axis (e.g., (unknown,front) or (right, unknown)). (unknown, unknown) is also allowed. NEVER guess or assume any relationships.
+   - Show step-by-step inference using observation, symmetry, or transitivity.
+   - NEVER guess or assume any relationships. If one axis is undeducible, output "unknown" for that axis (e.g., (unknown,front) or (right, unknown))/(unknown, unknown).
 
 ## Room Description
 {room_info}

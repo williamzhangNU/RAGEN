@@ -214,6 +214,7 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_dir):
 		saved_data['overall_performance']['evaluation_performance'] = {
 			'avg_accuracy': eval_perf_sum['accuracy'] / total_envs,
 		}
+		
 	
 	
 
@@ -224,7 +225,8 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_dir):
 		json.dump(saved_data, f, indent=2)
 	
 	print(f"Environment data logged to {log_filename}")
-	return log_filename
+	return saved_data
+	
 
 @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_spatial")
 def main(config):
@@ -249,6 +251,21 @@ def main(config):
 	print(f'rollout time: {end_time - start_time} seconds')
 	# print rollout rewards from the rm_scores
 	rm_scores = rollouts.batch["rm_scores"]
+	
+	
+	# specific analysis for spatial env
+	saved_data = log_each_env_info(
+		envs={env['env_id']: env['env'] for env in proxy.val_es_manager.envs},
+		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
+		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),
+		config=config,
+		output_dir=config.output_dir
+	)
+	rollouts.meta_info["metrics"]["avg_accuracy"] = saved_data['overall_performance']['evaluation_performance']['avg_accuracy']
+	rollouts.meta_info["metrics"]["avg_coverage"] = saved_data['overall_performance']['exploration_efficiency']['avg_coverage']
+	rollouts.meta_info["metrics"]["avg_novelty"] = saved_data['overall_performance']['exploration_efficiency']['avg_novelty']
+
+
 	metrics = rollouts.meta_info["metrics"]
 	avg_reward = rm_scores.sum(-1).mean().item()
 	print(f'rollout rewards: {avg_reward}')
@@ -256,15 +273,17 @@ def main(config):
 	for k, v in metrics.items():
 		print(f'{k}: {v}')
 
-
-	# specific analysis for spatial env
-	log_each_env_info(
-		envs={env['env_id']: env['env'] for env in proxy.val_es_manager.envs},
-		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
-		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),
-		config=config,
-		output_dir=config.output_dir
-	)
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 if __name__ == "__main__":
 	main()

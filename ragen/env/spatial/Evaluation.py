@@ -479,8 +479,10 @@ class RotEvaluationTask(BaseEvaluationTask):
     """
 
     QUESTION_TEMPLATE = (
-        "What is the sequence of objects when agent turns around {turn_direction} at its original position?\n"
-        "Format your answer like this: '<answer>['object1', 'object2', ...]</answer>'"
+        "What is the sequence of objects when agent turns around {turn_direction} at its original position? (No unknown/agent/unappeared objects in your answer)\n"
+        "Rotation Rules: \n"
+        "- When rotation occurs, transform spatial directions accordingly. E.g., (A,B):(left, back) → Rotate 90° clockwise → (A,B):(left to front, back to left) → (A,B):(front, left). \n"
+        "Format your answer like this: '<answer>['object1', 'object2']</answer>'"
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
@@ -627,7 +629,10 @@ class A2EEvaluationTask(BaseEvaluationTask):
         "needed to face each subsequent object before moving to it. Your orientation remains fixed while moving."
         "Given a sequence of objects:\n"
         "{object_sequence_str}\n"
-        "What is the sequence of degrees you need to turn to traverse all objects in order?"
+        "What is the sequence of degrees you need to turn to traverse all objects in order? \n"
+        "Rotation Rules: \n"
+        "- When rotation occurs, transform spatial directions accordingly. E.g., (A,B):(left, back) → Rotate 90° clockwise → (A,B):(left to front, back to left) → (A,B):(front, left). \n"
+        "- Then you MUST check format (Horizontal, Vertical)： invalid (front,left) → valid (left, front). \n"
         "Format your answer as a comma-separated list of degrees, e.g., '[0, 90, 180, 270]'"
     )
     

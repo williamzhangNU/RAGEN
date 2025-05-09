@@ -14,7 +14,7 @@ actor_rollout_ref:
     gpu_memory_utilization: 0.8
 
 agent_proxy:
-  max_turn: 1 # 1 for passive, 8 for active
+  max_turn: 8 # 1 for passive, 8 for active
   action_sep: "||"
   max_actions_per_turn: 1 # how many actions can be output at most in a single turn
 
@@ -25,11 +25,11 @@ es_manager:
     # under the same group, the env config and env seed are ensured to be equal
     group_size: 16
     env_configs:
-      tags: ["ActiveDir"]
+      tags: ["ActiveRot"]
       n_groups: [10] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
-    env_groups: 10
+    env_groups: 20
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["ActiveDir"]
-      n_groups: [10] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["ActiveRot"]
+      n_groups: [20] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation

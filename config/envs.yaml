@@ -284,5 +284,5 @@ custom_envs:
           task_kwargs:
             movement: "static"
 
-  ActiveE2A:
+ 
   

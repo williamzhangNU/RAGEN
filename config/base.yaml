@@ -13,7 +13,7 @@ grpo_advantage_length_weight: False # if you do not enable this and critic/advan
 
 
 lora:
-  rank: 0
+  rank: 8
   alpha: 16
   target_modules: all-linear
 
@@ -42,7 +42,7 @@ actor_rollout_ref:
   rollout:
     log_prob_micro_batch_size_per_gpu: ${micro_batch_size_per_gpu} # following micro_batch_size_per_gpu
     tensor_model_parallel_size: 1
-    max_model_len: 3600
+    max_model_len: 7200
     prompt_length: 1 # useless. Just put it here
     response_length: 400 # single-turn response length
     gpu_memory_utilization: 0.5
@@ -98,7 +98,7 @@ trainer:
   logger: [ 'console', 'wandb' ]
 
 agent_proxy:
-  max_turn: 1
+  max_turn: 8
   action_sep: "||"
   max_actions_per_turn: 1 # how many actions can be output at most in a single turn
   use_turn_scores: False # important to GAE when applying token-level rewards to token-level advantages. If False, will take the sum of scores as the reward for the last turn.
@@ -110,18 +110,18 @@ agent_proxy:
 es_manager:
   format_penalty: -0.1
   train:
-    env_groups: 16
+    env_groups: 8
     # under the same group, the env config and env seed are ensured to be equal
     group_size: 16
     env_configs:
-      tags: ["PassiveRot"]
-      n_groups: [16] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["ActiveRot"]
+      n_groups: [8] # If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
   val:
-    env_groups: 256
+    env_groups: 50
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["PassiveRot"]
-      n_groups: [256] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["ActiveRot"]
+      n_groups: [50] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
 
 ctx_manager:
   generation: # go to vllm
