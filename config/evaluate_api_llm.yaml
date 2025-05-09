@@ -39,11 +39,11 @@ model_info:
     provider_name: openai
     model_name: o3-mini
     generation_kwargs:
-      temperature: 0
+      temperature: 1
       max_completion_tokens: 8192
   o4-mini:
     provider_name: openai
     model_name: o4-mini
     generation_kwargs:
-      temperature: 0
+      temperature: 1
       max_completion_tokens: 8192

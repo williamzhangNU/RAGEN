@@ -84,7 +84,30 @@ class EvaluationData:
             return pred.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
         
         elif self.task_type == 'E2AEvaluationTask':
-            return obj_seq_eval_fn(pred, self.answer), {}
+            try:
+                coord_pattern = r'[\(\[]?\s*(-?\d+)\s*,\s*(-?\d+)\s*[\)\]]?'
+                matches = re.findall(coord_pattern, pred)
+                if not matches or len(matches) != len(self.answer):
+                    return False, {"error": "No coordinates found in the response"}
+                extracted_coords = [(int(x), int(y)) for x, y in matches]
+
+                gt = copy.deepcopy(self.answer)
+                gt.insert(0, (0, 0))
+                gt_v_matrix, gt_h_matrix = DirectionalGraph.create_graph_from_coordinates(gt)
+
+                pred_coords = copy.deepcopy(extracted_coords)
+                pred_coords.insert(0, (0, 0))
+                pred_v_matrix, pred_h_matrix = DirectionalGraph.create_graph_from_coordinates(pred_coords)
+
+                # Check if exactly the same
+                if np.allclose(pred_v_matrix, gt_v_matrix) and np.allclose(pred_h_matrix, gt_h_matrix):
+                    return True, {}
+                else:
+                    return False, {}
+            except Exception as e:
+                print("Error in E2AEvaluationTask", e)
+                return False, {}
+            # return obj_seq_eval_fn(pred, self.answer), {}
         
         elif self.task_type == 'A2EEvaluationTask':
             return deg_seq_eval_fn(pred, self.answer), {}
@@ -554,21 +577,18 @@ class E2AEvaluationTask(BaseEvaluationTask):
     """
     Evaluation task for ego2allo questions
     Exploration from ego-centric view, evaluate how it performs in allocentric view
-    Q: Given a list of coordinates, what is the sequence of objects that corresponds to each coordinate?
-    A: [<obj1>, <obj2>, ...]
+    Q: After turn <ori>, what are the coordinates of the objects?
+    A: [(<obj1_x>, <obj1_y>), (<obj2_x>, <obj2_y>), ...]
 
     TODO change it to directly output the coordinates
     """
 
     QUESTION_TEMPLATE = (
-        "Map objects to coordinates in the given order.\n"
-        "Example:\n"
-        "- Ground truth: A at (0, 0), B at (1, 1), C at (2, 2)\n"
-        "- Given coordinates: (0, 0), (1, 1), (2, 2)\n"
-        "- answer: ['A', 'B', 'C']\n"
-        "Given a list of coordinates: {coordinates_str}\n"
-        "What is the sequence of objects that corresponds to each coordinate?"
-        "Format your answer as a comma-separated list of objects, e.g., '[chair, eraser, ...]'"
+        "Now I need you to map objects to their coordinates in the room.\n"
+        "Assume agent (you) originally face north, now turn to face {agent_ori}.\n"
+        "Here is the object sequence: {object_sequence_str}\n"
+        "What are the coordinates of the objects? Use yourself as the origin of the coordinate system, with the positive y-axis in the direction you are facing.\n"
+        "Format your answer as a comma-separated list of coordinates, e.g., '[(0, 0), (1, 1), (2, 2)]'"
     )
     
     def __init__(self, np_random: np.random.Generator, config: Dict[str, Any] = None):
@@ -582,44 +602,53 @@ class E2AEvaluationTask(BaseEvaluationTask):
         """
         Get the question for the ego2allo evaluation task
         """
-        # Shuffle objects and get their positions
-        objects = copy.deepcopy(room.all_objects)
-        self.np_random.shuffle(objects)
-        coordinates = np.array([obj.pos for obj in objects])
-        
-        min_x, max_x, min_y, max_y = room.get_boundary()
-        random_offset = np.array([
-            self.np_random.integers(min_x, max_x),
-            self.np_random.integers(min_y, max_y)
-        ])
-        coordinates = coordinates + random_offset
-        coordinates_str = ", ".join([f"({coord[0]},{coord[1]})" for coord in coordinates])
-        
-        self.eval_data.question = self.QUESTION_TEMPLATE.format(coordinates_str=coordinates_str)
-        self.eval_data.answer = [obj.name for obj in objects]
-        self.eval_data.reasoning = self._generate_reasoning(room)
-        return self.eval_data.question
 
+        ori = (
+            (0, "north"),
+            (90, "east"),
+            (180, "south"),
+            (270, "west")
+        )
+        degree, agent_ori_str = ori[self.np_random.integers(0, 3)]
+        room.rotate_agent(degree)
+
+        objects = copy.deepcopy(room.all_objects)
+        # Filter out agent if present
+        objects = [obj for obj in objects if room.agent is None or obj.name != room.agent.name]
+        self.np_random.shuffle(objects)
+        object_sequence_str = ", ".join([obj.name for obj in objects])
+
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(
+            object_sequence_str=object_sequence_str,
+            agent_ori=agent_ori_str
+        )
+        self.eval_data.reasoning = self._generate_reasoning(room)
+        self.eval_data.answer = [tuple(obj.pos) for obj in objects]
+        return self.eval_data.question
 
 class A2EEvaluationTask(BaseEvaluationTask):
     """
     Evaluation task for allo2ego questions
     Exploration from allocentric view, evaluate how it performs in ego-centric view
+    Task: From current position and orientation, first turn to the direction so that the next object is at your front or right-front, then move to the next object
+    
+    Format:
     Q: What is the sequence of degrees you need to turn to traverse all objects in order?
     A: [<degree1>, <degree2>, ...]
 
-    TODO 
-    1. from A -> B: turn {dir 1 placeholder}
-    2. from B -> C: turn {dir 2 placeholder}
-    Question: what is dir 1, dir 2?
-    Answer: [{dir 1 placeholder}, {dir 2 placeholder}]
+    Examples: 
+    Object sequence: A (0, 0) -> B (1, 1) -> C (-2, 4)
+    Answer: [0, 270]
+
+    TODO too easy
     """
 
     QUESTION_TEMPLATE = (
         "After exploring the room from bird-eye view, you'll now traverse objects from an egocentric view. \n"
-        "You start by facing north."
-        "{object_sequence_str}\n"
-        "What is the sequence of degrees?"
+        "You start by facing {agent_ori} and positioned at {first_obj_name}.\n"
+        "You can only turn clockwise by 0, 90, 180, or 270 degrees.\n"
+        "{object_sequence_str}"
+        "What is the sequence of degrees: [{dir_sequence_str}]?\n"
         "Format your answer as a comma-separated list of degrees, e.g., '[0, 90, 180, 270]'"
     )
     
@@ -664,17 +693,37 @@ class A2EEvaluationTask(BaseEvaluationTask):
             return new_ori            
 
         gt_turning_degrees = []
-        traverse_agent = Object(name="agent", pos=room.all_objects[0].pos, ori=(0, 1))
-        for next_obj in (room.all_objects[1:]):
+        # Randomly select an orientation from north, east, south, west
+        orientations = {
+            "north": (0, 1),
+            "east": (1, 0),
+            "south": (0, -1),
+            "west": (-1, 0)
+        }
+        agent_ori_name = self.np_random.choice(list(orientations.keys()))
+        traverse_agent = Object(name="agent", pos=room.all_objects[0].pos, ori=orientations[agent_ori_name])
+        object_sequence_str = ""
+        for i, next_obj in enumerate(room.all_objects[1:], 1):
             angle = _get_angle(next_obj.pos - traverse_agent.pos, traverse_agent.ori)
-            # Round to nearest 0, 90, 180, or 270 degrees
-            rotation_degree = int(round(angle / 90) * 90) % 360
+            if angle % 90 == 0:
+                rotation_degree = int(angle) % 360
+                position_desc = "(same, front)"
+            else:
+                # Round to nearest 0, 90, 180, or 270 degrees
+                rotation_degree = (int(angle // 90) * 90) % 360
+                position_desc = "(right, front)"
+            
             gt_turning_degrees.append(rotation_degree)
             traverse_agent.ori = _get_orientation(traverse_agent.ori, rotation_degree)
             traverse_agent.pos = next_obj.pos
-
-        object_sequence_str = ", ".join([obj.name for obj in room.all_objects])
-        self.eval_data.question = self.QUESTION_TEMPLATE.format(object_sequence_str=object_sequence_str)
+            object_sequence_str += f"Turn <deg{i}> degree clockwise so {next_obj.name} is at your {position_desc} and teleport to it while keeping your facing direction.\n"
+        dir_sequence_str = ", ".join([f"<deg{i}>" for i in range(1, len(gt_turning_degrees) + 1)])
+        self.eval_data.question = self.QUESTION_TEMPLATE.format(
+            first_obj_name=room.all_objects[0].name,
+            object_sequence_str=object_sequence_str,
+            dir_sequence_str=dir_sequence_str,
+            agent_ori=agent_ori_name
+        )
         self.eval_data.answer = gt_turning_degrees
         self.eval_data.reasoning = self._generate_reasoning(room)
         return self.eval_data.question
@@ -686,19 +735,19 @@ if __name__ == "__main__":
     from gymnasium.utils import seeding
     import numpy as np
 
-    config = SpatialGymConfig(n_objects=3, generation_type='rot', perspective='ego')
-    np_random = seeding.np_random(10)[0]
+    config = SpatialGymConfig(n_objects=3, generation_type='rand', perspective='allo')
+    np_random = seeding.np_random(14)[0]
     room = generate_room(**config.get_room_config(), np_random=np_random)
     print(room)
     
 
-    # # Direction evaluation task
-    # task = DirEvaluationTask(np_random=np_random, config=DirEvaluationConfig(movement='agent_turn'))
-    # question = task.generate_question(room)
-    # print(question)
-    # print(task.answer)
-    # correct, info = task.evaluate("(unknown, back)")
-    # print(correct)
+    # Direction evaluation task
+    task = DirEvaluationTask(np_random=np_random, config=DirEvaluationConfig(movement='static'))
+    question = task.generate_question(room)
+    print(question)
+    print(task.answer)
+    correct, info = task.evaluate("(unknown, back)")
+    print(correct)
 
     # # Reverse direction evaluation task
     # task = ReverseDirEvaluationTask(np_random=np_random)
@@ -729,16 +778,16 @@ if __name__ == "__main__":
     # question = task.generate_question(room)
     # print(question)
     # print(task.answer)
-    # correct, info = task.evaluate("['television', 'microphone', 'agent', 'eraser']")
+    # correct, info = task.evaluate("[(2, -7), (1, -11), (-4, 3)]")
     # print(correct)
 
-    # Rotation evaluation task
-    task = RotEvaluationTask(np_random=np_random, config=RotEvaluationConfig(turn_direction='counterclockwise'))
-    question = task.generate_question(room)
-    print(question)
-    print(task.answer)
-    correct, info = task.evaluate("['eraser', 'microphone', 'television']")
-    print(correct)
+    # # Rotation evaluation task
+    # task = RotEvaluationTask(np_random=np_random, config=RotEvaluationConfig(turn_direction='counterclockwise'))
+    # question = task.generate_question(room)
+    # print(question)
+    # print(task.answer)
+    # correct, info = task.evaluate("['eraser', 'microphone', 'television']")
+    # print(correct)
 
     
     

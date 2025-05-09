@@ -138,11 +138,12 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "passive"
+      generation_type: "rot"
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
             turn_direction: "clockwise"
-  
+
   ActiveRotCounter:
     env_type: SpatialGym
     max_actions_per_traj: 10
@@ -150,6 +151,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "active"
+      generation_type: "rot"
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
@@ -162,10 +164,11 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "passive"
+      turn_direction: "counterclockwise"
+      generation_type: "rot"
       eval_tasks:
         - task_type: "rot"
-          task_kwargs:
-            turn_direction: "counterclockwise"
+          task_kwargs: {}
 
   PassiveDir:
     env_type: SpatialGym
@@ -210,6 +213,19 @@ custom_envs:
       exp_type: "passive"
       eval_tasks:
         - task_type: "e2a"
+          task_kwargs: {}
+
+  PassiveA2E:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      perspective: "allo"
+      generation_type: "a2e"
+      eval_tasks:
+        - task_type: "a2e"
           task_kwargs: {}
 
   ActiveSpatialGym:

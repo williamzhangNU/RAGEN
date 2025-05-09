@@ -18,7 +18,7 @@ def generate_room(
     """
     Generate a room based on the given configuration
     """
-    if generation_type == 'rand' or generation_type == 'pov':
+    if generation_type == 'rand' or generation_type == 'pov' or generation_type == 'a2e':
         objects = generate_random_objects(
             n=n_objects,
             candidate_list=candidate_objects,
@@ -33,13 +33,13 @@ def generate_room(
             random_generator=np_random,
             room_range=room_range,
         )
-    elif generation_type == 'a2e':
-        objects = generate_allo2ego_objects(
-            n=n_objects,
-            candidate_list=candidate_objects,
-            random_generator=np_random,
-            room_range=room_range,
-        )
+    # elif generation_type == 'a2e':
+    #     objects = generate_allo2ego_objects(
+    #         n=n_objects,
+    #         candidate_list=candidate_objects,
+    #         random_generator=np_random,
+    #         room_range=room_range,
+    #     )
     else:
         raise ValueError(f"Invalid generation type: {generation_type}")
     
@@ -65,7 +65,7 @@ def generate_random_objects(
     
     # Generate random positions ensuring no two objects are at the same position
     positions = [np.array([0, 0])]
-    while len(positions) < n:
+    while len(positions) < n + 1:
         pos = random_generator.integers(room_range[0], room_range[1], (1, 2))[0]
         if not any(np.array_equal(pos, existing_pos) for existing_pos in positions):
             positions.append(pos)

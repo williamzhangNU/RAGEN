@@ -161,7 +161,7 @@ class LLMAgentProxy:
 		return rollouts
 
 
-def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_dir):
+def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	saved_data = {
 		'meta_info': {
 			'model_name': config.actor_rollout_ref.model.path if config.eval_model_type == "api" else config.model_config.model_name,
@@ -218,13 +218,12 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_dir):
 	
 
 	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-	os.makedirs(output_dir, exist_ok=True)
-	log_filename = f"{output_dir}/env_log_{timestamp}.json"
-	with open(log_filename, "w") as f:
+	os.makedirs(os.path.dirname(output_path), exist_ok=True)
+	with open(output_path, "w") as f:
 		json.dump(saved_data, f, indent=2)
 	
-	print(f"Environment data logged to {log_filename}")
-	return log_filename
+	print(f"Environment data logged to {output_path}")
+	return output_path
 
 @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_spatial")
 def main(config):
@@ -262,7 +261,7 @@ def main(config):
 		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
 		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),
 		config=config,
-		output_dir=config.output_dir
+		output_path=config.output_path
 	)
 
 if __name__ == "__main__":

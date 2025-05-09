@@ -65,7 +65,8 @@ class DirectionalGraph:
         self.is_explore = is_explore
         self.keep_original = keep_original
 
-    def _if_unknown(self, matrix_value: Union[int, float, np.ndarray]):
+    @classmethod
+    def _if_unknown(cls, matrix_value: Union[int, float, np.ndarray]):
         return np.isnan(matrix_value)
 
     def _create_empty_matrices(self, size: int) -> Matrices:
@@ -85,10 +86,11 @@ class DirectionalGraph:
 
         return Matrices(v_matrix, h_matrix, v_matrix_working, h_matrix_working, asked)
 
-    def _dir_to_val(self, dir: Dir, axis: Literal['vertical', 'horizontal']) -> float:
+    @classmethod
+    def _dir_to_val(cls, dir: Dir, axis: Literal['vertical', 'horizontal']) -> float:
         """Convert a Dir enum to its matrix value representation."""
         if dir == Dir.UNKNOWN:
-            return self.UNKNOWN_VALUE
+            return cls.UNKNOWN_VALUE
             
         mapping = {
             'vertical': {
@@ -102,11 +104,12 @@ class DirectionalGraph:
                 Dir.LEFT: -1
             }
         }
-        return mapping[axis].get(dir, self.UNKNOWN_VALUE)
+        return mapping[axis].get(dir, cls.UNKNOWN_VALUE)
 
-    def _val_to_dir(self, value: float, axis: Literal['vertical', 'horizontal']) -> Dir:
+    @classmethod
+    def _val_to_dir(cls, value: float, axis: Literal['vertical', 'horizontal']) -> Dir:
         """Convert a matrix value to its Dir enum representation."""
-        if self._if_unknown(value):
+        if cls._if_unknown(value):
             return Dir.UNKNOWN
             
         mapping = {
@@ -169,6 +172,30 @@ class DirectionalGraph:
         unknown_mask = (self._h_matrix_working + self._h_matrix_working.T) == 0
         self._h_matrix = self._h_matrix_working + self._h_matrix_working.T * (-1)
         self._h_matrix[unknown_mask] = self.UNKNOWN_VALUE
+        
+    @staticmethod
+    def create_graph_from_coordinates(coordinates: List[Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Create a graph from a list of coordinates
+        """
+        
+        # Initialize matrices
+        _v_matrix = np.zeros((len(coordinates), len(coordinates)), dtype=np.int8)
+        _h_matrix = np.zeros((len(coordinates), len(coordinates)), dtype=np.int8)
+        
+        # Fill matrices based on coordinates
+        for i in range(len(coordinates)):
+            for j in range(len(coordinates)):
+                if i == j:
+                    continue
+                dir_pair = DirectionSystem.get_direction(coordinates[i], coordinates[j])
+                _v_matrix[i, j] = DirectionalGraph._dir_to_val(dir_pair.vert, 'vertical')
+                _h_matrix[i, j] = DirectionalGraph._dir_to_val(dir_pair.horiz, 'horizontal')
+        
+        return _v_matrix, _h_matrix
+        
+        
+        # create a new graph with the same size as the original graph
         
 
     def add_edge(self, obj1_id: int, obj2_id: int, dir_pair: DirPair) -> None:

@@ -118,6 +118,9 @@ class Room:
         - room layout (room_desc)
         - action space (action_space)
         - state / observation (exp_graph)
+
+
+    TODO: check gt_graph
     """
 
     def _validate(self):
@@ -172,8 +175,17 @@ class Room:
             self.agent_anchor = None
             self._all_objects_exp = self.objects
             self.exp_graph = DirectionalGraph(self._all_objects_exp, is_explore=True)
+        self.gt_graph = DirectionalGraph(self.all_objects, is_explore=False)
         self._validate()
         
+
+    def _update_gt_graph(func):
+        def wrapper(self, *args, **kwargs):
+            result = func(self, *args, **kwargs)
+            # Reinitialize the ground truth graph with current objects
+            self.gt_graph = DirectionalGraph(self.all_objects, is_explore=False)
+            return result
+        return wrapper
 
     @classmethod
     def from_dict(cls, room_dict: dict) -> 'Room':
@@ -450,6 +462,7 @@ class Room:
         dir_pair_str = DirectionSystem.to_string(dir_pair, perspective=perspective)
         return dir_pair, dir_pair_str
     
+    @_update_gt_graph
     def move_object(
             self,
             moved_obj_name: str,
@@ -472,7 +485,7 @@ class Room:
             dir_pair = DirectionSystem.get_direction(new_pos, anchor_obj.pos)
             self.exp_graph.move_node(moved_obj_id, anchor_obj_id, dir_pair)
 
-
+    @_update_gt_graph
     def move_agent(
             self,
             new_pos: np.ndarray,
@@ -495,7 +508,7 @@ class Room:
         for obj in self._all_objects_exp:
             obj.pos = obj.pos - pos_diff
 
-
+    @_update_gt_graph
     def rotate_agent(self, degree: int):
         """
         Rotate the agent by <degree> degrees clockwise
