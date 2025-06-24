@@ -3,87 +3,108 @@ Parse the exploration input from agent
 """
 from typing import Optional
 import re
+import numpy as np
 
-from ragen.env.spatial.Base.room import Action, ActionType, Room
-
-
-def parse_action(action_str: str, room: Room, is_active: bool) -> tuple[list[Action], Optional[Action]]:
-    """Parse action string into actions and final command"""
-    parts = action_str.split(';')
-    if len(parts) > 2 or (len(parts) == 2 and not is_active):
-        return [], None
-    
-    # Parse action sequence
-    motion_list = []
-    if len(parts) == 2 and is_active:
-        for item in [i.strip() for i in parts[0].split(',') if i.strip()]:
-            if match := re.match(r"Move\(([A-Za-z0-9_-]+)\)", item):
-                motion_list.append(Action(ActionType.MOVE, match.group(1)))
-            elif match := re.match(r"Rotate\(([0-9-]+)\)", item):
-                motion_list.append(Action(ActionType.ROTATE, int(match.group(1))))
-            elif item == "Return()":
-                motion_list.append(Action(ActionType.RETURN, None))
-            else:
-                return [], None
-            
-    # Parse final command
-    final_cmd = parts[-1].strip()
-    query_action = None
-    
-    if match := re.match(r"Query\(([A-Za-z0-9_-]+)(?:,\s*([A-Za-z0-9_-]+))?\)", final_cmd):
-        obj1, obj2 = match.group(1), match.group(2)
-        if obj2 is None and is_active:
-            query_action = Action(ActionType.QUERY, obj1)
-        elif obj2 is not None and not is_active:
-            query_action = Action(ActionType.QUERY, (obj1, obj2))
-        else:
-            return [], None
-    elif final_cmd == "Term()":
-        query_action = Action(ActionType.TERM, None)
-    else:
-        return [], None
-    
-    # Check if query action exists
-    if query_action is None:
-        return [], None
-    
-    # If Term action, motion_list should be empty
-    if query_action.action_type == ActionType.TERM and motion_list:
-        return [], None
-    
-    # Validate all actions at once
-    def validate_actions():
-        # Check Move and Query objects exist in room
-        for action in motion_list:
-            if action.action_type == ActionType.MOVE and not room.is_object_in_room(action.parameters):
-                return False
-            if action.action_type == ActionType.ROTATE and action.parameters not in [90, 180, 270]:
-                return False
-        
-        # Check Query objects exist in room
-        if query_action.action_type == ActionType.QUERY:
-            if isinstance(query_action.parameters, tuple):
-                obj1, obj2 = query_action.parameters
-                return room.is_object_in_room(obj1) and room.is_object_in_room(obj2)
-            else:
-                return room.is_object_in_room(query_action.parameters)
-        return True
-    
-    return (motion_list, query_action) if validate_actions() else ([], None)
+from ragen.env.spatial.Base.room import Room
+from ragen.env.spatial.Base.action import ActionSequence
+from ragen.env.spatial.Base.object import Object, Agent
 
 
+def parse_action(action_str: str, room: Room) -> Optional[ActionSequence]:
+    """Parse action string into ActionSequence"""
+    action_sequence = ActionSequence.parse(action_str)
+    if action_sequence and action_sequence.validate(room):
+        return action_sequence
+    return None
 
 
 if __name__ == "__main__":
-    from Task.SpatialGym.config import SpatialGymConfig
-    from Task.SpatialGym.BaseEnv.utils.room_utils import generate_room
-    import numpy as np
-
-    config = SpatialGymConfig()
-    room = generate_room(**config.get_room_config(), np_random=np.random.default_rng(0))
-    print(room)
-
-    action_str = " Query(scanner)"
-    motion_list, query_action = parse_action(action_str, room, False)
-    print(motion_list)
-    print(query_action)
+    # Create test objects and room
+    objects = [
+        Object(name="table", pos=np.array([1, 1]), ori=np.array([1, 0])),
+        Object(name="chair", pos=np.array([2, 2]), ori=np.array([0, 1])),
+        Object(name="bookshelf", pos=np.array([0, 3]), ori=np.array([-1, 0])),
+    ]
+    agent = Agent()
+    agent.name = "agent"
+    agent.pos = np.array([0, 0])
+    agent.ori = np.array([0, 1])
+    
+    test_room = Room(objects=objects, agent=agent, name="test_room")
+    
+    print("=== Testing parse_action function ===\n")
+    
+    # Test cases with expected results
+    test_cases = [
+        # Valid action strings
+        ("Query(table)", True, "Simple query action"),
+        ("Term()", True, "Termination action"),
+        ("Move(chair); Query(table)", True, "Move then query"),
+        ("Move(table), Rotate(90); Query(chair)", True, "Move, rotate, then query"),
+        ("Return(); Query(bookshelf)", True, "Return then query"),
+        ("Rotate(180); Query(table)", True, "Rotate then query"),
+        ("Move(chair), Move(table), Return(); Query(bookshelf)", True, "Multiple moves, return, then query"),
+        
+        # Invalid action strings
+        ("Query(nonexistent)", False, "Query non-existent object"),
+        ("Move(nonexistent); Query(table)", False, "Move to non-existent object"),
+        ("Move(table), Query(chair)", False, "Motion and final action should be separated by semicolon"),
+        ("Rotate(45); Query(table)", False, "Invalid rotation degree"),
+        ("Move(table); Move(chair)", False, "Move action as final action"),
+        ("Query(table); Query(chair)", False, "Multiple final actions"),
+        ("Term(); Query(table)", False, "Term should not have motion actions before it"),
+        ("Move(table); Term(); Query(chair)", False, "Multiple semicolons not allowed"),
+        ("Invalid(action)", False, "Invalid action format"),
+        ("", False, "Empty string"),
+        ("Move(table)", False, "Motion action without final action"),
+        ("Rotate(90)", False, "Rotation action without final action"),
+    ]
+    
+    # Run test cases
+    passed = 0
+    total = len(test_cases)
+    
+    for i, (action_str, expected_valid, description) in enumerate(test_cases, 1):
+        result = parse_action(action_str, test_room)
+        is_valid = result is not None
+        
+        status = "PASS" if is_valid == expected_valid else "FAIL"
+        if status == "PASS":
+            passed += 1
+            
+        print(f"Test {i:2d}: {status} - {description}")
+        print(f"         Input: '{action_str}'")
+        print(f"         Expected: {'Valid' if expected_valid else 'Invalid'}")
+        print(f"         Got: {'Valid' if is_valid else 'Invalid'}")
+        if is_valid:
+            print(f"         Result: {result}")
+        print()
+    
+    print(f"=== Test Summary ===")
+    print(f"Passed: {passed}/{total}")
+    print(f"Success rate: {passed/total*100:.1f}%")
+    
+    # Additional detailed testing for debugging
+    print("\n=== Detailed Action Parsing Examples ===")
+    example_actions = [
+        "Query(table)",
+        "Move(chair); Query(table)", 
+        "Move(table), Rotate(90); Query(chair)"
+    ]
+    
+    for action_str in example_actions:
+        print(f"\nParsing: '{action_str}'")
+        parsed = ActionSequence.parse(action_str)
+        if parsed:
+            print(f"  Parsed successfully: {parsed}")
+            print("  Motion actions:")
+            for action in parsed.motion_actions:
+                print(f"    - Type: {action.action_type}")
+                print(f"    - Parameters: {action.parameters}")
+            print("  Final action:")
+            print(f"    - Type: {parsed.final_action.action_type}")
+            print(f"    - Parameters: {parsed.final_action.parameters}")
+            is_valid = parsed.validate(test_room)
+            print(f"  Validation: {'Valid' if is_valid else 'Invalid'}")
+        else:
+            print("  Failed to parse")
