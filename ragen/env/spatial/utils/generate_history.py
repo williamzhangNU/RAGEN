@@ -8,7 +8,8 @@ from typing import List, Tuple, Dict
 from ragen.env.spatial.Base.room import Room
 from ragen.env.spatial.Base.graph import DirectionalGraph          
 from ragen.env.spatial.Base.relationship import DirPair, Dir, DirectionSystem
-from ragen.env.spatial.Base.room import Action, ActionType
+from ragen.env.spatial.Base.action import BaseAction, MoveAction, RotateAction, QueryAction, TermAction
+from ragen.env.spatial.Base.exploration import ExplorationManager
 
 class AutoExplore:
     """
@@ -19,188 +20,167 @@ class AutoExplore:
     def __init__(self, room: Room, np_random: np.random.Generator):
         self.room = room.copy()
         self.np_random = np_random
+        self.exp_manager = ExplorationManager(self.room)
 
-    def _get_exp_history_str(self, history: List[Tuple], perspective: str = 'ego') -> str:
+    
+
+    def _generate_history_passive(self) -> List[Tuple]:
         """
-        Get the exploration history in a readable format
-        Format: 1. A to <dir> to B
-        """
-        if perspective == 'ego':
-            return "\n".join([f"{i + 1}. {obj1} {DirectionSystem.to_string(dir_pair, perspective=perspective)} to {obj2}" for i, ((obj1, obj2), dir_pair) in enumerate(history)])
-        else:
-            return "\n".join([f"{i + 1}. {obj1} {DirectionSystem.to_string(dir_pair, perspective=perspective)} to {obj2}" for i, ((obj1, obj2), dir_pair) in enumerate(history)])
-
-    def _generate_history_ego(self) -> List[Tuple]:
-        """
-        Generate exploration history of egocentric exploration
-        Generate in an iterative manner:
-        1. Move to one object, take action to explore its relationship with other objects
-        2. Move to another object, repeat the process
-
-        Heuristics:
-            - Always move to the object that has the most unknown relationships
-            - Before asking relationship, first determine whether to turn around
-        Oracle:
-            - Know all relationships
-            - Always first turn to the direction where most objects are visible
-
-        1. we use Oracle
-        2. Facing north at beginning
-        3. No redundancy in history
-
+        Generate exploration history of egocentric exploration using ExplorationManager
+        
         Returns:
             history: list of ((obj1, obj2), dir_pair)
             actions: list of Action instances in chronological order
-
-        Exploration heuristic:
-         1. At each location, bucket unknown pairs into front/back/left/right
-            (based on v>=0, v<0, h>0, h<=0).
-         2. Pick the bucket with the most unknowns, QUERY all in it.
-         3. If there remain unknowns in the opposite-facing orientation,
-            record a ROTATE(180) and QUERY that bucket (with flipped v,h).
-         4. When current object has no unknowns, MOVE to the object with most remaining unknowns.
-         5. Repeat until no unknown pairs remain, then TERM.
         """
         assert self.room.agent is not None, "Agent is not in the room"
 
-        history, actions = [], []
+        query_result, actions, actions_in_a_turn = [], [], []
+        agent_idx = self.exp_manager._get_index(self.room.agent.name)
 
         while True:
-            unknown_pairs = self.room.exp_graph.get_unknown_pairs()
+            unknown_pairs = self.exp_manager.get_unknown_pairs()
             if not unknown_pairs:
-                actions.append(Action(ActionType.TERM))
+                actions.append([TermAction()])
                 break
 
-            # unknowns at current location
-            local = [(j, i) for (i, j) in unknown_pairs if i == 0]
-            if not local:
-                # MOVE to next object with max unknowns
+            # Get unknowns involving agent (index 0)
+            local_unknowns = [(i, j) if i == agent_idx else (j, i) for (i, j) in unknown_pairs if i == agent_idx or j == agent_idx]
+            
+            if not local_unknowns:
+
+                # find the next object with most unknowns
                 counts = Counter()
                 for i, j in unknown_pairs:
                     counts[i] += 1
                     counts[j] += 1
-                next_idx = max(counts, key=counts.get)
-                obj_name = self.room.all_objects[next_idx].name
-                actions.append(Action(ActionType.MOVE, obj_name))
-                # update graph and agent position
-                self.room.move_agent(self.room.all_objects[next_idx].pos, obj_name)
+                next_obj_idx = max(counts, key=counts.get)
+                obj_name = self.exp_manager._objects[next_obj_idx].name
+                
+                # Rotate towards target if not visible
+                agent = self.exp_manager._objects[agent_idx]
+                target = self.exp_manager._objects[next_obj_idx]
+                if not self.exp_manager._is_visible(agent, target):
+                    # Find first rotation that makes target visible
+                    rotation = next((r for r in [0, 90, 180, 270] 
+                                  if self._would_be_visible_after_rotation(next_obj_idx, r)), 0)
+                    if rotation:
+                        action = RotateAction(rotation)
+                        actions_in_a_turn.append(action)
+                        self.exp_manager.execute_action(action)
+                action = MoveAction(obj_name)
+                actions_in_a_turn.append(action)
+                self.exp_manager.execute_action(action)
                 continue
             
-            buckets = {'front':[], 'back':[], 'left':[], 'right':[]}
-            for i,j in local:
-                v, h = self.room.gt_graph._v_matrix[i,j], self.room.gt_graph._h_matrix[i,j]
-                if v >= 0: buckets['front'].append((i,j))
-                else: buckets['back'].append((i,j))
-                if h >= 0: buckets['right'].append((i,j))
-                else: buckets['left'].append((i,j))
+            # Query all unknowns at current position
+            while local_unknowns:
+
+                # Check for visible unknowns in current direction first
+                visible_unknowns = [target_idx for _, target_idx in local_unknowns 
+                                  if self.exp_manager._is_visible(self.exp_manager._objects[agent_idx], 
+                                                                self.exp_manager._objects[target_idx])]
                 
-            best_dir, best_pairs = max(buckets.items(), key=lambda kv: len(kv[1]))
-            if best_dir == 'back':
-                best_dir, best_pairs = 'front', buckets['front']
-
-            # 3. Phase 1: first turn to the best direction and query best_dir
-            rotation_map = {'front': 0, 'right': 90, 'back': 180, 'left': 270}
-            degree = rotation_map[best_dir]
-            if degree != 0:
-                actions.append(Action(ActionType.ROTATE, degree))
-                self.room.rotate_agent(degree)
-            for i,j in best_pairs:
-                dir_pair = self.room.get_direction(i,j)[0]
-                name1 = self.room.all_objects[i].name
-                name2 = self.room.all_objects[j].name
-                history.append(((name1, name2), dir_pair))
-                actions.append(Action(ActionType.QUERY, name1))
-                self.room.exp_graph.add_edge(i, j, dir_pair)
-
-            # 4. Check opposite direction
-            opposite = {'front':'back', 'back':'front', 'left':'right', 'right':'left'}[best_dir]
-            opp_pairs = buckets[opposite]
-            if not opp_pairs:
-                continue
-
-            actions.append(Action(ActionType.ROTATE, 180))
-            self.room.rotate_agent(180)
-            print(self.room.all_objects)
-            # phase 2: query opposite bucket
-            for i,j in opp_pairs:
-                dir_pair = self.room.get_direction(i,j)[0]
-                name1 = self.room.all_objects[i].name
-                name2 = self.room.all_objects[j].name
-                history.append(((name1, name2), dir_pair))
-                actions.append(Action(ActionType.QUERY, name1))
-                self.room.exp_graph.add_edge(i, j, dir_pair)
-
-            # loop to MOVE or finish
-        return history, actions
-
-
-
-
-
-
-
-        
-        
-        
-
-
-    def generate_history(
-            self,
-            no_inferable: bool = True,
-            perspective: str = None,
-        ) -> List[Tuple]:
-        """
-        Generate exploration history using DFS
-
-        Parameters:
-            no_inferable : boolean indicating if we are excluding inferable relationships
-            perspective: 'allo' or 'ego' 
-
-        Returns:
-            List[Tuple]: List of tuples
-                - Tuple: ((obj1_id, obj2_id), dir_pair)
-        """
-        graph = DirectionalGraph(self.room.all_objects, is_explore=True)
-        history = []
-        if not no_inferable:
-            for i in range(len(self.room.all_objects)):
-                for j in range(i + 1, len(self.room.all_objects)):
-                    (i, j) = (j, i) if self.np_random.random() < 0.5 else (i, j)
-                    dir_pair: DirPair = self.room.get_direction(i, j)[0]
-                    obj1, obj2 = self.room.all_objects[i].name, self.room.all_objects[j].name
-                    history.append(((obj1, obj2), dir_pair))
-            return history
-
-        perspective = perspective or ('ego' if self.room.agent is not None else 'allo')
-        
-        unknown_pairs = graph.get_unknown_pairs()
-        while unknown_pairs:
+                if not visible_unknowns:
+                    # No visible unknowns in current direction, find best direction
+                    best_direction = self._find_best_direction(local_unknowns)
+                    if best_direction != 0:
+                        action = RotateAction(best_direction)
+                        actions_in_a_turn.append(action)
+                        self.exp_manager.execute_action(action)
+                        continue
                 
-            # Choose a random unknown pair
-            pair_idx = self.np_random.integers(0, len(unknown_pairs))
-            obj1_id, obj2_id = unknown_pairs[pair_idx]
-            
-            # Random orientation for variety
-            if self.np_random.random() < 0.5:
-                obj1_id, obj2_id = obj2_id, obj1_id
+                # Query all visible unknowns
+                for target_idx in visible_unknowns:
+                    obj_name = self.exp_manager._objects[target_idx].name
+                    action = QueryAction(obj_name)
+                    actions_in_a_turn.append(action)
+                    self.exp_manager.execute_action(action)
+                    
+                    # Extract direction from manager's internal state
+                    dir_pair = self.exp_manager.current_room.get_direction(
+                        self.exp_manager._objects[target_idx].name, 
+                        self.exp_manager._objects[agent_idx].name
+                    )[0]
+                    query_result.append((self.exp_manager._objects[target_idx].name, dir_pair))
+
+                    # query marks the end of a turn
+                    actions.append(actions_in_a_turn)
+                    actions_in_a_turn = []
                 
-            # Get direction between objects
-            dir_pair, _ = self.room.get_direction(obj1_id, obj2_id)
-            
-            # Add edge to graph
-            graph.add_edge(obj1_id, obj2_id, dir_pair)
-            
-            # Record step in readable form
-            obj1_name = self.room.all_objects[obj1_id].name
-            obj2_name = self.room.all_objects[obj2_id].name
-            history.append(((obj1_name, obj2_name), dir_pair))
+                # Update unknowns
+                unknown_pairs = self.exp_manager.get_unknown_pairs()
+                local_unknowns = [(i, j) if i == agent_idx else (j, i) for (i, j) in unknown_pairs if i == agent_idx or j == agent_idx]
 
-            unknown_pairs = graph.get_unknown_pairs()
+        return query_result, actions
+
+    def _find_best_direction(self, local_unknowns: List[Tuple[int, int]]) -> int:
+        """Find direction with most visible unknowns"""
+        best_count, best_direction = 0, 0
         
+        for rotation in [0, 90, 180, 270]:
+            count = sum(1 for _, target_idx in local_unknowns 
+                       if self._would_be_visible_after_rotation(target_idx, rotation))
+            if count > best_count:
+                best_count, best_direction = count, rotation
+        
+        return best_direction
 
-        return self._get_exp_history_str(history, perspective=perspective)
+    def _would_be_visible_after_rotation(self, target_idx: int, rotation: int) -> bool:
+        """Check visibility after rotation"""
+            
+        agent = self.exp_manager.current_room.agent
+        target = self.exp_manager._objects[target_idx]
+        if target.name == self.exp_manager.current_room.agent.name:
+            return True
+        
+        rotations = {
+            0: np.array([[1, 0], [0, 1]]),
+            90: np.array([[0, -1], [1, 0]]),
+            270: np.array([[0, 1], [-1, 0]]),
+            180: np.array([[-1, 0], [0, -1]]),
+        }
+        rotated_ori = agent.ori @ rotations[rotation]
+        temp_agent = type(target)(name='', pos=agent.pos, ori=rotated_ori)  
+        return self.exp_manager._is_visible(temp_agent, target)
     
-
+    def _format_history_to_string(self, query_result: List[Tuple], actions: List[List[BaseAction]]) -> str:
+        """
+        Convert history and actions from _generate_history_passive to formatted string.
+        
+        Args:
+            query_result: List of (obj_name, dir_pair) tuples from _generate_history_passive
+            actions: List of action lists, where each inner list represents one turn            
+        Returns:
+            Formatted string with numbered turns
+        """
+        turn_strings = []
+        query_idx = 0  # Track current position in query_result
+        
+        for turn_num, turn_actions in enumerate(actions, 1):
+            action_strings = []
+            
+            for action in turn_actions:
+                if isinstance(action, QueryAction):
+                    obj_name, dir_pair = query_result[query_idx]
+                    dir_string = DirectionSystem.to_string(dir_pair, perspective="ego")
+                    answer = f"{obj_name} is {dir_string}"
+                    action_string = action.success_message(answer=answer)
+                    query_idx += 1
+                else:
+                    # For non-query actions, no additional parameters needed
+                    action_string = action.success_message()
+                
+                action_strings.append(action_string)
+            
+            # Concatenate all actions in this turn
+            turn_string = " ".join(action_strings)
+            turn_strings.append(f"{turn_num}. {turn_string}")
+        
+        return "\n".join(turn_strings)
+    
+    def gen_exp_history(self) -> str:
+        query_result, actions = self._generate_history_passive()
+        return self._format_history_to_string(query_result, actions)
 
 if __name__ == "__main__":
     import re
@@ -209,7 +189,7 @@ if __name__ == "__main__":
     from ragen.env.spatial.Base.constant import CANDIDATE_OBJECTS
     from gymnasium.utils import seeding
 
-    rng1 = seeding.np_random(11)[0]
+    rng1 = seeding.np_random(1024)[0]
     room = generate_room(
         room_range=(-10, 10),
         n_objects=3,
@@ -220,6 +200,6 @@ if __name__ == "__main__":
     )
     print(room)
 
-    history, actions = AutoExplore(room, rng1)._generate_history_ego()
-    print(history)
-    print(actions)
+    explorer = AutoExplore(room, rng1)
+    exploration_str = explorer.gen_exp_history()
+    print(exploration_str)

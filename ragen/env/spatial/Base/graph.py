@@ -216,9 +216,7 @@ class DirectionalGraph:
             raise ValueError("Direction must be known")
         
         # determine the newly added edge is a novel query or not
-        novel_query = False
-        if self._if_unknown(self._v_matrix[obj1_id, obj2_id]) and self._if_unknown(self._h_matrix[obj1_id, obj2_id]):
-            novel_query = True
+        novel_query = self._if_unknown(self._v_matrix[obj1_id, obj2_id]) or self._if_unknown(self._h_matrix[obj1_id, obj2_id])
 
         # Update vertical relationships
         if v_value <= 0:

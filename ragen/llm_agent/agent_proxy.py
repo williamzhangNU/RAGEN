@@ -8,6 +8,7 @@ import json
 import datetime
 
 from verl import DataProto
+from omegaconf import ListConfig, DictConfig, OmegaConf
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from .ctx_manager import ContextManager
 from .es_manager import EnvStateManager
@@ -161,10 +162,22 @@ class LLMAgentProxy:
 		return rollouts
 
 
+def convert_omegaconf_to_python(obj):
+	"""Recursively convert OmegaConf objects to standard Python types for JSON serialization."""
+	if isinstance(obj, (DictConfig, ListConfig)):
+		return OmegaConf.to_container(obj, resolve=True)
+	elif isinstance(obj, dict):
+		return {key: convert_omegaconf_to_python(value) for key, value in obj.items()}
+	elif isinstance(obj, list):
+		return [convert_omegaconf_to_python(item) for item in obj]
+	else:
+		return obj
+
+
 def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	saved_data = {
 		'meta_info': {
-			'model_name': config.actor_rollout_ref.model.path if config.eval_model_type == "api" else config.model_config.model_name,
+			'model_name': config.actor_rollout_ref.model.path if config.eval_model_type == "vllm" else config.model_config.model_name,
 			'n_envs': len(envs),
 		},
 		'overall_performance': {
@@ -217,6 +230,9 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	
 	
 
+	# Convert any OmegaConf objects to standard Python types for JSON serialization
+	saved_data = convert_omegaconf_to_python(saved_data)
+	
 	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
 	with open(output_path, "w") as f:

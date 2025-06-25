@@ -5,12 +5,14 @@ from typing import List, Tuple, Dict, Any
 from ragen.env.spatial.Base.object import Object, Agent
 from ragen.env.spatial.Base.relationship import DirPair, DirectionSystem, Dir
 from ragen.env.spatial.Base.graph import DirectionalGraph
-from ragen.env.spatial.Base.action import ActionType, Action, ActionSequence
+from ragen.env.spatial.Base.action import BaseAction, ActionSequence, MoveAction, RotateAction, ReturnAction, QueryAction, TermAction
 from ragen.env.spatial.Base.room import Room
 
 
 class ExplorationManager:
-    """Manages spatial exploration with agent movement and queries."""
+    """Manages spatial exploration with agent movement and queries.
+    NOTE the exploration is egocentric
+    """
     
     def __init__(self, room: Room):
         self.base_room = room.copy()
@@ -29,7 +31,7 @@ class ExplorationManager:
         self._objects = [self.current_room.agent] + self.current_room.objects + [self.agent_anchor]
         self.exp_graph = DirectionalGraph(self._objects, is_explore=True)
         
-        # Link agent to anchor
+        # Link agent to anchor (same at first)
         agent_idx = self._get_index(self.current_room.agent.name)
         anchor_idx = self._get_index(self.agent_anchor.name)
         self.exp_graph.add_edge(agent_idx, anchor_idx, DirPair(Dir.SAME, Dir.SAME))
@@ -71,25 +73,15 @@ class ExplorationManager:
     
     def _rotate_agent(self, degrees: int):
         """Rotate agent by specified degrees."""
-        if degrees == 0:
-            return
-            
-        # Create rotation matrix
-        if degrees == 90:
-            rotation_matrix = np.array([
-                [0, 1],
-                [-1, 0],
-            ])
-        elif degrees == 180:
-            rotation_matrix = np.array([
-                [-1, 0],
-                [0, -1],
-            ])
-        elif degrees == 270:
-            rotation_matrix = np.array([
-                [0, -1],
-                [1, 0],
-            ])
+
+        # Rotation matrices
+        rotations = {
+            0: np.array([[1, 0], [0, 1]]),
+            90: np.array([[0, 1], [-1, 0]]),
+            180: np.array([[-1, 0], [0, -1]]),
+            270: np.array([[0, -1], [1, 0]])
+        }
+        rotation_matrix = rotations[degrees]
         
         # Rotate all objects except agent
         for obj in self._objects:
@@ -101,11 +93,24 @@ class ExplorationManager:
         self.exp_graph.rotate_axis(degrees)
 
     def _is_visible(self, from_obj: Object, to_obj: Object) -> bool:
-        """Check if to_obj is visible from from_obj (180-degree visibility)."""
-        dir_pair = DirectionSystem.get_direction(to_obj.pos, from_obj.pos, from_obj.ori)
-        return dir_pair.vert != Dir.BACKWARD
+        """Check if to_obj is visible from from_obj (90-degree field of view)."""
+        # Vector from from_obj to to_obj
+        direction_vec = to_obj.pos - from_obj.pos
+        
+        # Skip if objects are at same position
+        if np.allclose(direction_vec, 0):
+            return True
+            
+        # Calculate angle between direction vector and from_obj orientation
+        direction_norm = direction_vec / np.linalg.norm(direction_vec)
+        ori_norm = from_obj.ori / np.linalg.norm(from_obj.ori)
+        
+        # Use dot product to get cosine of angle
+        cos_angle = np.dot(direction_norm, ori_norm)
+        
+        return cos_angle >= (np.cos(np.pi / 4) - 1e-6)
     
-    def _validate_and_execute_action(self, action: Action) -> Tuple[bool, str, Dict[str, Any]]:
+    def _validate_and_execute_action(self, action: BaseAction) -> Tuple[bool, str, Dict[str, Any]]:
         """Validate and execute action in one step.
         
         Returns:
@@ -116,54 +121,57 @@ class ExplorationManager:
         TODO: add more information to info
         """
         
-        if action.action_type == ActionType.MOVE:
-            if not self.current_room.has_object(action.parameters):
+        if isinstance(action, MoveAction):
+            if not self.current_room.has_object(action.target):
                 return False, action.get_feedback(False, "not_found"), {}
-            target = self._get_object(action.parameters)
+            target = self._get_object(action.target)
             if not self._is_visible(self.current_room.agent, target):
                 return False, action.get_feedback(False, "not_visible"), {}
             
             # Execute move
-            self._move_agent_to(target.pos, action.parameters)
+            self._move_agent_to(target.pos, action.target)
             return True, action.get_feedback(True), {}
             
-        elif action.action_type == ActionType.ROTATE:
-            if action.parameters not in [0, 90, 180, 270]:
+        elif isinstance(action, RotateAction):
+            if action.degrees not in [0, 90, 180, 270]:
                 return False, action.get_feedback(False, "invalid_degree"), {}
             
             # Execute rotation
-            self._rotate_agent(action.parameters)
+            self._rotate_agent(action.degrees)
             return True, action.get_feedback(True), {}
             
-        elif action.action_type == ActionType.QUERY:
-            if not self.current_room.has_object(action.parameters):
+        elif isinstance(action, QueryAction):
+            if not self.current_room.has_object(action.target):
                 return False, action.get_feedback(False, "not_found"), {}
-            target = self._get_object(action.parameters)
+            target = self._get_object(action.target)
             if not self._is_visible(self.current_room.agent, target):
                 return False, action.get_feedback(False, "not_visible"), {}
             
             # Execute query
-            answer, query_info = self._process_query(action.parameters)
+            answer, query_info = self._process_query(action.target)
             # Update the success message to include query result
             success_msg = action.get_feedback(True, answer=answer)
             return True, success_msg, query_info
         
-        elif action.action_type == ActionType.RETURN:
+        elif isinstance(action, ReturnAction):
             # Execute return
             self._move_agent_to(self.agent_anchor.pos, self.agent_anchor.name)
             return True, action.get_feedback(True), {}
             
-        elif action.action_type == ActionType.TERM:
+        elif isinstance(action, TermAction):
             return True, action.get_feedback(True), {}
             
-        raise ValueError(f"Unknown action: {action.action_type}")
+        raise ValueError(f"Unknown action: {type(action)}")
     
     def _process_query(self, target_name: str) -> Tuple[str, Dict[str, Any]]:
         """Process query and return direction string."""
+        # preprocess target name
+        target_name = target_name.lower()
+
         info = {}
         dir_pair, dir_str = self.current_room.get_direction(target_name, self.current_room.agent.name, perspective='ego')
         
-        # Update graph, if the query is novel, then the edge is added to the graph
+        # Update graph
         target_idx = self._get_index(target_name)
         agent_idx = self._get_index(self.current_room.agent.name)
         novel_query = self.exp_graph.add_edge(target_idx, agent_idx, dir_pair)
@@ -171,10 +179,32 @@ class ExplorationManager:
         info['novel_query'] = novel_query
         return dir_str, info
     
+    
+    def _remove_agent_anchor(self) -> None:
+        """Remove anchor from graph and objects."""
+        assert self.agent_anchor is not None, "Agent anchor does not exist"
+        anchor_idx = self._get_index(self.agent_anchor.name)
+        self.exp_graph.size -= 1
+        for matrix_name in ['_v_matrix', '_h_matrix', '_v_matrix_working', '_h_matrix_working', '_asked_matrix']:
+            matrix = getattr(self.exp_graph, matrix_name)
+            matrix = np.delete(matrix, anchor_idx, axis=0)
+            matrix = np.delete(matrix, anchor_idx, axis=1)
+            setattr(self.exp_graph, matrix_name, matrix)
+        
+        self._objects.pop(anchor_idx)
+        self.agent_anchor = None
 
 
 
-
+    def execute_action(self, action: BaseAction) -> None:
+        """Execute single action with validation using integrated feedback system.
+        Args:
+            action: The action to execute
+        Raises:
+            ValueError: If the action is invalid or execution fails
+        """
+        success, *_ = self._validate_and_execute_action(action)
+        assert success, f"Action execution failed: {action}"
     
     def execute_action_sequence(self, action_sequence: ActionSequence) -> Tuple[str, Dict[str, Any]]:
         """Execute action sequence with validation using integrated feedback system.
@@ -190,10 +220,10 @@ class ExplorationManager:
             return "Action sequence requires a final action.", {}
         
         # Term() should not have motion actions
-        if action_sequence.final_action.action_type == ActionType.TERM and action_sequence.motion_actions:
+        if isinstance(action_sequence.final_action, TermAction) and action_sequence.motion_actions:
             return "Term() action should not have motion actions.", {}
         
-        info = {}
+        info = {'novel_query': False}  # Default value
         messages = []
         
         # Execute motion actions
@@ -215,32 +245,33 @@ class ExplorationManager:
         # Return combined messages
         return ", ".join(messages), info
     
-    def finish_exploration(self, return_to_origin: bool = True) -> Room:
+    def finish_exploration(
+            self,
+            return_to_origin: bool = True,
+            neglect_anchor: bool = True
+        ) -> Room:
+
         """Complete exploration and return final room state.
         Args:
             return_to_origin: Whether the agent should return to the original position and orientation
+            neglect_anchor: Whether to neglect the anchor object in the final room state
         Returns:
             The final room state
         """
         if return_to_origin:
+            assert self.agent_anchor is not None, "Agent anchor does not exist"
             # Return to anchor position and orientation
             self._move_agent_to(self.agent_anchor.pos, self.agent_anchor.name)
             
             # Reset orientation, if agent rotate previously, then agent_anchor is rotated reversely (keep agent always face (0, 1))
             ori_to_deg = {(0, 1): 0, (0, -1): 180, (1, 0): 90, (-1, 0): 270}
             target_deg = ori_to_deg[tuple(self.agent_anchor.ori)]
-            self._rotate_agent(target_deg)
-        
-        # Remove anchor from graph and objects
-        anchor_idx = len(self._objects) - 1
-        self.exp_graph.size -= 1
-        for matrix_name in ['_v_matrix', '_h_matrix', '_v_matrix_working', '_h_matrix_working', '_asked_matrix']:
-            matrix = getattr(self.exp_graph, matrix_name)
-            matrix = np.delete(matrix, anchor_idx, axis=0)
-            matrix = np.delete(matrix, anchor_idx, axis=1)
-            setattr(self.exp_graph, matrix_name, matrix)
-        
-        self._objects.pop()
+            if target_deg != 0:  # Only rotate if not already at 0 degrees
+                self._rotate_agent(target_deg)
+
+        if neglect_anchor:
+            # Remove anchor from graph and objects
+            self._remove_agent_anchor()
         return self.current_room
     
     def get_unknown_pairs(self) -> List[Tuple[int, int]]:
@@ -249,4 +280,8 @@ class ExplorationManager:
     
     def get_inferable_pairs(self) -> List[Tuple[int, int]]:
         """Get pairs of objects with inferable relationships."""
-        return self.exp_graph.get_inferable_pairs() 
+        return self.exp_graph.get_inferable_pairs()
+
+
+if __name__ == "__main__":
+    pass

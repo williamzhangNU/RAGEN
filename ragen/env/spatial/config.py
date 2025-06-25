@@ -1,82 +1,139 @@
-from dataclasses import dataclass, field, fields
-from typing import Tuple, Optional, Dict, List
-from ragen.env.spatial.Base.object import Object
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional
+from omegaconf import ListConfig, OmegaConf
+
 from ragen.env.spatial.Base.constant import CANDIDATE_OBJECTS
 
 @dataclass
 class SpatialGymConfig:
     """
-    Config for the SpatialGym
-
+    Configuration for the SpatialGym environment.
+    
     Parameters:
-        dim_room: Tuple containing room dimensions (width, height)
-        dim_x: Optional parameter for room width (deprecated, use dim_room)
-        dim_y: Optional parameter for room height (deprecated, use dim_room)
+        room_range: Range for room dimensions
+        n_objects: Number of objects in the room
         candidate_objects: List of objects that can be placed in the room
         generation_type: Type of room generation ('rand', 'rot', 'a2e', 'pov')
-        exp_type: Exploration type ('passive', 'semi', 'active')
+        exp_type: Exploration type ('passive', 'active')
         perspective: Perspective of exploration ('ego' or 'allo')
-        eval_tasks: List of evaluation tasks, for reward calculation
-        render_mode: Rendering mode
+        eval_tasks: List of evaluation tasks with their configurations
+        max_exp_steps: Maximum exploration steps for active exploration
+        render_mode: Rendering mode (currently only 'text' supported)
     """
-    # Room config parameters
+    # Room configuration
     room_range: List[int] = field(default_factory=lambda: [-10, 10])
     n_objects: int = 3
     candidate_objects: List[str] = field(default_factory=lambda: CANDIDATE_OBJECTS)
     generation_type: str = "rand"
     
-    # Spatial gym parameters
-    exp_type: str = 'semi'
+    # Exploration configuration
+    exp_type: str = 'passive'
     perspective: str = 'ego'
-    eval_tasks: List[Dict] = field(default_factory=lambda: [{"task_type": "dir", "task_kwargs": {}}])
     max_exp_steps: int = 100
+    
+    # Evaluation configuration
+    eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "dir", "task_kwargs": {}}])
+    
+    # Rendering configuration
     render_mode: str = "text"
 
     def __post_init__(self):
+        """Validate configuration parameters."""
+        self._validate_generation_type()
+        self._validate_perspective()
+        self._validate_exp_type()
+        self._validate_eval_tasks()
+        self._validate_render_mode()
+        self._validate_compatibility()
+
+    def _validate_generation_type(self):
+        """Validate generation_type parameter."""
+        valid_types = ["rand", "rot", "a2e", "pov"]
+        if self.generation_type not in valid_types:
+            raise ValueError(f"generation_type must be one of {valid_types}")
+
+    def _validate_perspective(self):
+        """Validate perspective parameter."""
+        valid_perspectives = ["ego", "allo"]
+        if self.perspective not in valid_perspectives:
+            raise ValueError(f"perspective must be one of {valid_perspectives}")
+
+    def _validate_exp_type(self):
+        """Validate exp_type parameter."""
+        valid_exp_types = ["passive", "active"]
+        if self.exp_type not in valid_exp_types:
+            raise ValueError(f"exp_type must be one of {valid_exp_types}")
+
+    def _validate_eval_tasks(self):
+        """Validate eval_tasks parameter."""
+        valid_eval_tasks = ["dir", "rot", "pov", "a2e", "e2a", "rev", "all_pairs"]
+
+        if isinstance(self.eval_tasks, ListConfig):
+            self.eval_tasks = OmegaConf.to_container(self.eval_tasks, resolve=True)
         
-        # Validate generation_type
-        valid_generation_types = ["rand", "rot", "a2e", "pov"]
-        assert self.generation_type in valid_generation_types, f"generation_type must be one of {valid_generation_types}"
+        if not self.eval_tasks:
+            raise ValueError("eval_tasks must be non-empty")
         
-        # Validate perspective
-        assert self.perspective in ["ego", "allo"], f"perspective must be one of {['ego', 'allo']}"
+        for i, task in enumerate(self.eval_tasks):
+            if not isinstance(task, dict) or 'task_type' not in task:
+                raise ValueError("Each eval_task must be a dict with 'task_type' key")
+            
+            task_type = task['task_type']
+            if task_type not in valid_eval_tasks:
+                raise ValueError(f"task_type '{task_type}' must be one of {valid_eval_tasks}")
+            
+            # Validate task-specific parameters
+            task_kwargs = task.get('task_kwargs', {})
+            self._validate_task_kwargs(task_type, task_kwargs)
 
-        # Validate perspective and generation_type
-        if self.generation_type in ['rot', 'pov']:
-            assert self.perspective == 'ego', "pov and rot generation type only support ego perspective"
+    def _validate_task_kwargs(self, task_type: str, kwargs: Dict[str, Any]):
+        """Validate task-specific parameters."""
+        if task_type == 'dir':
+            movement = kwargs.get('movement', 'static')
+            valid_movements = ['static', 'object_move', 'agent_move', 'agent_turn']
+            if movement not in valid_movements:
+                raise ValueError(f"dir task movement must be one of {valid_movements}")
         
-        # Validate exp_type
-        valid_exp_types = ["passive", "semi", "active"]
-        assert self.exp_type in valid_exp_types, f"exp_type must be one of {valid_exp_types}"
+        elif task_type == 'rot':
+            turn_direction = kwargs.get('turn_direction', 'clockwise')
+            valid_directions = ['clockwise', 'counterclockwise']
+            if turn_direction not in valid_directions:
+                raise ValueError(f"rot task turn_direction must be one of {valid_directions}")
 
+    def _validate_render_mode(self):
+        """Validate render_mode parameter."""
+        if self.render_mode != 'text':
+            raise ValueError("Only 'text' rendering mode is currently supported")
 
-        # Validate eval_tasks
-        valid_eval_tasks = ["dir", "rot", "pov", "a2e", "e2a", "rev"]
-        assert len(self.eval_tasks) > 0, "eval_tasks must be non-empty"
-        assert all(task['task_type'] in valid_eval_tasks for task in self.eval_tasks), f"eval_tasks must be a subset of {valid_eval_tasks}"
-
-        # Validate render_mode
-        assert self.render_mode == 'text', "Only support text rendering for now"
-
-        # Validate task compatibility with perspective
+    def _validate_compatibility(self):
+        """Validate compatibility between different parameters."""
+        # Check generation_type and perspective compatibility
+        if self.generation_type in ['rot', 'pov'] and self.perspective != 'ego':
+            raise ValueError("'rot' and 'pov' generation types only support 'ego' perspective")
+        
+        # Check eval_tasks and perspective compatibility
+        task_types = [task['task_type'] for task in self.eval_tasks]
+        
         if self.perspective == 'ego':
-            assert 'a2e' not in self.eval_tasks, "a2e is only supported for allocentric exploration"
-        else:
-            assert all(task not in ['rot', 'pov', 'e2a'] for task in self.eval_tasks), "invalid eval_tasks for allo perspective"
+            if 'a2e' in task_types:
+                raise ValueError("'a2e' task is only supported for allocentric exploration")
+        else:  # perspective == 'allo'
+            incompatible_tasks = [task for task in task_types if task in ['rot', 'pov', 'e2a']]
+            if incompatible_tasks:
+                raise ValueError(f"Tasks {incompatible_tasks} are not supported for allocentric perspective")
 
-    def get_room_config(self):
+    def get_room_config(self) -> Dict[str, Any]:
+        """Get configuration for room generation."""
         return {
             'room_range': self.room_range,
             'candidate_objects': self.candidate_objects,
             'generation_type': self.generation_type,
             'n_objects': self.n_objects,
-            'perspective': self.perspective,  
+            'perspective': self.perspective,
         }
     
-    # def to_dict(self):
-    #     return {field.name: getattr(self, field.name) for field in fields(self)}
-    def to_dict(self):
-        from omegaconf import OmegaConf
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary."""
         return {
             'room_range': self.room_range,
             'candidate_objects': self.candidate_objects,
@@ -84,139 +141,7 @@ class SpatialGymConfig:
             'n_objects': self.n_objects,    
             'exp_type': self.exp_type,
             'perspective': self.perspective,
-            'eval_tasks': OmegaConf.to_container(self.eval_tasks, resolve=True),
+            'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
         }
-    
-
-@dataclass
-class BaseEvaluationConfig:
-    """
-    Config for the base evaluation task
-    """
-    @classmethod
-    def create_config(cls, config_type: str, **kwargs):
-        """
-        Factory method to create evaluation configs of different types
-        
-        Args:
-            config_type: Type of evaluation config to create
-            **kwargs: Additional arguments to pass to the config constructor
-            
-        Returns:
-            An instance of the specified evaluation config
-        """
-        config_map = {
-            'all_pairs': AllPairsEvaluationConfig,
-            'dir': DirEvaluationConfig,
-            'rot': RotEvaluationConfig,
-            'pov': PovEvaluationConfig,
-            'rev': ReverseDirEvaluationConfig,
-            'a2e': A2EEvaluationConfig,
-            'e2a': E2AEvaluationConfig,
-        }
-        
-        if config_type not in config_map:
-            raise ValueError(f"Unknown config type: {config_type}. Must be one of {list(config_map.keys())}")
-        
-        return config_map[config_type](**kwargs)
-    
-    def to_dict(self):
-        return {field.name: getattr(self, field.name) for field in fields(self)}
-    
-    @classmethod
-    def from_dict(cls, config_dict: dict):
-        """
-        Factory method to create evaluation config from dictionary
-        
-        Args:
-            config_dict: Dictionary containing configuration parameters
-            
-        Returns:
-            An instance of the appropriate evaluation config
-        """
-        config_type = config_dict.pop('type', None)
-        if config_type and config_type != cls.__name__:
-            config_map = {
-                'AllPairsEvaluationConfig': AllPairsEvaluationConfig,
-                'DirEvaluationConfig': DirEvaluationConfig,
-                'RotEvaluationConfig': RotEvaluationConfig,
-                'PovEvaluationConfig': PovEvaluationConfig
-            }
-            return config_map[config_type].from_dict(config_dict)
-        return cls(**config_dict)
-
-@dataclass
-class AllPairsEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the all pairs evaluation task
-    """
-    pass
-
-@dataclass
-class DirEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the direction evaluation task
-    The movement can be 'static', 'object_move', 'agent_move', 'agent_turn'
-        - static: nothing moves, all objects remain in place
-        - object_move: the object moves <dir> of another object
-        - agent_move: the agent moves <dir> of another object
-        - agent_turn: the agent turns <degree>
-    """
-    movement: str = 'static'  # Options: 'static', 'object_move', 'agent_move', 'agent_turn'
-    def __post_init__(self):
-        assert self.movement in ['static', 'object_move', 'agent_move', 'agent_turn'],\
-            "movement must be one of ['static', 'object_move', 'agent_move', 'agent_turn']"
-
-
-
-@dataclass
-class RotEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the rotation evaluation task
-    The rotation can be 'clockwise', 'counterclockwise'
-        - clockwise: the agent turns clockwise
-        - counterclockwise: the agent turns counterclockwise
-    """
-    turn_direction: str = 'clockwise'
-    def __post_init__(self):
-        assert self.turn_direction in ['clockwise', 'counterclockwise'],\
-            "turn_direction must be one of ['clockwise', 'counterclockwise']"
-
-@dataclass
-class PovEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the point of view evaluation task
-    """
-    pass
-
-@dataclass
-class ReverseDirEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the reverse direction evaluation task
-    """
-    pass
-
-
-@dataclass
-class A2EEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the A2E evaluation task
-    """
-    pass
-
-
-@dataclass
-class E2AEvaluationConfig(BaseEvaluationConfig):
-    """
-    Config for the E2A evaluation task
-    """
-    pass
-
-if __name__ == "__main__":
-    config = RotEvaluationConfig()
-    print(config.to_dict())
-
-    config = SpatialGymConfig()
-    print(config.to_dict())

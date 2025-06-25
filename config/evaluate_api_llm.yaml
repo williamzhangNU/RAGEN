@@ -35,6 +35,12 @@ model_info:
     generation_kwargs:
       temperature: 0
       max_tokens: 512
+  gpt-4.1-nano:
+    provider_name: openai
+    model_name: gpt-4.1-nano
+    generation_kwargs:
+      temperature: 0
+      max_tokens: 512
   o3-mini:
     provider_name: openai
     model_name: o3-mini

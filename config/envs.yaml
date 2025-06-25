@@ -144,7 +144,7 @@ custom_envs:
           task_kwargs:
             turn_direction: "clockwise"
 
-  ActiveRotCounter:
+  ActiveRot:
     env_type: SpatialGym
     max_actions_per_traj: 10
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
@@ -155,7 +155,7 @@ custom_envs:
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
-            turn_direction: "counterclockwise"
+            turn_direction: "clockwise"
 
   PassiveRotCounter:
     env_type: SpatialGym

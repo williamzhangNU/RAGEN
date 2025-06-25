@@ -38,4 +38,11 @@ The Spatial Gym is a gym environment for text-based spatial reasoning.
 
 ## Evaluation
 
+1. Object preception: not included in text-based
+2. Obejct relationship: 
 
+
+
+
+## TODO
+1. Change Evaluation task where spatial relationship involve two objects no agent, change it to allocentric (north, south, east, west)

@@ -10,12 +10,11 @@ from ragen.env.spatial.Base.action import ActionSequence
 from ragen.env.spatial.Base.object import Object, Agent
 
 
-def parse_action(action_str: str, room: Room) -> Optional[ActionSequence]:
+def parse_action(action_str: str) -> Optional[ActionSequence]:
     """Parse action string into ActionSequence"""
     action_sequence = ActionSequence.parse(action_str)
-    if action_sequence and action_sequence.validate(room):
-        return action_sequence
-    return None
+    # Note: validation would be done by ExplorationManager during execution
+    return action_sequence
 
 
 if __name__ == "__main__":
@@ -42,14 +41,11 @@ if __name__ == "__main__":
         ("Move(chair); Query(table)", True, "Move then query"),
         ("Move(table), Rotate(90); Query(chair)", True, "Move, rotate, then query"),
         ("Return(); Query(bookshelf)", True, "Return then query"),
-        ("Rotate(180); Query(table)", True, "Rotate then query"),
+        ("Rotate(180); Query(table)", True, "Rotate the n query"),
         ("Move(chair), Move(table), Return(); Query(bookshelf)", True, "Multiple moves, return, then query"),
         
         # Invalid action strings
-        ("Query(nonexistent)", False, "Query non-existent object"),
-        ("Move(nonexistent); Query(table)", False, "Move to non-existent object"),
         ("Move(table), Query(chair)", False, "Motion and final action should be separated by semicolon"),
-        ("Rotate(45); Query(table)", False, "Invalid rotation degree"),
         ("Move(table); Move(chair)", False, "Move action as final action"),
         ("Query(table); Query(chair)", False, "Multiple final actions"),
         ("Term(); Query(table)", False, "Term should not have motion actions before it"),
@@ -65,7 +61,7 @@ if __name__ == "__main__":
     total = len(test_cases)
     
     for i, (action_str, expected_valid, description) in enumerate(test_cases, 1):
-        result = parse_action(action_str, test_room)
+        result = parse_action(action_str)
         is_valid = result is not None
         
         status = "PASS" if is_valid == expected_valid else "FAIL"
@@ -99,12 +95,12 @@ if __name__ == "__main__":
             print(f"  Parsed successfully: {parsed}")
             print("  Motion actions:")
             for action in parsed.motion_actions:
-                print(f"    - Type: {action.action_type}")
+                print(f"    - Type: {type(action).__name__}")
                 print(f"    - Parameters: {action.parameters}")
             print("  Final action:")
-            print(f"    - Type: {parsed.final_action.action_type}")
+            print(f"    - Type: {type(parsed.final_action).__name__}")
             print(f"    - Parameters: {parsed.final_action.parameters}")
-            is_valid = parsed.validate(test_room)
-            print(f"  Validation: {'Valid' if is_valid else 'Invalid'}")
+            # Note: validation would be done by ExplorationManager
+            print(f"  Validation: Skipped (would be done by ExplorationManager)")
         else:
             print("  Failed to parse")

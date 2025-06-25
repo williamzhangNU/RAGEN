@@ -1,95 +1,196 @@
-from enum import Enum
-from typing import Optional, Union, Tuple, List, Dict, Any
+from abc import ABC, abstractmethod
+from typing import Optional, List
 import re
 
 
-class ActionType(Enum):
-    """Types of actions in spatial exploration"""
-    MOVE = "Move"
-    ROTATE = "Rotate" 
-    RETURN = "Return"
-    QUERY = "Query"
-    TERM = "Term"
-
-
-class Action:
-    """Single action in spatial exploration"""
+class BaseAction(ABC):
+    """Base class for all actions"""
     
-    def __init__(self, action_type: ActionType, parameters: Optional[Union[str, int]] = None):
-        self.action_type = action_type
+    # Class attributes to be overridden by subclasses
+    format_desc = ""
+    description = ""
+    example = ""
+    
+    def __init__(self, parameters=None):
         self.parameters = parameters
     
-    def __repr__(self):
-        if self.parameters is None:
-            return f"{self.action_type.value}()"
-        return f"{self.action_type.value}({self.parameters})"
+    @abstractmethod
+    def format_pattern(self) -> str:
+        """Return regex pattern for parsing this action"""
+        pass
+    
+    @abstractmethod
+    def success_message(self, **kwargs) -> str:
+        """Return success message for this action"""
+        pass
+    
+    @abstractmethod
+    def error_message(self, error_type: str) -> str:
+        """Return error message for this action"""
+        pass
     
     def is_final(self) -> bool:
-        """Check if this is a final action (QUERY or TERM)"""
-        return self.action_type in [ActionType.QUERY, ActionType.TERM]
+        """Check if this is a final action (ends the sequence)"""
+        return False
     
+    def is_term(self) -> bool:
+        """Check if this is a termination action"""
+        return False
+    
+    @classmethod
+    def parse(cls, action_str: str):
+        """Parse action string and return instance if matches"""
+        instance = cls()
+        if match := re.match(instance.format_pattern(), action_str):
+            return cls(*match.groups())
+        return None
+
     def get_feedback(self, success: bool, error_type: str = None, **kwargs) -> str:
-        """Generate feedback message based on action execution result.
-        
-        Args:
-            success: Whether the action was executed successfully
-            error_type: Type of error ("not_found", "not_visible", "invalid_degree", etc.)
-            execution_info: Additional execution information (e.g., query results)
-            
-        Returns:
-            feedback message
-        """
-        
-        if not success:
-            return self.get_error(error_type)
-        
-        return self._get_success_message(**kwargs)
+        """Generate feedback based on execution result"""
+        if success:
+            return self.success_message(**kwargs)
+        return self.error_message(error_type)
+
+
+class MoveAction(BaseAction):
+    """Move to a target object"""
     
-    def _get_error(self, error_type: str = None) -> str:
-        """Get error message for this action type and error."""
-        if self.action_type == ActionType.MOVE:
-            if error_type == "not_found":
-                return f"Cannot move to '{self.parameters}': object not found."
-            elif error_type == "not_visible":
-                return f"Cannot move to '{self.parameters}': not visible."
-            return f"Cannot move to '{self.parameters}': execution failed."
-        elif self.action_type == ActionType.ROTATE:
-            if error_type == "invalid_degree":
-                return f"Cannot rotate by {self.parameters}°: only 0, 90, 180, 270 allowed."
-            return f"Cannot rotate by {self.parameters}°: execution failed."
-        elif self.action_type == ActionType.QUERY:
-            if error_type == "not_found":
-                return f"Cannot query '{self.parameters}': object not found."
-            elif error_type == "not_visible":
-                return f"Cannot query '{self.parameters}': not visible."
-            return f"Cannot query '{self.parameters}': execution failed."
-        elif self.action_type == ActionType.RETURN:
-            return "Cannot return to anchor: execution failed."
-        elif self.action_type == ActionType.TERM:
-            return "Cannot terminate exploration: execution failed."
-        else:
-            return f"Cannot execute {self.action_type.value}: execution failed."
+    format_desc = "Move(object_name)"
+    description = "Move to a specific object in the room"
+    example = "Move(table)"
     
-    def _get_success_message(self, **kwargs) -> str:
-        """Get success message for this action type."""
-        if self.action_type == ActionType.MOVE:
-            return f"Moved to {self.parameters}."
-        elif self.action_type == ActionType.ROTATE:
-            return f"Rotated by {self.parameters}°."
-        elif self.action_type == ActionType.RETURN:
-            return "Returned to anchor."
-        elif self.action_type == ActionType.QUERY:
-            return f"Queried {self.parameters}. Answer: {kwargs['answer']}"
-        elif self.action_type == ActionType.TERM:
-            return "Exploration terminated."
-        else:
-            return f"Executed {self.action_type.value}."
+    def __init__(self, target=None):
+        super().__init__(target)
+        self.target = target
+    
+    def format_pattern(self) -> str:
+        return r"^Move\(([A-Za-z0-9_-]+)\)$"
+    
+    def success_message(self, **kwargs) -> str:
+        return f"Moved to {self.target}."
+    
+    def error_message(self, error_type: str) -> str:
+        if error_type == "not_found":
+            return f"Cannot move to '{self.target}': object not found."
+        elif error_type == "not_visible":
+            return f"Cannot move to '{self.target}': not visible."
+        return f"Cannot move to '{self.target}': execution failed."
+    
+    def __repr__(self):
+        return f"Move({self.target})"
+
+
+class RotateAction(BaseAction):
+    """Rotate by specified degrees"""
+    
+    format_desc = "Rotate(degrees)"
+    description = "Rotate by specified degrees (0, 90, 180, 270)"
+    example = "Rotate(90)"
+    
+    def __init__(self, degrees=None):
+        super().__init__(degrees)
+        self.degrees = int(degrees) if degrees else None
+    
+    def format_pattern(self) -> str:
+        return r"^Rotate\(([0-9-]+)\)$"
+    
+    def success_message(self, **kwargs) -> str:
+        return f"Rotated by {self.degrees}°."
+    
+    def error_message(self, error_type: str) -> str:
+        if error_type == "invalid_degree":
+            return f"Cannot rotate by {self.degrees}°: only 0, 90, 180, 270 allowed."
+        return f"Cannot rotate by {self.degrees}°: execution failed."
+    
+    def __repr__(self):
+        return f"Rotate({self.degrees})"
+
+
+class ReturnAction(BaseAction):
+    """Return to anchor position"""
+    
+    format_desc = "Return()"
+    description = "Return to the starting anchor position"
+    example = "Return()"
+    
+    def format_pattern(self) -> str:
+        return r"^Return\(\)$"
+    
+    def success_message(self, **kwargs) -> str:
+        return "Returned to anchor."
+    
+    def error_message(self, error_type: str) -> str:
+        return "Cannot return to anchor: execution failed."
+    
+    def __repr__(self):
+        return "Return()"
+
+
+class QueryAction(BaseAction):
+    """Query spatial relationship with target object"""
+    
+    format_desc = "Query(object_name)"
+    description = "Query spatial relationship of a target object relative to your current position"
+    example = "Query(lamp)"
+    
+    def __init__(self, target=None):
+        super().__init__(target)
+        self.target = target
+    
+    def format_pattern(self) -> str:
+        return r"^Query\(([A-Za-z0-9_-]+)\)$"
+    
+    def success_message(self, **kwargs) -> str:
+        return f"Queried {self.target}. Answer: {kwargs.get('answer', 'N/A')}"
+    
+    def error_message(self, error_type: str) -> str:
+        if error_type == "not_found":
+            return f"Cannot query '{self.target}': object not found."
+        elif error_type == "not_visible":
+            return f"Cannot query '{self.target}': not visible."
+        return f"Cannot query '{self.target}': execution failed."
+    
+    def is_final(self) -> bool:
+        return True
+    
+    def __repr__(self):
+        return f"Query({self.target})"
+
+
+class TermAction(BaseAction):
+    """Terminate exploration"""
+    
+    format_desc = "Term()"
+    description = "Terminate the exploration phase"
+    example = "Term()"
+    
+    def format_pattern(self) -> str:
+        return r"^Term\(\)$"
+    
+    def success_message(self, **kwargs) -> str:
+        return "Exploration terminated."
+    
+    def error_message(self, error_type: str) -> str:
+        return "Cannot terminate exploration: execution failed."
+    
+    def is_final(self) -> bool:
+        return True
+    
+    def is_term(self) -> bool:
+        return True
+    
+    def __repr__(self):
+        return "Term()"
+
+
+# Action registry for easy lookup
+ACTION_CLASSES = [MoveAction, RotateAction, ReturnAction, QueryAction, TermAction]
 
 
 class ActionSequence:
     """Sequence of actions for spatial exploration"""
     
-    def __init__(self, motion_actions: List[Action] = None, final_action: Action = None):
+    def __init__(self, motion_actions: List[BaseAction] = None, final_action: BaseAction = None):
         self.motion_actions = motion_actions or []
         self.final_action = final_action
     
@@ -100,10 +201,7 @@ class ActionSequence:
 
     @classmethod
     def parse(cls, action_str: str) -> Optional['ActionSequence']:
-        """Parse action string into ActionSequence
-        
-        Format: "Move(A), Rotate(90); Query(B)" or just "Query(B)" or "Term()"
-        """
+        """Parse action string into ActionSequence"""
         parts = action_str.split(';')
         if len(parts) > 2:
             return None
@@ -127,24 +225,54 @@ class ActionSequence:
             return None
             
         # Term() should not have motion actions
-        if final_action.action_type == ActionType.TERM and motion_actions:
+        if isinstance(final_action, TermAction) and motion_actions:
             return None
             
         return cls(motion_actions, final_action)
     
     @staticmethod
-    def _parse_single_action(action_str: str) -> Optional[Action]:
-        """Parse a single action string"""
-        if match := re.match(r"Move\(([A-Za-z0-9_-]+)\)", action_str):
-            return Action(ActionType.MOVE, match.group(1))
-        elif match := re.match(r"Rotate\(([0-9-]+)\)", action_str):
-            degree = int(match.group(1))
-            # Allow parsing any integer, validation is done in ExplorationManager
-            return Action(ActionType.ROTATE, degree)
-        elif action_str == "Return()":
-            return Action(ActionType.RETURN)
-        elif match := re.match(r"Query\(([A-Za-z0-9_-]+)\)", action_str):
-            return Action(ActionType.QUERY, match.group(1))
-        elif action_str == "Term()":
-            return Action(ActionType.TERM)
-        return None 
+    def _parse_single_action(action_str: str) -> Optional[BaseAction]:
+        """Parse a single action string using registered action classes"""
+        for action_class in ACTION_CLASSES:
+            if action := action_class.parse(action_str):
+                return action
+        return None
+    
+    @staticmethod
+    def get_usage_instructions() -> str:
+        """Get usage instructions for action sequences"""
+        motion_actions = [cls for cls in ACTION_CLASSES if not cls().is_final()]
+        final_actions = [cls for cls in ACTION_CLASSES if cls().is_final()]
+        
+        instructions = (
+            "## Action Format\n"
+            "Use semicolon to separate movement actions from final query/term action.\n"
+            "Multiple movements can be chained with commas.\n\n"
+            "## Available Actions\n"
+        )
+        
+        if motion_actions:
+            instructions += "### Movement Actions\n"
+            instructions += "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in motion_actions)
+            instructions += "\n\n"
+        
+        if final_actions:
+            instructions += "### Final Actions\n"
+            instructions += "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in final_actions)
+            instructions += "\n\n"
+        
+        instructions += (
+            "## Examples\n"
+            f"Simple query: {QueryAction.example}\n"
+            f"Move then query: {MoveAction.example}; {QueryAction.example}\n"
+            f"Multiple moves: {MoveAction.example}, {RotateAction.example}; {QueryAction.example}\n"
+            f"Return to start: {ReturnAction.example}; {QueryAction.example}\n"
+            f"Terminate: {TermAction.example}\n\n"
+            "## Rules\n"
+            "- Last action must be Query() or Term()\n"
+            "- Term() cannot have movement actions before it\n"
+            "- You have a field of view of 90 degrees, 45 to the left and 45 to the right\n"
+            "- You can only query or move to objects that are within your field of view\n"
+        )
+        
+        return instructions
