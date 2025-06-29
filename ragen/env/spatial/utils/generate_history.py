@@ -5,11 +5,23 @@ import numpy as np
 from collections import Counter
 
 from typing import List, Tuple, Dict
-from ragen.env.spatial.Base.room import Room
-from ragen.env.spatial.Base.graph import DirectionalGraph          
-from ragen.env.spatial.Base.relationship import DirPair, Dir, DirectionSystem
-from ragen.env.spatial.Base.action import BaseAction, MoveAction, RotateAction, QueryAction, TermAction
-from ragen.env.spatial.Base.exploration import ExplorationManager
+from ragen.env.spatial.Base import (
+    Room,
+    DirectionalGraph,
+    DirPair,
+    Dir,
+    DirectionSystem,
+    BaseAction,
+    MoveAction,
+    RotateAction,
+    QueryAction,
+    TermAction,
+    ExplorationManager
+)
+
+"""
+TODO re-implement this
+"""
 
 class AutoExplore:
     """
@@ -179,14 +191,13 @@ class AutoExplore:
         return "\n".join(turn_strings)
     
     def gen_exp_history(self) -> str:
+        return "test"
         query_result, actions = self._generate_history_passive()
         return self._format_history_to_string(query_result, actions)
 
 if __name__ == "__main__":
     import re
-    from ragen.env.spatial.Base.object import Object, Agent
-    from ragen.env.spatial.Base.utils.room_utils import generate_room
-    from ragen.env.spatial.Base.constant import CANDIDATE_OBJECTS
+    from ragen.env.spatial.Base import Object, Agent, generate_room, CANDIDATE_OBJECTS
     from gymnasium.utils import seeding
 
     rng1 = seeding.np_random(1024)[0]

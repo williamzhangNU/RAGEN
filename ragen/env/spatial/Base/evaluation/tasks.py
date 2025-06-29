@@ -4,18 +4,24 @@ The script defines the different evaluation metrics for the SpatialGym.
 
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple, Any, List
-import re
 import numpy as np
 from typing_extensions import override
 import copy
 from dataclasses import dataclass
 
-from ragen.env.spatial.Base.room import Room
-from ragen.env.spatial.utils.parse_eval import dir_eval_fn, obj_seq_eval_fn, deg_seq_eval_fn, list_dir_eval_fn
-from ragen.env.spatial.Base.constant import CANDIDATE_OBJECTS
-from ragen.env.spatial.Base.graph import DirectionalGraph
-from ragen.env.spatial.Base.object import Object, Agent
-from ragen.env.spatial.Base.relationship import DirPair, Dir, DirectionSystem
+from ..core.room import Room
+from ..utils.eval_utilities import (
+    dir_eval_fn,
+    obj_seq_eval_fn,
+    deg_seq_eval_fn,
+    list_dir_eval_fn,
+    e2a_eval_fn,
+)
+from ..core.constant import CANDIDATE_OBJECTS
+from ..core.graph import DirectionalGraph
+from ..core.object import Object, Agent
+from ..core.relationship import DirPair, Dir, DirectionSystem
+from ..actions import MoveAction, RotateAction
 
 @dataclass
 class EvaluationData:
@@ -38,18 +44,16 @@ class EvaluationData:
     
     def evaluate(self, pred: Any) -> Tuple[bool, Dict[str, Any]]:
         """Evaluate an answer to the given question"""
-        info = {"score": 0.0, "correct_count": 0, "total_count": 0}
-        
         if self.task_type == 'AllPairsEvaluationTask':
             correct_count = list_dir_eval_fn(pred, self.answer)
             total_answers = len(self.answer)
             score = correct_count / total_answers if total_answers > 0 else 0.0
             
-            info.update({
+            info = {
                 "score": score,
                 "correct_count": correct_count,
                 "total_count": total_answers
-            })
+            }
             return correct_count == total_answers, info
         
         elif self.task_type in ['DirEvaluationTask', 'PovEvaluationTask']:
@@ -62,38 +66,12 @@ class EvaluationData:
             return pred.strip().lower() in [ans.strip().lower() for ans in self.answer], {}
         
         elif self.task_type == 'E2AEvaluationTask':
-            return self._evaluate_e2a_task(pred)
+            return e2a_eval_fn(pred, self.answer)
         
         elif self.task_type == 'A2EEvaluationTask':
             return deg_seq_eval_fn(pred, self.answer), {}
         
         return False, {"error": "Unknown task type"}
-    
-    def _evaluate_e2a_task(self, pred: Any) -> Tuple[bool, Dict[str, Any]]:
-        """Evaluate E2A task specifically"""
-        try:
-            coord_pattern = r'[\(\[]?\s*(-?\d+)\s*,\s*(-?\d+)\s*[\)\]]?'
-            matches = re.findall(coord_pattern, pred)
-            if not matches or len(matches) != len(self.answer):
-                return False, {"error": "No coordinates found in the response"}
-            
-            extracted_coords = [(int(x), int(y)) for x, y in matches]
-            
-            gt = copy.deepcopy(self.answer)
-            gt.insert(0, (0, 0))
-            gt_v_matrix, gt_h_matrix = DirectionalGraph.create_graph_from_coordinates(gt)
-
-            pred_coords = copy.deepcopy(extracted_coords)
-            pred_coords.insert(0, (0, 0))
-            pred_v_matrix, pred_h_matrix = DirectionalGraph.create_graph_from_coordinates(pred_coords)
-
-            if np.allclose(pred_v_matrix, gt_v_matrix) and np.allclose(pred_h_matrix, gt_h_matrix):
-                return True, {}
-            else:
-                return False, {}
-        except Exception as e:
-            print("Error in E2AEvaluationTask", e)
-            return False, {}
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert the evaluation data to a dictionary"""
@@ -513,7 +491,13 @@ class E2AEvaluationTask(BaseEvaluationTask):
     def generate_question(self, room: Room) -> str:
         orientations = [(0, "north"), (90, "east"), (180, "south"), (270, "west")]
         degree, agent_ori_str = orientations[self.np_random.integers(0, 4)]
-        room.rotate_agent(degree)
+        
+        # Use RotateAction to rotate agent instead of direct manipulation
+        if degree != 0:  # Only rotate if not already facing north
+            rotate_action = RotateAction(degree)
+            result = rotate_action.execute(room)
+            if not result.success:
+                raise RuntimeError(f"Failed to execute rotation: {result.message}")
 
         objects = [obj for obj in copy.deepcopy(room.all_objects) 
                   if room.agent is None or obj.name != room.agent.name]
@@ -608,14 +592,13 @@ class A2EEvaluationTask(BaseEvaluationTask):
 
 if __name__ == "__main__":
     from ragen.env.spatial.config import SpatialGymConfig
-    from ragen.env.spatial.Base.utils.room_utils import generate_room
+    from ..utils.room_utils import generate_room
     from gymnasium.utils import seeding
 
     config = SpatialGymConfig(n_objects=4, generation_type='pov', perspective='ego')
     np_random = seeding.np_random(1234)[0]
     room = generate_room(**config.get_room_config(), np_random=np_random)
     print(room)
-
 
     # # Test all pairs evaluation task
     # print("\n" + "="*50)

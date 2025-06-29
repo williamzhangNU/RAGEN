@@ -3,9 +3,9 @@ import json
 from typing import List, Union, Dict, Any, Tuple
 import copy
 
-from ragen.env.spatial.Base.object import Object, Agent
-from ragen.env.spatial.Base.relationship import DirPair, DirectionSystem, Dir
-from ragen.env.spatial.Base.graph import DirectionalGraph
+from .object import Object, Agent
+from .relationship import DirPair, DirectionSystem, Dir
+from .graph import DirectionalGraph
     
 
 

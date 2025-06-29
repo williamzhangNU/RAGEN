@@ -1,5 +1,5 @@
 import numpy as np
-from ragen.env.spatial.Evaluation import (
+from .tasks import (
     BaseEvaluationTask,
     DirEvaluationTask,
     RotEvaluationTask,

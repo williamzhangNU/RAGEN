@@ -3,8 +3,8 @@ import numpy as np
 import copy
 from dataclasses import dataclass
 
-from ragen.env.spatial.Base.object import Object
-from ragen.env.spatial.Base.relationship import (
+from .object import Object
+from .relationship import (
     DirPair,
     DirectionSystem,
     Dir,

@@ -4,6 +4,8 @@ This file contains the functions for parsing the predicted string and evaluating
 
 from typing import List, Dict, Any, Optional, Union, Tuple
 import re
+import copy
+import numpy as np
 
 
 def extract_elements(
@@ -269,6 +271,45 @@ def deg_seq_eval_fn(
             return False
     
     return True
+
+
+def e2a_eval_fn(pred: Any, answer: Any) -> Tuple[bool, Dict[str, Any]]:
+    """
+    Evaluate E2A (ego to allocentric) task specifically.
+    
+    Args:
+        pred: The predicted answer (typically a string with coordinates)
+        answer: The ground truth answer (list of coordinate tuples)
+        
+    Returns:
+        Tuple[bool, Dict[str, Any]]: (is_correct, info_dict)
+    """
+    try:
+        coord_pattern = r'[\(\[]?\s*(-?\d+)\s*,\s*(-?\d+)\s*[\)\]]?'
+        matches = re.findall(coord_pattern, pred)
+        if not matches or len(matches) != len(answer):
+            return False, {"error": "No coordinates found in the response"}
+        
+        extracted_coords = [(int(x), int(y)) for x, y in matches]
+        
+        # Import here to avoid circular imports
+        from ..core.graph import DirectionalGraph
+        
+        gt = copy.deepcopy(answer)
+        gt.insert(0, (0, 0))
+        gt_v_matrix, gt_h_matrix = DirectionalGraph.create_graph_from_coordinates(gt)
+
+        pred_coords = copy.deepcopy(extracted_coords)
+        pred_coords.insert(0, (0, 0))
+        pred_v_matrix, pred_h_matrix = DirectionalGraph.create_graph_from_coordinates(pred_coords)
+
+        if np.allclose(pred_v_matrix, gt_v_matrix) and np.allclose(pred_h_matrix, gt_h_matrix):
+            return True, {}
+        else:
+            return False, {}
+    except Exception as e:
+        print("Error in E2AEvaluationTask", e)
+        return False, {}
 
 
 if __name__ == "__main__":

@@ -3,11 +3,13 @@ import re
 from typing import Optional
 
 from ragen.env.spatial.config import SpatialGymConfig
-from ragen.env.spatial.evaluation_manager import EvaluationManager
-from ragen.env.spatial.Base.room import Room
-from ragen.env.spatial.Base.action import ActionSequence
-from ragen.env.spatial.Base.exploration import ExplorationManager
-from ragen.env.spatial.Base.utils.room_utils import generate_room
+from ragen.env.spatial.Base import (
+    EvaluationManager,
+    Room,
+    ActionSequence,
+    ExplorationManager,
+    generate_room
+)
 from ragen.env.spatial.utils.generate_history import AutoExplore
 
 
@@ -146,7 +148,7 @@ class SpatialGym(gym.Env):
             self.exploration_manager = ExplorationManager(self.room_s_0)
         
         # Initialize evaluation manager
-        self.evaluation_manager = EvaluationManager(self.config, self.np_random)
+        self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random)
 
         # Generate initial observation
         obs = self._gen_initial_obs()
@@ -234,6 +236,7 @@ class SpatialGym(gym.Env):
         Get the exploration efficiency
         - Coverage: percentage of pairs covered (known / all relations)
         - Novelty: percentage of novel pairs (inferable / all queries)
+        TODO use exploration manager to get efficiency
         """
         assert self.config.exp_type in ["active", "passive"]
         if self.config.exp_type == 'passive':
@@ -243,20 +246,24 @@ class SpatialGym(gym.Env):
                 "n_valid_queries": 0,
                 "n_novel_queries": 0,
             }
-        if self.exploration_manager:
-            unknown_pairs = self.exploration_manager.get_unknown_pairs()
-            n_object = len(self.room_s_0.all_objects)
-            max_rels = int(n_object * (n_object - 1) / 2)
-            coverage = (max_rels - len(unknown_pairs)) / max_rels
-        else:
-            coverage = 0
+        # if self.exploration_manager:
+        #     unknown_pairs = self.exploration_manager.get_unknown_pairs()
+        #     n_object = len(self.room_s_0.all_objects)
+        #     max_rels = int(n_object * (n_object - 1) / 2)
+        #     coverage = (max_rels - len(unknown_pairs)) / max_rels
+        # else:
+        #     coverage = 0
             
-        return {
-            "coverage": coverage,
-            "novelty": self.n_novel_queries / self.n_valid_queries if self.n_valid_queries > 0 else 0,
-            "n_valid_queries": self.n_valid_queries,
-            "n_novel_queries": self.n_novel_queries,
-        }
+        # return {
+        #     "coverage": coverage,
+        #     "novelty": self.n_novel_queries / self.n_valid_queries if self.n_valid_queries > 0 else 0,
+        #     "n_valid_queries": self.n_valid_queries,
+        #     "n_novel_queries": self.n_novel_queries,
+        # }
+        if self.exploration_manager:
+            return self.exploration_manager.get_exploration_efficiency()
+        else:
+            raise ValueError("Exploration manager not initialized")
     
     def get_eval_performance(self):
         """
@@ -340,17 +347,10 @@ if __name__ == "__main__":
         
         # Test exploration phase
         exploration_actions = [
-            "Query(chair)",
-            "Rotate(90); Query(table)",
-            "Query(printer)",
-            "Rotate(180); Query(keyboard)",
-            # "Move(keyboard), Rotate(90); Query(chair)",
-            # "Rotate(90); Query(printer)",
-            # "Query(table)",
-            # "Move(printer); Query(table)",
-            # "Query(printer)",
-            # "Return()",
-            # "Term()"
+            "Observe()",
+            "Rotate(90); Observe()",
+            "Rotate(180); Observe()",
+            "Move(keyboard); Rotate(90); Observe()",
         ]
         
         step_count = 0
@@ -365,7 +365,7 @@ if __name__ == "__main__":
             else:
                 break
 
-        print(f"all objects in exploration manager: {env.exploration_manager._objects}")
+        print(f"all objects in exploration manager: {env.exploration_manager.exploration_room.all_objects}")
         print(f"Exploration graph: {env.exploration_manager.exp_graph.to_dict()}")
         
         # Test evaluation phase
@@ -459,7 +459,7 @@ if __name__ == "__main__":
         """Test action sequence parsing."""
         print("Testing Action Parsing...")
         
-        from ragen.env.spatial.Base.action import ActionSequence
+        from ragen.env.spatial.Base import ActionSequence
         
         test_actions = [
             "Query(table)",
@@ -556,9 +556,9 @@ if __name__ == "__main__":
     
     try:
         # test_passive_exploration()
-        test_active_exploration()
+        # test_active_exploration()
         # test_different_generation_types()
-        # test_evaluation_tasks()
+        test_evaluation_tasks()
         # test_action_parsing()
         # test_environment_states()
         # test_configuration_validation()

@@ -3,29 +3,33 @@
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 
-from ragen.env.spatial.config import SpatialGymConfig
-from ragen.env.spatial.utils.get_eval_task import get_eval_task
-from ragen.env.spatial.Base.room import Room
-from ragen.env.spatial.Evaluation import BaseEvaluationTask
+from ..evaluation.task_factory import get_eval_task
+from ..core.room import Room
+from ..evaluation.tasks import BaseEvaluationTask
 
 
 class EvaluationManager:
-    """Simple manager for evaluation tasks."""
+    """
+    Manages evaluation tasks for the SpatialGym environment.
     
-    def __init__(self, config: SpatialGymConfig, np_random: np.random.Generator):
-        self.config = config
+    Handles task initialization, question generation, answer evaluation,
+    and tracking of evaluation results across multiple tasks.
+    """
+    
+    def __init__(self, eval_tasks: List[Dict[str, Any]], np_random: np.random.Generator):
+        self.eval_tasks = eval_tasks
         self.np_random = np_random
         
         # Initialize tasks
         self.tasks = []
-        for task_spec in config.eval_tasks:
+        for task_spec in eval_tasks:
             task_type = task_spec['task_type']
             task_kwargs = task_spec.get('task_kwargs', {})
             task = get_eval_task(task_type, np_random, task_kwargs)
             self.tasks.append(task)
         
         self.current_index = 0
-        self.results = []
+        self.results = [] # log of results for each task
     
     def _get_current_eval_task(self) -> Optional[BaseEvaluationTask]:
         """Get current evaluation task."""
@@ -111,16 +115,14 @@ class EvaluationManager:
 
 if __name__ == "__main__":
     # Simple test
-    from ragen.env.spatial.Base.utils.room_utils import generate_room
+    from ..utils.room_utils import generate_room
     from gymnasium.utils import seeding
     
-    config = SpatialGymConfig(
-        eval_tasks=[{"task_type": "dir", "task_kwargs": {}}]
-    )
+    eval_tasks = [{"task_type": "dir", "task_kwargs": {}}]
     np_random = seeding.np_random(42)[0]
     
-    eval_manager = EvaluationManager(config, np_random)
-    room = generate_room(**config.get_room_config(), np_random=np_random)
+    eval_manager = EvaluationManager(eval_tasks, np_random)
+    room = generate_room(np_random=np_random)
     
     question = eval_manager.get_current_question(room)
     print(f"Question: {question}")

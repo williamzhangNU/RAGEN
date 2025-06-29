@@ -2,9 +2,9 @@ import numpy as np
 from typing import List
 import sys
 
-from ragen.env.spatial.Base.room import Room
-from ragen.env.spatial.Base.constant import CANDIDATE_OBJECTS
-from ragen.env.spatial.Base.room import Object, Agent
+from ..core.room import Room
+from ..core.constant import CANDIDATE_OBJECTS
+from ..core.object import Object, Agent
 
 def generate_room(
         room_range: tuple[int, int],

@@ -1,7 +1,5 @@
 import numpy as np
-import sys
-sys.path.append('../../')
-from ragen.env.spatial.Base.object import Object
+from .object import Object
 
 
 AGENT_NAME = 'you'
