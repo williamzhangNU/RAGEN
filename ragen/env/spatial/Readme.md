@@ -1,48 +1,68 @@
 # Spatial Gym
 
-The Spatial Gym is a gym environment for text-based spatial reasoning.
+A text-based spatial reasoning environment where agents explore rooms and answer spatial relationship questions.
 
-## Main Components
+## Overview
 
-1. `BaseEnv/room.py`: room (**state** / environment) for exploration and evaluation
-    - SpatialGym interacts with room
-    - Evaluation uses room to generate question and answer
+The Spatial Gym enables agents to:
+- Explore spatial environments through movement and observation
+- Learn spatial relationships between objects
+- Answer spatial reasoning questions based on their exploration
 
-2. `env.py`: SpatialGym environment
-    - Main interface for agent to interact with the environment
-    - Passive exploration: generate exploration history using DFS in `reset`
-    - Semi-active exploration: agent ask about relationship between two objects in `step`
-    - Active exploration: agent can only ask about one object relative to itself in `step`
+## Quick Start
 
-3. `Evaluation.py`: Evaluation QA
+```python
+from ragen.env.spatial import SpatialGym
 
-## Exploration
+# Create and use the environment
+env = SpatialGym(config)
+observation = env.reset()
+
+# Agent explores
+action = "Move(table)"
+observation, reward, done, info = env.step(action)
+
+# Agent observes
+action = "Observe()"
+observation, reward, done, info = env.step(action)
+
+# End exploration
+action = "Terminate()"
+observation, reward, done, info = env.step(action)
+```
+
+## Exploration Modes
 
 ### Active Exploration
+- Agent has 90° field of view
+- Can only query visible objects
+- Must move strategically to discover all relationships
 
-1. Exploration:
-- Agent can only see the objects in front of it (NOTE field of view: 90 degree)
-- Ask:
-    - Agent can only ask about one object relative to itself
-    - **Agent can only ask visible object**
-- Agent can move in the room
-
-2. Actions:
-- `move`: move to an object, format: "Move(A)"
-- `rotate`: rotate to a specific direction, format: "Rotate(90)"
-- `ask`: ask about relationship between one object and the agent, format: "Query(A)" for A object
-- `return`: return to the original position, format: "Return()"
-- `terminate`: terminate the exploration, format: "Terminate()"
+### Semi-Active Exploration  
+- Agent can ask about any two objects
+- More flexible than active mode
 
 ### Passive Exploration
+- System provides complete exploration history
+- No agent movement required
 
-## Evaluation
+## Available Actions
 
-1. Object preception: not included in text-based
-2. Obejct relationship: 
+- `Move(object)` - Move to a specific object
+- `Rotate(degrees)` - Rotate by specified degrees
+- `Query(object)` - Ask about object's relationship to agent
+- `Observe()` - Observe current surroundings
+- `Return()` - Return to starting position
+- `Terminate()` - End exploration phase
 
+## Evaluation Tasks
 
+The environment includes various spatial reasoning tasks:
+- **Direction**: Understanding cardinal directions (N, S, E, W)
+- **Rotation**: Understanding rotational relationships  
+- **Point of View**: Spatial relationships from different perspectives
+- **Object Relations**: Relative positions between objects
 
+## Configuration
 
-## TODO
-1. Change Evaluation task where spatial relationship involve two objects no agent, change it to allocentric (north, south, east, west)
+Environment behavior is controlled through `config.py`. See the Base module documentation for detailed technical information and extension guidelines.
