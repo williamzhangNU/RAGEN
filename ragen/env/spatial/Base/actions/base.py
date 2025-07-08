@@ -57,16 +57,19 @@ class BaseAction(ABC):
         """
         pass
     
-    def _is_visible(self, from_obj, to_obj) -> bool:
-        """Check if to_obj is visible from from_obj (180-degree field of view)."""
+    @staticmethod
+    def _is_visible(from_obj, to_obj) -> bool:
+        """Check if to_obj is visible from from_obj (90-degree field of view, 45° left and right)."""
         direction_vec = to_obj.pos - from_obj.pos
         if np.allclose(direction_vec, 0):
             return True
         direction_norm = direction_vec / np.linalg.norm(direction_vec)
         ori_norm = from_obj.ori / np.linalg.norm(from_obj.ori)
-        return np.dot(direction_norm, ori_norm) >= -1e-6
+        # For 90-degree field of view (45° left and right), use cos(45°) ≈ 0.707
+        return np.dot(direction_norm, ori_norm) >= 0.707 - 1e-3
     
-    def _get_rotation_matrix(self, degrees: int) -> np.ndarray:
+    @staticmethod
+    def _get_rotation_matrix(degrees: int) -> np.ndarray:
         """Get rotation matrix for specified degrees.
         NOTE agent rotates clockwise <==> other object rotates counterclockwise
         """

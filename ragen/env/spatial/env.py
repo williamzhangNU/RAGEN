@@ -12,23 +12,16 @@ from ragen.env.spatial.Base import (
 )
 from ragen.env.spatial.utils.generate_history import AutoExplore
 
-
 instruction = (
     "# Spatial Mapping Task\n"
     "\n"
-    "You are exploring a room to discover spatial relationships between objects.\n"
-    "Build a complete mental map by finding where each object is relative to others.\n"
+    "Explore the room to map spatial relationships between objects.\n"
     "\n"
-    "## Spatial Relationships\n"
-    "When you query an object, you get its position relative to you: (horizontal, vertical)\n"
-    "\n"
+    "When you query an object, you get its position relative to you:\n"
     "- Horizontal: left, right, same\n"
     "- Vertical: front, back, same\n"
-    "- Example: (left, front) means object is to your left and in front of you\n"
     "\n"
-    "## Key Points\n"
-    "- Relationships are relative: if A is left of B, then B is right of A\n"
-    "- Terminate when you have enough information to map all object pairs\n"
+    "Terminate when you can map all object pairs.\n"
     "\n"
     "## Room Layout\n"
     "{room_info}\n"
@@ -37,7 +30,6 @@ instruction = (
     "\n"
     "{exp_answer_format}\n"
 )
-
 
 
 class SpatialGym(gym.Env):
@@ -50,229 +42,174 @@ class SpatialGym(gym.Env):
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
         self.config = config
-        self.is_exp_stage = None  # indicates exploration or evaluation stage
-        self.max_exp_steps = None
+        self.is_exploration_phase = None
+        self.remaining_exp_steps = None
         self.render_cache = None
 
         # Room state management
-        self.room_s_t = None  # latest/current state of the room
-        self.room_s_0 = None  # initial state of the room
-        self.room_s_end = None  # final state of the room, agent may return to its original state
+        self.initial_room = None
+        self.final_room = None
         
         # Managers
-        self.exploration_manager = None  # handles exploration logic
-        self.evaluation_manager = None  # handles evaluation logic
-
-        # Action space configuration
-        self.move_action = ["Move", "Rotate", "Return"] if self.config.exp_type == 'active' else []
-        self.query_action = ["Query"] if self.config.exp_type != 'passive' else []
-        self.term_action = ["Term"] if self.config.exp_type != 'passive' else []
-        self.action_space = self.move_action + self.query_action
+        self.exploration_manager = None
+        self.evaluation_manager = None
 
         # Exploration metrics
-        self.n_novel_queries = None
         self.n_valid_queries = None
+        self.n_redundant_queries = None
 
-    def _gen_initial_obs(self):
-        """
-        Generate initial observation as a user message (instruction).
-        """
+    def _get_action_instructions(self) -> str:
+        """Generate action format instructions for active exploration."""
+        move_actions = ["Move", "Rotate", "Return"] if self.config.exp_type == 'active' else []
+        query_actions = ["Query"] if self.config.exp_type != 'passive' else []
+        term_actions = ["Term"] if self.config.exp_type != 'passive' else []
+        
+        return (
+            "## Available Actions\n"
+            f"Movement: {', '.join(move_actions)}\n"
+            f"Query: {', '.join(query_actions)}\n"
+            f"Term: {', '.join(term_actions)}\n"
+            "\n" +
+            ActionSequence.get_usage_instructions()
+        )
+
+    def _generate_initial_observation(self) -> str:
+        """Generate initial observation based on exploration type."""
+        room_desc = self.initial_room.get_room_description()
         exp_history = ""
-        room_desc = self.room_s_0.get_room_description()
         exp_answer_format = ""
         
         if self.config.exp_type == 'passive':
-            # Generate exploration history using DFS
-            auto_explore = AutoExplore(self.room_s_0, self.np_random)
-            exp_history = auto_explore.gen_exp_history()
-            exp_history = f"## Exploration History\n{exp_history}"
+            auto_explore = AutoExplore(self.initial_room, self.np_random)
+            exp_history = f"## Exploration History\n{auto_explore.gen_exp_history()}"
         else:
-            # Generate action format instructions for active exploration
-            exp_answer_format = (
-                "## Available Actions\n"
-                f"Movement: {', '.join(self.move_action)}\n"
-                f"Query: {', '.join(self.query_action)}\n"
-                f"Term: {', '.join(self.term_action)}\n"
-                "\n" +
-                ActionSequence.get_usage_instructions()
-            )
+            exp_answer_format = self._get_action_instructions()
         
-        # Format the instruction
         obs = instruction.format(
             room_info=room_desc,
             exp_history=exp_history,
             exp_answer_format=exp_answer_format
         )
 
-        # For passive exploration, add the first evaluation question
+        # Add first evaluation question for passive exploration
         if self.config.exp_type == 'passive':
-            first_question = self.evaluation_manager.get_current_question(self.room_s_0.copy())
+            first_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
             if first_question:
                 obs = obs + "\n\n" + first_question
 
         return obs
 
-        
-
-
-    
-    
     def reset(self, seed: int = None):
-        """
-        Reset the environment for a new episode.
-        
-        1. Generate initial room
-        2. Initialize evaluation manager
-        3. Set up exploration manager if needed
-        4. Generate initial observation
-
-        Returns:
-            - obs (str): Initial observation/instruction
-            - info (dict): Additional information
-        """
+        """Reset environment for a new episode."""
         super().reset(seed=seed)
-        self.max_exp_steps = self.config.max_exp_steps
+        
+        # Initialize episode state
+        self.remaining_exp_steps = self.config.max_exp_steps
         self.n_valid_queries = 0
-        self.n_novel_queries = 0
+        self.n_redundant_queries = 0
 
         # Generate initial room
-        self.room_s_0: Room = generate_room(
+        self.initial_room = generate_room(
             **self.config.get_room_config(),
             np_random=self.np_random,
         )
-        self.room_s_t = self.room_s_0.copy()
         
-        self.is_exp_stage = True if self.config.exp_type != 'passive' else False
-        # Initialize exploration manager for active exploration
+        # Set exploration phase
+        self.is_exploration_phase = self.config.exp_type != 'passive'
+        
+        # Initialize managers
         if self.config.exp_type == 'active':
-            self.exploration_manager = ExplorationManager(self.room_s_0)
-        
-        # Initialize evaluation manager
+            self.exploration_manager = ExplorationManager(self.initial_room)
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random)
 
         # Generate initial observation
-        obs = self._gen_initial_obs()
+        obs = self._generate_initial_observation()
         self.render_cache = obs
         return obs, {}
-        
     
+    def _step_exploration(self, action: str):
+        """Handle exploration phase step."""
+        self.remaining_exp_steps -= 1
+        
+        # Parse and validate action
+        action_sequence = ActionSequence.parse(action)
+        if not action_sequence:
+            self.render_cache = "Invalid action"
+            return "Invalid action", -0.1, False, {}
+        
+        # Check if exploration should end
+        if action_sequence.final_action.is_term() or self.remaining_exp_steps < 0:
+            self.is_exploration_phase = False
+            self.final_room = self.exploration_manager.finish_exploration()
+            
+            # Transition to evaluation
+            question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            obs = question or "Task finished"
+            self.render_cache = obs
+            return obs, 0, not bool(question), {}
+        
+        # Execute exploration action
+        self.n_valid_queries += 1
+        result, exp_info = self.exploration_manager.execute_action_sequence(action_sequence)
+        
+        # Track redundant queries
+        if exp_info.get('redundant', False):
+            self.n_redundant_queries += 1
+        
+        self.render_cache = result
+        return result, 0, False, {}
+    
+    def _step_evaluation(self, action: str):
+        """Handle evaluation phase step."""
+        # Evaluate answer
+        correct, reward, info = self.evaluation_manager.evaluate_answer(action)
+        
+        # Check for next task
+        if self.evaluation_manager.next_task():
+            next_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            obs = next_question or "Task finished"
+            self.render_cache = obs
+            return obs, reward, not bool(next_question), {}
+        
+        # All tasks completed
+        self.render_cache = "Task finished"
+        return "Task finished", reward, True, {}
+
     def step(self, action: str):
-        """
-        Process agent actions in the spatial gym environment.
-        
-        Args:
-            action (str): Either an exploration command or evaluation answer
-        
-        Returns:
-            tuple: (observation, reward, done, info)
-                - observation: Current environment state description
-                - reward: Numerical reward signal
-                - done: Whether episode is complete
-                - info: Additional information dictionary
-        """
-        
-        # Exploration stage
-        if self.is_exp_stage:
-            self.max_exp_steps -= 1
-            
-            # Parse action using exploration manager
-            action_sequence = ActionSequence.parse(action)
-            if not action_sequence:
-                self.render_cache = "Invalid action"
-                return "Invalid action", -0.1, False, {}
-            
-            # Check if exploration phase should end
-            if (action_sequence.final_action.is_term() or self.max_exp_steps < 0):
-                self.is_exp_stage = False
-                self.room_s_end = self.exploration_manager.finish_exploration()
-                
-                # Transition to first evaluation task
-                question = self.evaluation_manager.get_current_question(self.room_s_0.copy())
-                self.render_cache = question or "Task finished"
-                return question or "Task finished", 0, not bool(question), {}
-            else:
-                # Continue exploration
-                self.n_valid_queries += 1
-                result, exp_info = self.exploration_manager.execute_action_sequence(action_sequence)
-                if exp_info['novel_query']:
-                    self.n_novel_queries += 1
-                
-                self.render_cache = result
-                return result, 0, False, {}
-        
-        # Evaluation stage
+        """Process agent actions in the spatial gym environment."""
+        if self.is_exploration_phase:
+            return self._step_exploration(action)
         else:
-            # Evaluate current task answer using evaluation manager
-            correct, reward, info = self.evaluation_manager.evaluate_answer(action)
-            
-            if self.evaluation_manager.next_task():
-                # Get next question
-                next_question = self.evaluation_manager.get_current_question(self.room_s_0.copy())
-                self.render_cache = next_question or "Task finished"
-                return next_question or "Task finished", reward, not bool(next_question), {}
-            else:
-                # All tasks completed
-                self.render_cache = "Task finished"
-                return "Task finished", reward, True, {}
-        
+            return self._step_evaluation(action)
 
     def render(self):
         return self.render_cache
 
-
-
-
-    #=============== for analysis ===============
+    # =============== Analysis Methods ===============
     def get_env_info(self):
+        """Get environment state information."""
         return {
             "config": self.config.to_dict(),
-            "room_s_0": self.room_s_0.to_dict(),
-            "room_s_t": self.room_s_t.to_dict(),
-            "room_s_end": self.room_s_end.to_dict() if self.room_s_end else None,
+            "initial_room": self.initial_room.to_dict(),
+            "final_room": self.final_room.to_dict() if self.final_room else None,
         }
 
     def get_exp_efficiency(self):
-        """
-        Get the exploration efficiency
-        - Coverage: percentage of pairs covered (known / all relations)
-        - Novelty: percentage of novel pairs (inferable / all queries)
-        TODO use exploration manager to get efficiency
-        """
-        assert self.config.exp_type in ["active", "passive"]
+        """Get exploration efficiency metrics."""
         if self.config.exp_type == 'passive':
             return {
                 "coverage": 0,
-                "novelty": 0,
-                "n_valid_queries": 0,
-                "n_novel_queries": 0,
+                "redundancy": self.n_redundant_queries / self.n_valid_queries if self.n_valid_queries > 0 else 0,
+                "n_valid_queries": self.n_valid_queries,
+                "n_redundant_queries": self.n_redundant_queries,
             }
-        # if self.exploration_manager:
-        #     unknown_pairs = self.exploration_manager.get_unknown_pairs()
-        #     n_object = len(self.room_s_0.all_objects)
-        #     max_rels = int(n_object * (n_object - 1) / 2)
-        #     coverage = (max_rels - len(unknown_pairs)) / max_rels
-        # else:
-        #     coverage = 0
-            
-        # return {
-        #     "coverage": coverage,
-        #     "novelty": self.n_novel_queries / self.n_valid_queries if self.n_valid_queries > 0 else 0,
-        #     "n_valid_queries": self.n_valid_queries,
-        #     "n_novel_queries": self.n_novel_queries,
-        # }
-        if self.exploration_manager:
-            return self.exploration_manager.get_exploration_efficiency()
-        else:
-            raise ValueError("Exploration manager not initialized")
+        
+        assert self.exploration_manager, "Exploration manager not initialized"
+        return self.exploration_manager.get_exploration_efficiency()
     
     def get_eval_performance(self):
-        """
-        Get the evaluation performance using the EvaluationManager.
-        
-        Returns:
-            Dictionary containing evaluation metrics and detailed results
-        """
-        if self.evaluation_manager is None:
+        """Get evaluation performance metrics."""
+        if not self.evaluation_manager:
             return {
                 "accuracy": 0.0,
                 "accuracy_completed": 0.0,
@@ -282,10 +219,6 @@ class SpatialGym(gym.Env):
             }
         
         return self.evaluation_manager.get_evaluation_summary()
-
-
-    
-
 
 
 if __name__ == "__main__":
@@ -308,7 +241,7 @@ if __name__ == "__main__":
         
         env = SpatialGym(config)
         obs, info = env.reset(seed=42)
-        print(f"room: {env.room_s_0}")
+        print(f"room: {env.initial_room}")
         print(f"Initial observation <<{obs}>>")
         print(f"Contains exploration history: {'Exploration History' in obs}")
         
@@ -342,7 +275,8 @@ if __name__ == "__main__":
         
         env = SpatialGym(config)
         obs, info = env.reset(seed=123)
-        print(f"room: {env.room_s_0}")
+        print(f"room: {env.initial_room}")
+        env.initial_room.plot()
         print(f"Initial observation contains action format: {'Available Actions' in obs}")
         
         # Test exploration phase
@@ -350,16 +284,18 @@ if __name__ == "__main__":
             "Observe()",
             "Rotate(90); Observe()",
             "Rotate(180); Observe()",
-            "Move(keyboard); Rotate(90); Observe()",
+            "Rotate(90), Move(chair); Observe()",
+            # "Move(keyboard), Rotate(90); Observe()",
+            # "Rotate(90); Observe()",
         ]
         
         step_count = 0
         for action in exploration_actions:
-            if env.is_exp_stage:
+            if env.is_exploration_phase:
                 obs, reward, done, info = env.step(action)
                 step_count += 1
                 print(f"Observation <<{obs}>>, Exploration step {step_count}: Action='{action}', Valid response received")
-                if not env.is_exp_stage:
+                if not env.is_exploration_phase:
                     print("Transitioned to evaluation phase")
                     break
             else:
@@ -369,7 +305,7 @@ if __name__ == "__main__":
         print(f"Exploration graph: {env.exploration_manager.exp_graph.to_dict()}")
         
         # Test evaluation phase
-        if not env.is_exp_stage:
+        if not env.is_exploration_phase:
             answer = "right"
             print(f"ground truth answer: {env.evaluation_manager._get_current_eval_task().answer}")
             obs, reward, done, info = env.step(answer)
@@ -378,7 +314,9 @@ if __name__ == "__main__":
         # Check exploration efficiency
         exp_eff = env.get_exp_efficiency()
         print(f"Exploration coverage: {exp_eff['coverage']:.2f}")
-        print(f"Novel queries: {exp_eff['n_novel_queries']}/{exp_eff['n_valid_queries']}")
+        print(f"Redundancy: {exp_eff['redundancy']:.2f}")
+        print(f"Valid queries: {exp_eff['n_valid_queries']}")
+        print(f"Redundant queries: {exp_eff['n_redundant_queries']}")
         print("Active exploration test completed.\n")
 
     def test_different_generation_types():
@@ -404,11 +342,11 @@ if __name__ == "__main__":
                 
                 env = SpatialGym(config)
                 obs, info = env.reset(seed=42)
-                print(f"room: {env.room_s_0}")
+                print(f"room: {env.initial_room}")
                 
                 # Get environment info
                 env_info = env.get_env_info()
-                print(f"  Room generated with {len(env_info['room_s_0']['all_objects'])} objects")
+                print(f"  Room generated with {len(env_info['initial_room']['all_objects'])} objects")
                 print(f"  Generation type: {env_info['config']['generation_type']}")
                 
             except Exception as e:
@@ -441,7 +379,7 @@ if __name__ == "__main__":
                 
                 env = SpatialGym(config)
                 obs, info = env.reset(seed=42)
-                print(f"room: {env.room_s_0}")
+                print(f"room: {env.initial_room}")
                 print(f"observation: {obs}")
                 
                 # Try one evaluation step
@@ -457,18 +395,19 @@ if __name__ == "__main__":
 
     def test_action_parsing():
         """Test action sequence parsing."""
+        # TODO more test cases
         print("Testing Action Parsing...")
         
         from ragen.env.spatial.Base import ActionSequence
         
         test_actions = [
-            "Query(table)",
-            "Move(chair), Rotate(90); Query(table)",
-            "Rotate(90); Query(table)",
-            "Return(); Query(table)",
+            "Observe()",
+            "Move(chair), Rotate(90); Observe()",
+            "Rotate(90); Observe()",
+            "Return(); Observe()",
             "Term()",
             "Invalid action",
-            "Query(table) Move(chair)",  # Multiple actions
+            "Observe() Move(chair)",  # Multiple actions
             ""
         ]
         
@@ -494,22 +433,22 @@ if __name__ == "__main__":
         env = SpatialGym(config)
         obs, info = env.reset(seed=42)
         
-        print(f"Initial state - Is exploration: {env.is_exp_stage}")
+        print(f"Initial state - Is exploration: {env.is_exploration_phase}")
         
         # Force transition to evaluation by terminating
         obs, reward, done, info = env.step("Term()")
-        print(f"After termination - Is exploration: {env.is_exp_stage}")
+        print(f"After termination - Is exploration: {env.is_exploration_phase}")
         
         # Test evaluation phase
-        if not env.is_exp_stage:
+        if not env.is_exploration_phase:
             print(f"ground truth answer: {env.evaluation_manager._get_current_eval_task().answer}")
             obs, reward, done, info = env.step("left")
             print(f"Evaluation step completed - Done: {done}")
         
         # Check final states
         env_info = env.get_env_info()
-        print(f"Room states available - s_0: {bool(env_info['room_s_0'])}, "
-              f"s_t: {bool(env_info['room_s_t'])}, s_end: {bool(env_info['room_s_end'])}")
+        print(f"Room states available - initial_room: {bool(env_info['initial_room'])}, "
+              f"final_room: {bool(env_info['final_room'])}")
         
         print("Environment states test completed.\n")
 
@@ -558,10 +497,10 @@ if __name__ == "__main__":
         # test_passive_exploration()
         # test_active_exploration()
         # test_different_generation_types()
-        test_evaluation_tasks()
+        # test_evaluation_tasks()
         # test_action_parsing()
         # test_environment_states()
-        # test_configuration_validation()
+        test_configuration_validation()
         
         print("="*50)
         print("ALL TESTS COMPLETED SUCCESSFULLY")

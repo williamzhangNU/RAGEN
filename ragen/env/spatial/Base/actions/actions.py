@@ -23,10 +23,8 @@ class MoveAction(BaseAction):
 
     def move_agent_to_pos(self, room, target_pos):
         """Move agent to target position, shift coordinate system to keep agent at origin"""
-        room.agent.pos = target_pos.copy()
         for obj in room.objects:
-            if obj.name != room.agent.name:
-                obj.pos = obj.pos - room.agent.pos
+            obj.pos = obj.pos - target_pos
     
     def format_pattern(self) -> str:
         return r"^Move\(([A-Za-z0-9_-]+)\)$"
@@ -35,7 +33,7 @@ class MoveAction(BaseAction):
         return f"Moved to {self.target}."
     
     def error_message(self, error_type: str) -> str:
-        errors = {"not_found": "object not found", "not_visible": "not visible"}
+        errors = {"not_found": "object not found", "not_visible": "object not visible"}
         return f"Cannot move to '{self.target}': {errors.get(error_type, 'execution failed')}."
     
     def execute(self, room, **kwargs) -> ActionResult:
@@ -71,9 +69,8 @@ class RotateAction(BaseAction):
         """Rotate agent by specified degrees, shift coordinate system to keep agent at origin"""
         rotation_matrix = self._get_rotation_matrix(degrees)
         for obj in room.objects:
-            if obj.name != room.agent.name:
-                obj.pos = obj.pos @ rotation_matrix
-                obj.ori = obj.ori @ rotation_matrix
+            obj.pos = obj.pos @ rotation_matrix
+            obj.ori = obj.ori @ rotation_matrix
     
     def format_pattern(self) -> str:
         return r"^Rotate\(([0-9-]+)\)$"
@@ -262,7 +259,7 @@ class QueryAction(BaseAction):
 
 
 # Action registry for easy lookup
-ACTION_CLASSES = [MoveAction, RotateAction, ReturnAction, ObserveAction, TermAction, QueryAction]
+ACTION_CLASSES = [MoveAction, RotateAction, ReturnAction, ObserveAction, TermAction]
 
 
 class ActionSequence:
@@ -347,3 +344,75 @@ class ActionSequence:
         )
         
         return instructions 
+
+
+if __name__ == "__main__":
+    # Test action parsing and execution
+    from ragen.env.spatial.Base import Room, Object, Agent
+    import numpy as np
+    
+    # Create test room
+    agent = Agent()
+    table = Object("table", np.array([1, 2]), np.array([0, 1]))
+    chair = Object("chair", np.array([-2, 1]), np.array([0, 1]))
+    agent_anchor = Object("agent_anchor", np.array([0, 0]), np.array([0, 1]))
+    room = Room([table, chair, agent_anchor], "test_room", agent)
+
+    print(f"Room: {room}")
+    
+    print("=== Testing Action Parsing ===")
+    
+    # Test MoveAction
+    move_action = MoveAction.parse("Move(table)")
+    print(f"MoveAction parse: {move_action}")
+    result = move_action.execute(room)
+    print(f"MoveAction result: {result.success}, {result.message}")
+    print(f"Room: {room}")
+    
+    # Test RotateAction
+    rotate_action = RotateAction.parse("Rotate(90)")
+    print(f"RotateAction parse: {rotate_action}")
+    result = rotate_action.execute(room)
+    print(f"RotateAction result: {result.success}, {result.message}")
+    print(f"Room: {room}")
+    
+    # Test ObserveAction
+    observe_action = ObserveAction.parse("Observe()")
+    print(f"ObserveAction parse: {observe_action}")
+    result = observe_action.execute(room)
+    print(f"ObserveAction result: {result.success}, {result.message}")
+    
+    # Test ReturnAction
+    agent_anchor = room.objects[-1]
+    print(f"Agent anchor: {agent_anchor}")
+    return_action = ReturnAction.parse("Return()")
+    print(f"ReturnAction parse: {return_action}")
+    result = return_action.execute(room, agent_anchor=agent_anchor)
+    print(f"ReturnAction result: {result.success}, {result.message}")
+    print(f"Room: {room}")
+    
+    # Test TermAction
+    term_action = TermAction.parse("Term()")
+    print(f"TermAction parse: {term_action}")
+    result = term_action.execute(room)
+    print(f"TermAction result: {result.success}, {result.message}")
+    
+    print("\n=== Testing ActionSequence ===")
+    
+    # Test simple sequence
+    sequence_str = "Move(table); Observe()"
+    sequence = ActionSequence.parse(sequence_str)
+    print(f"Parsed sequence: {sequence}")
+    
+    # Test complex sequence
+    complex_str = "Move(table), Rotate(90), Return(); Observe()"
+    complex_sequence = ActionSequence.parse(complex_str)
+    print(f"Complex sequence: {complex_sequence}")
+    
+    # Test termination sequence
+    term_str = "Term()"
+    term_sequence = ActionSequence.parse(term_str)
+    print(f"Term sequence: {term_sequence}")
+    
+    print("\n=== Testing Usage Instructions ===")
+    print(ActionSequence.get_usage_instructions())

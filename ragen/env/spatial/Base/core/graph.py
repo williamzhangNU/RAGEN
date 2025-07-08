@@ -38,7 +38,7 @@ class DirectionalGraph:
     """
     
     UNKNOWN_VALUE: float = np.nan
-    VALID_ROTATION_DEGREES: Tuple[int, ...] = (90, 180, 270)
+    VALID_ROTATION_DEGREES: Tuple[int, ...] = (0, 90, 180, 270)
 
     def __init__(self, objects: List[Object], is_explore: bool = False, keep_original: bool = False) -> None:
         """
@@ -212,7 +212,7 @@ class DirectionalGraph:
         h_rel, v_rel = dir_pair.horiz, dir_pair.vert
         v_value = self._dir_to_val(v_rel, 'vertical')
         h_value = self._dir_to_val(h_rel, 'horizontal')
-        if any(np.isnan([v_value, h_value])):
+        if self._if_unknown(v_value) or self._if_unknown(h_value):
             raise ValueError("Direction must be known")
         
         # determine the newly added edge is a novel query or not
@@ -237,6 +237,42 @@ class DirectionalGraph:
             self._asked_matrix[obj2_id, obj1_id] = 1
 
         return novel_query
+
+    def add_partial_edge(self, obj1_id: int, obj2_id: int, dir_pair: DirPair) -> None:
+        """
+        Add a partial directional edge with at least one unknown direction.
+        NOTE: the relationship is inferred
+        
+        Args:
+            obj1_id: ID of the first object
+            obj2_id: ID of the second object  
+            dir_pair: Direction pair with at least one unknown direction
+        """
+        assert self.is_explore, "Cannot add edges when is_explore is False"
+        
+        h_rel, v_rel = dir_pair.horiz, dir_pair.vert
+        v_value = self._dir_to_val(v_rel, 'vertical')
+        h_value = self._dir_to_val(h_rel, 'horizontal')
+        
+        # Validate that at least one direction is unknown
+        if not (self._if_unknown(v_value) or self._if_unknown(h_value)):
+            raise ValueError("At least one direction must be unknown")
+        
+        # Update vertical relationships only if known
+        if not self._if_unknown(v_value):
+            if v_value <= 0:
+                self._update_connected_components(obj2_id, obj1_id, self._v_matrix_working)
+            if v_value >= 0:
+                self._update_connected_components(obj1_id, obj2_id, self._v_matrix_working)
+        
+        # Update horizontal relationships only if known
+        if not self._if_unknown(h_value):
+            if h_value <= 0:
+                self._update_connected_components(obj2_id, obj1_id, self._h_matrix_working)
+            if h_value >= 0:
+                self._update_connected_components(obj1_id, obj2_id, self._h_matrix_working)
+        
+        self._update_matrices_from_working()
 
     def add_node(self, obj_anchor_id: int, dir_pair: DirPair) -> None:
         """
@@ -349,6 +385,7 @@ class DirectionalGraph:
         h_working = copy.deepcopy(self._h_matrix_working)
 
         rotation_maps = {
+            0: (v_working, h_working),
             90: (h_working, v_working.T),
             180: (v_working.T, h_working.T),
             270: (h_working.T, v_working)

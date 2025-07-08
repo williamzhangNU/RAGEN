@@ -66,3 +66,11 @@ The environment includes various spatial reasoning tasks:
 ## Configuration
 
 Environment behavior is controlled through `config.py`. See the Base module documentation for detailed technical information and extension guidelines.
+
+
+
+## TODO
+1. Testing efficiency of exploration
+
+## NOTE
+1. After exploration, the agent will return the its original position and orientation.

@@ -6,7 +6,6 @@ from .tasks import (
     AllPairsEvaluationTask,
     ReverseDirEvaluationTask,
     PovEvaluationTask,
-    A2EEvaluationTask,
     E2AEvaluationTask,
 )
 
@@ -20,7 +19,6 @@ def get_eval_task(eval_task: str, np_random: np.random.Generator, eval_kwargs: d
         "all_pairs": AllPairsEvaluationTask,
         "rev": ReverseDirEvaluationTask,
         "pov": PovEvaluationTask,
-        "a2e": A2EEvaluationTask,
         "e2a": E2AEvaluationTask,
     }
     
