@@ -38,6 +38,7 @@ class EvaluationData:
             'PovEvaluationTask',
             'ReverseDirEvaluationTask',
             'E2AEvaluationTask',
+            'ObjectPresenceEvaluationTask',
         ]
         assert self.task_type in valid_task_types, f"Invalid task type: {self.task_type}"
     
@@ -66,6 +67,41 @@ class EvaluationData:
         
         elif self.task_type == 'E2AEvaluationTask':
             return e2a_eval_fn(pred, self.answer)
+        
+        elif self.task_type == 'ObjectPresenceEvaluationTask':
+            # Parse predicted objects from text
+            pred_objects = []
+            if isinstance(pred, str):
+                # Simple parsing - extract words that could be object names
+                import re
+                # Remove common words and extract potential object names
+                words = re.findall(r'\b[a-zA-Z]+\b', pred.lower())
+                pred_objects = [word for word in words if len(word) > 2]
+            elif isinstance(pred, list):
+                pred_objects = [str(obj).lower().strip() for obj in pred]
+            
+            # Ground truth objects (already lowercase)
+            gt_objects = set(obj.lower() for obj in self.answer)
+            pred_objects_set = set(pred_objects)
+            
+            # Calculate metrics
+            correct_count = len(gt_objects.intersection(pred_objects_set))
+            total_gt = len(gt_objects)
+            precision = correct_count / len(pred_objects_set) if pred_objects_set else 0.0
+            recall = correct_count / total_gt if total_gt > 0 else 0.0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+            
+            info = {
+                "precision": precision,
+                "recall": recall, 
+                "f1": f1,
+                "correct_count": correct_count,
+                "total_gt": total_gt,
+                "predicted_objects": list(pred_objects_set),
+                "ground_truth_objects": list(gt_objects)
+            }
+            
+            return correct_count == total_gt, info
         
         return False, {"error": "Unknown task type"}
     
@@ -153,10 +189,36 @@ class BaseEvaluationTask(ABC):
             'PovEvaluationTask': PovEvaluationTask,
             'ReverseDirEvaluationTask': ReverseDirEvaluationTask,
             'E2AEvaluationTask': E2AEvaluationTask,
+            'ObjectPresenceEvaluationTask': ObjectPresenceEvaluationTask,
         }
         
         task_type = data.get('type', cls.__name__)
         return task_types.get(task_type, cls).from_dict(data)
+
+
+class ObjectPresenceEvaluationTask(BaseEvaluationTask):
+    """
+    Evaluation task for identifying what objects are present in the room.
+    
+    Q: What objects are in the room?
+    A: List of object names (excluding agent)
+    """
+
+    QUESTION_TEMPLATE = (
+        "What objects are present in the room? "
+        "List all the objects you can see, separated by commas."
+    )
+    
+    def generate_question(self, room: Room) -> str:
+        """Generate a question asking about object presence in the room"""
+        
+        # Get all object names excluding the agent
+        object_names = [obj.name for obj in room.objects]
+        
+        self.eval_data.question = self.QUESTION_TEMPLATE
+        self.eval_data.answer = object_names
+        self.eval_data.reasoning = f"The room contains {len(object_names)} objects: {', '.join(object_names)}"
+        return self.eval_data.question
 
 
 class AllPairsEvaluationTask(BaseEvaluationTask):
@@ -405,7 +467,7 @@ class RotEvaluationTask(BaseEvaluationTask):
     """
 
     QUESTION_TEMPLATE = (
-        "If you turn {turn_direction}, what objects do you see in your direct front in order?\n"
+        "As you turn {turn_direction} 360 degrees, what objects do you see directly in front of you during the rotation, in order?\n"
         "List the objects as: object1, object2, object3"
     )
     
@@ -587,6 +649,25 @@ if __name__ == "__main__":
     # pov_question = pov_task.generate_question(room)
     # print(pov_question)
     # print(f"Expected answer: {pov_task.answer}")
+
+    # Test object presence evaluation task
+    print("\n" + "="*50)
+    print("Testing ObjectPresenceEvaluationTask:")
+    print("="*50)
+    obj_presence_task = ObjectPresenceEvaluationTask(np_random=np_random)
+    obj_presence_question = obj_presence_task.generate_question(room)
+    print(obj_presence_question)
+    print(f"Expected answer: {obj_presence_task.answer}")
+    
+    # Test with a correct answer
+    pred_answer = ", ".join(obj_presence_task.answer)
+    correct, info = obj_presence_task.evaluate(pred_answer)
+    print(f"Test with correct answer: {correct}, Info: {info}")
+    
+    # Test with a partial answer
+    partial_answer = ", ".join(obj_presence_task.answer[:2])  # Only first 2 objects
+    correct, info = obj_presence_task.evaluate(partial_answer)
+    print(f"Test with partial answer: {correct}, Info: {info}")
 
     # Test e2a evaluation task
     print("\n" + "="*50)

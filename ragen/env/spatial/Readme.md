@@ -70,7 +70,10 @@ Environment behavior is controlled through `config.py`. See the Base module docu
 
 
 ## TODO
-1. Testing efficiency of exploration
+- [x] Testing efficiency of exploration (90 and 180)
+- [x] Change move: agent can only move to objects it observed
+- [x] Add an object as original position?
+- [x] Add reason for invalid action / input
 
 ## NOTE
 1. After exploration, the agent will return the its original position and orientation.

@@ -77,14 +77,14 @@ class ApiCallingWrapperWg:
     def __init__(self, config, tokenizer):
         self.config = config
         self.tokenizer = tokenizer
-        model_info = config.model_info[config.model_config.model_name]
+        model_info = config.model_info[config.api_model_info.model_name]
         self.llm_kwargs = model_info.generation_kwargs
         
         
         self.llm = ConcurrentLLM(
 			provider=model_info.provider_name,
             model_name=model_info.model_name,
-            max_concurrency=config.model_config.max_concurrency
+            max_concurrency=config.api_model_info.max_concurrency
         )
         
         print(f'API-based LLM ({model_info.provider_name} - {model_info.model_name}) initialized')
@@ -104,7 +104,6 @@ class ApiCallingWrapperWg:
         assert not failed_messages, f"Failed to generate responses for the following messages: {failed_messages}"
 
         texts = [result["response"] for result in results]
-        print(f'[DEBUG] texts: {texts}')
         lm_outputs = DataProto()
         lm_outputs.non_tensor_batch = {
 			'response_texts': texts,
@@ -177,7 +176,7 @@ def convert_omegaconf_to_python(obj):
 def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	saved_data = {
 		'meta_info': {
-			'model_name': config.actor_rollout_ref.model.path if config.eval_model_type == "vllm" else config.model_config.model_name,
+			'model_name': config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name,
 			'n_envs': len(envs),
 		},
 		'overall_performance': {

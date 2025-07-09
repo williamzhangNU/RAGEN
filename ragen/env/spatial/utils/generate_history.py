@@ -21,10 +21,6 @@ from ragen.env.spatial.Base import (
     Agent,
 )
 
-"""
-TODO re-implement this
-"""
-
 class AutoExplore:
     """
     Automatically explore the environment
@@ -168,8 +164,6 @@ class AutoExplore:
     
     def gen_exp_history(self) -> str:
         observe_result, actions = self._generate_history_passive()
-        print(f"observe_result: {observe_result}")
-        print(f"actions: {actions}")
         return self._format_history_to_string(observe_result, actions)
 
 if __name__ == "__main__":

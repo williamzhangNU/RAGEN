@@ -102,8 +102,6 @@ class ContextManager:
         prefixes = {}
         env_config_lookup = {}
         env_config = {}
-        print(f"[DEBUG] self.config.custom_envs: {self.config.custom_envs}")
-        print(f"[DEBUG] self.config.env_configs: {self.es_cfg.env_configs}")
         for env_tag, env_config in self.config.custom_envs.items():
             if env_tag not in self.es_cfg.env_configs.tags:
                 continue
@@ -243,7 +241,9 @@ class ContextManager:
                 if "state" in content:
                     FORMAT_PROMPT = "<think> [Your thoughts] </think> <answer> [your answer] </answer>" if self.config.agent_proxy.enable_think else "<answer> [your answer] </answer>"
                     LENGTH_PROMPT = f"Max response length: {self.env_config_lookup[env_output['env_id']]['max_tokens']} words (tokens)."
-                    messages[-1]["content"] += f"State:\n{content['state']}\nYou have {content['actions_left']} actions left. Always output: {FORMAT_PROMPT} with no extra text. Strictly follow this format. {LENGTH_PROMPT}\n"
+                    # messages[-1]["content"] += f"State:\n{content['state']}\nYou have {content['actions_left']} actions left. Always output: {FORMAT_PROMPT} with no extra text. Strictly follow this format. {LENGTH_PROMPT}\n"
+                    # NOTE Spatial Env
+                    messages[-1]["content"] += f"State:\n{content['state']}\nAlways output: {FORMAT_PROMPT} with no extra text. Strictly follow this format. {LENGTH_PROMPT}\n"
                 if "llm_response" in content:
                     messages.append({"role": "assistant", "content": content["llm_response"]})
                 if "reward" in content and not (prepare_for_update and idx == len(env_output["history"]) - 1):

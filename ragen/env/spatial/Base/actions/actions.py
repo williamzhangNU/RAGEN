@@ -10,27 +10,55 @@ Contains all concrete action classes and the ActionSequence parser.
 """
 
 
+ACTION_INSTRUCTION = """\
+You can move in the room and turn around to observe the room.
+
+Available Actions:
+{actions}
+
+Answer with following format:
+Movement: [<movement_action1>, <movement_action2>, ...]
+Final: <final_action>
+
+Format Notes:
+- Use movement actions in Movement, and final action in Final.
+- If no movement is needed, use [] in Movement.
+- Actions in Movement will be executed in order.
+- Exactly 2 lines in movement and final order, separated these two lines by a newline.
+
+Examples:
+{examples}
+
+Rules:
+- Term() must be alone (no movement actions)
+- Field of view: 180 degrees (90° left, 90° right)
+"""
+
+
 class MoveAction(BaseAction):
     """Move to a target object"""
     
     format_desc = "Move(object_name)"
-    description = "Move to a specific object in the room"
+    description = (
+        "Move to the same position as the object. "
+        "You can ONLY move to object within your field of view. "
+        "You can ONLY move to objects by name, not directions or others. "
+        "Invalid examples: Move(left), Move(forward), Move(back)"
+    )
     example = "Move(table)"
+    format_pattern = r"^Move\(([A-Za-z0-9_-]+)\)$"
     
-    def __init__(self, target=None):
+    def __init__(self, target: str):
         super().__init__(target)
         self.target = target
 
-    def move_agent_to_pos(self, room, target_pos):
+    def _move_agent_to_pos(self, room, target_pos):
         """Move agent to target position, shift coordinate system to keep agent at origin"""
         for obj in room.objects:
             obj.pos = obj.pos - target_pos
     
-    def format_pattern(self) -> str:
-        return r"^Move\(([A-Za-z0-9_-]+)\)$"
-    
     def success_message(self, **kwargs) -> str:
-        return f"Moved to {self.target}."
+        return f"You moved to the same position as {self.target}."
     
     def error_message(self, error_type: str) -> str:
         errors = {"not_found": "object not found", "not_visible": "object not visible"}
@@ -45,7 +73,7 @@ class MoveAction(BaseAction):
         if not self._is_visible(room.agent, target_obj):
             return ActionResult(False, self.get_feedback(False, "not_visible"))
         
-        self.move_agent_to_pos(room, target_obj.pos)
+        self._move_agent_to_pos(room, target_obj.pos)
 
         return ActionResult(True, self.get_feedback(True), {'target_name': self.target})
     
@@ -57,26 +85,24 @@ class RotateAction(BaseAction):
     """Rotate by specified degrees"""
     
     format_desc = "Rotate(degrees)"
-    description = "Rotate by specified degrees (0, 90, 180, 270)"
+    description = "Rotate by specified degrees, only valid degrees are 0, 90, 180, 270."
     example = "Rotate(90)"
+    format_pattern = r"^Rotate\(([0-9-]+)\)$"
     VALID_DEGREES = [0, 90, 180, 270]
     
-    def __init__(self, degrees=None):
+    def __init__(self, degrees: int):
         super().__init__(degrees)
-        self.degrees = int(degrees) if degrees else None
+        self.degrees = int(degrees)
 
-    def rotate_agent(self, room, degrees: int):
+    def _rotate_agent(self, room, degrees: int):
         """Rotate agent by specified degrees, shift coordinate system to keep agent at origin"""
         rotation_matrix = self._get_rotation_matrix(degrees)
         for obj in room.objects:
             obj.pos = obj.pos @ rotation_matrix
             obj.ori = obj.ori @ rotation_matrix
     
-    def format_pattern(self) -> str:
-        return r"^Rotate\(([0-9-]+)\)$"
-    
     def success_message(self, **kwargs) -> str:
-        return f"Rotated by {self.degrees}°."
+        return f"You rotated by {self.degrees}°."
     
     def error_message(self, error_type: str) -> str:
         if error_type == "invalid_degree":
@@ -85,10 +111,10 @@ class RotateAction(BaseAction):
     
     def execute(self, room, **kwargs) -> ActionResult:
         """Execute rotate action on room state."""
-        if self.degrees not in self.VALID_DEGREES:
+        if self.degrees is None or self.degrees not in self.VALID_DEGREES:
             return ActionResult(False, self.get_feedback(False, "invalid_degree"))
         
-        self.rotate_agent(room, self.degrees)
+        self._rotate_agent(room, self.degrees)
             
         return ActionResult(True, self.get_feedback(True), {'degrees': self.degrees})
     
@@ -102,30 +128,23 @@ class ReturnAction(BaseAction):
     format_desc = "Return()"
     description = "Return to the starting anchor position"
     example = "Return()"
-    
-    def format_pattern(self) -> str:
-        return r"^Return\(\)$"
+    format_pattern = r"^Return\(\)$"
     
     def success_message(self, **kwargs) -> str:
-        return "Returned to anchor."
+        return "You returned to anchor."
     
     def error_message(self, error_type: str) -> str:
         return "Cannot return to anchor: execution failed."
     
     def execute(self, room, **kwargs) -> ActionResult:
         """Execute return action on room state."""
-        agent_anchor = kwargs.get('agent_anchor')
-        if not agent_anchor:
-            return ActionResult(False, self.error_message())
+        agent_anchor = kwargs['agent_anchor']
         
         ori_to_deg = {(0, 1): 0, (0, -1): 180, (1, 0): 90, (-1, 0): 270}
         target_deg = ori_to_deg[tuple(agent_anchor.ori)]
         
-        move_action = MoveAction()
-        move_action.move_agent_to_pos(room, agent_anchor.pos)
-        
-        rotate_action = RotateAction()
-        rotate_action.rotate_agent(room, target_deg)
+        MoveAction(agent_anchor.name).execute(room)
+        RotateAction(target_deg).execute(room)
         
         return ActionResult(True, self.get_feedback(True), {'target_name': agent_anchor.name, 'degrees': target_deg})
     
@@ -137,17 +156,18 @@ class ObserveAction(BaseAction):
     """Observe spatial relationships of all objects in view"""
     
     format_desc = "Observe()"
-    description = "Observe spatial relationships of all objects in the field of view relative to your current position"
+    description = (
+        "Observe spatial relationships of all objects in the field of view relative to your current position. "
+        "You can only observe objects that are within your field of view."
+    )
     example = "Observe()"
+    format_pattern = r"^Observe\(\)$"
     
     def __init__(self):
         super().__init__()
     
-    def format_pattern(self) -> str:
-        return r"^Observe\(\)$"
-    
     def success_message(self, **kwargs) -> str:
-        return f"Observed: {kwargs.get('answer', 'N/A')}"
+        return f"You observe in your field of view: {kwargs.get('answer', 'nothing')}."
     
     def error_message(self, error_type: str) -> str:
         return "Cannot observe: execution failed."
@@ -166,9 +186,8 @@ class ObserveAction(BaseAction):
         relationships = []
         for obj in visible_objects:
             _, dir_str = room.get_direction(obj.name, room.agent.name, perspective='ego')
-            relationships.append(f"{obj.name} is {dir_str}")
-
-        answer = ", ".join(relationships) + "."
+            relationships.append(f"{obj.name} is {dir_str} of you")
+        answer = ", ".join(relationships)
         
         return ActionResult(True, self.get_feedback(True, answer=answer), {
             'answer': answer,
@@ -176,7 +195,8 @@ class ObserveAction(BaseAction):
             'relationships': relationships
         })
     
-    def is_final(self) -> bool:
+    @staticmethod
+    def is_final() -> bool:
         return True
     
     def __repr__(self):
@@ -189,9 +209,7 @@ class TermAction(BaseAction):
     format_desc = "Term()"
     description = "Terminate the exploration phase"
     example = "Term()"
-    
-    def format_pattern(self) -> str:
-        return r"^Term\(\)$"
+    format_pattern = r"^Term\(\)$"
     
     def success_message(self, **kwargs) -> str:
         return "Exploration terminated."
@@ -203,10 +221,12 @@ class TermAction(BaseAction):
         """Execute term action on room state."""
         return ActionResult(True, self.get_feedback(True), {'terminated': True})
     
-    def is_final(self) -> bool:
+    @staticmethod
+    def is_final() -> bool:
         return True
     
-    def is_term(self) -> bool:
+    @staticmethod
+    def is_term() -> bool:
         return True
     
     def __repr__(self):
@@ -219,13 +239,11 @@ class QueryAction(BaseAction):
     format_desc = "Query(object_name)"
     description = "Query spatial relationship of a specific object relative to your current position"
     example = "Query(table)"
+    format_pattern = r"^Query\(([A-Za-z0-9_-]+)\)$"
     
     def __init__(self, target=None):
         super().__init__(target)
         self.target = target
-    
-    def format_pattern(self) -> str:
-        return r"^Query\(([A-Za-z0-9_-]+)\)$"
     
     def success_message(self, **kwargs) -> str:
         return f"Queried: {kwargs.get('answer', 'N/A')}"
@@ -276,20 +294,30 @@ class ActionSequence:
     @classmethod
     def parse(cls, action_str: str) -> Optional['ActionSequence']:
         """Parse action string into ActionSequence"""
-        parts = action_str.split(';')
-        if len(parts) > 2:
+        lines = [line.strip() for line in action_str.strip().split('\n') if line.strip()]
+        
+        # Must have exactly 2 lines: Movement then Final
+        if len(lines) != 2 or not lines[0].startswith('Movement:') or not lines[1].startswith('Final:'):
             return None
-            
         motion_actions = []
         
-        if len(parts) == 2:
-            for item in [i.strip() for i in parts[0].split(',') if i.strip()]:
+        # Parse Movement line
+        bracket_content = lines[0][len('Movement:'):].strip()
+        if not (bracket_content.startswith('[') and bracket_content.endswith(']')):
+            return None
+            
+        actions_str = bracket_content[1:-1].strip()
+        if actions_str:
+            for item in [i.strip() for i in actions_str.split(',') if i.strip()]:
                 action = cls._parse_single_action(item)
                 if not action or action.is_final():
                     return None
                 motion_actions.append(action)
         
-        final_action = cls._parse_single_action(parts[-1].strip())
+        # Parse Final line
+        final_action_str = lines[1][len('Final:'):].strip()
+        final_action = cls._parse_single_action(final_action_str)
+        
         if not final_action or not final_action.is_final():
             return None
             
@@ -309,41 +337,27 @@ class ActionSequence:
     @staticmethod
     def get_usage_instructions() -> str:
         """Get usage instructions for action sequences"""
-        motion_actions = [cls for cls in ACTION_CLASSES if not cls().is_final()]
-        final_actions = [cls for cls in ACTION_CLASSES if cls().is_final()]
+        motion_actions = [cls for cls in ACTION_CLASSES if not cls.is_final()]
+        final_actions = [cls for cls in ACTION_CLASSES if cls.is_final()]
         
-        instructions = (
-            "## Action Format\n"
-            "Use semicolon to separate movement actions from final query/term action.\n"
-            "Multiple movements can be chained with commas.\n\n"
-            "## Available Actions\n"
+        action_desc = (
+            "Movement Actions:\n" +
+            "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in motion_actions) +
+            "\n\n" +
+            "Final Actions:\n" +
+            "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in final_actions)
+        )
+        examples = (
+            f"Valid Example:\nMovement: [Move(table), Rotate(90)]\nFinal: Observe()\n\n" +
+            f"Valid Example (no movement):\nMovement: []\nFinal: Observe()\n\n" +
+            f"Invalid Example (wrong order):\nFinal: Observe()\nMovement: []\n\n" +
+            f"Invalid Example (missing separator):\nMovement: [Move(table)] Final: Observe()"
         )
         
-        if motion_actions:
-            instructions += "### Movement Actions\n"
-            instructions += "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in motion_actions)
-            instructions += "\n\n"
-        
-        if final_actions:
-            instructions += "### Final Actions\n"
-            instructions += "\n".join(f"- {cls.format_desc}: {cls.description}" for cls in final_actions)
-            instructions += "\n\n"
-        
-        instructions += (
-            "## Examples\n"
-            f"Simple observation: {ObserveAction.example}\n"
-            f"Move then observe: {MoveAction.example}; {ObserveAction.example}\n"
-            f"Multiple moves: {MoveAction.example}, {RotateAction.example}; {ObserveAction.example}\n"
-            f"Return to start: {ReturnAction.example}; {ObserveAction.example}\n"
-            f"Terminate: {TermAction.example}\n\n"
-            "## Rules\n"
-            "- Last action must be Observe() or Term()\n"
-            "- Term() cannot have movement actions before it\n"
-            "- You have a field of view of 90 degrees, 45 to the left and 45 to the right\n"
-            "- You can only move to objects that are within your field of view\n"
+        return ACTION_INSTRUCTION.format(
+            actions=action_desc,
+            examples=examples
         )
-        
-        return instructions 
 
 
 if __name__ == "__main__":
@@ -362,57 +376,40 @@ if __name__ == "__main__":
     
     print("=== Testing Action Parsing ===")
     
-    # Test MoveAction
-    move_action = MoveAction.parse("Move(table)")
-    print(f"MoveAction parse: {move_action}")
-    result = move_action.execute(room)
-    print(f"MoveAction result: {result.success}, {result.message}")
-    print(f"Room: {room}")
+    # # Test Case 1: Simple final action only
+    # test1 = "Movement: []\nFinal: Observe()"
+    # result1 = ActionSequence.parse(test1)
+    # print(f"Test 1 - Simple final: {'✓ PASS' if result1 else '✗ FAIL'}")
+    # print(f"  Input: {test1.replace(chr(10), ' | ')}")
+    # print(f"  Result: {result1}")
     
-    # Test RotateAction
-    rotate_action = RotateAction.parse("Rotate(90)")
-    print(f"RotateAction parse: {rotate_action}")
-    result = rotate_action.execute(room)
-    print(f"RotateAction result: {result.success}, {result.message}")
-    print(f"Room: {room}")
+    # # Test Case 2: Movement with final action
+    # test2 = "Movement: [Move(table), Rotate(90)]\nFinal: Observe()"
+    # result2 = ActionSequence.parse(test2)
+    # print(f"\nTest 2 - Movement + Final: {'✓ PASS' if result2 else '✗ FAIL'}")
+    # print(f"  Input: {test2.replace(chr(10), ' | ')}")
+    # print(f"  Result: {result2}")
     
-    # Test ObserveAction
-    observe_action = ObserveAction.parse("Observe()")
-    print(f"ObserveAction parse: {observe_action}")
-    result = observe_action.execute(room)
-    print(f"ObserveAction result: {result.success}, {result.message}")
+    # # Test Case 3: Term action (should be alone)
+    # test3 = "Movement: []\nFinal: Term()"
+    # result3 = ActionSequence.parse(test3)
+    # print(f"\nTest 3 - Term action: {'✓ PASS' if result3 else '✗ FAIL'}")
+    # print(f"  Input: {test3.replace(chr(10), ' | ')}")
+    # print(f"  Result: {result3}")
     
-    # Test ReturnAction
-    agent_anchor = room.objects[-1]
-    print(f"Agent anchor: {agent_anchor}")
-    return_action = ReturnAction.parse("Return()")
-    print(f"ReturnAction parse: {return_action}")
-    result = return_action.execute(room, agent_anchor=agent_anchor)
-    print(f"ReturnAction result: {result.success}, {result.message}")
-    print(f"Room: {room}")
+    # # Test Case 4: Wrong order (should fail)
+    # test4 = "Final: Observe()\nMovement: []"
+    # result4 = ActionSequence.parse(test4)
+    # print(f"\nTest 4 - Wrong order: {'✓ PASS' if not result4 else '✗ FAIL'}")
+    # print(f"  Input: {test4.replace(chr(10), ' | ')}")
+    # print(f"  Expected: None (should fail)")
+    # print(f"  Result: {result4}")
     
-    # Test TermAction
-    term_action = TermAction.parse("Term()")
-    print(f"TermAction parse: {term_action}")
-    result = term_action.execute(room)
-    print(f"TermAction result: {result.success}, {result.message}")
-    
-    print("\n=== Testing ActionSequence ===")
-    
-    # Test simple sequence
-    sequence_str = "Move(table); Observe()"
-    sequence = ActionSequence.parse(sequence_str)
-    print(f"Parsed sequence: {sequence}")
-    
-    # Test complex sequence
-    complex_str = "Move(table), Rotate(90), Return(); Observe()"
-    complex_sequence = ActionSequence.parse(complex_str)
-    print(f"Complex sequence: {complex_sequence}")
-    
-    # Test termination sequence
-    term_str = "Term()"
-    term_sequence = ActionSequence.parse(term_str)
-    print(f"Term sequence: {term_sequence}")
-    
-    print("\n=== Testing Usage Instructions ===")
-    print(ActionSequence.get_usage_instructions())
+
+    # Test Case 4: Wrong order (should fail)
+    test5 = "Movement: [Observe()] \nFinal: Term()"
+    result5 = ActionSequence.parse(test5)
+    print(f"\nTest 5 - Wrong order: {'✓ PASS' if not result5 else '✗ FAIL'}")
+    print(f"  Input: {test5.replace(chr(10), ' | ')}")
+    print(f"  Expected: None (should fail)")
+    print(f"  Result: {result5}")

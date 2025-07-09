@@ -11,25 +11,9 @@ from ragen.env.spatial.Base import (
     generate_room
 )
 from ragen.env.spatial.utils.generate_history import AutoExplore
+from ragen.env.spatial.prompts import ACTIVE_INSTRUCTION, PASSIVE_INSTRUCTION
 
-instruction = (
-    "# Spatial Mapping Task\n"
-    "\n"
-    "Explore the room to map spatial relationships between objects.\n"
-    "\n"
-    "When you query an object, you get its position relative to you:\n"
-    "- Horizontal: left, right, same\n"
-    "- Vertical: front, back, same\n"
-    "\n"
-    "Terminate when you can map all object pairs.\n"
-    "\n"
-    "## Room Layout\n"
-    "{room_info}\n"
-    "\n"
-    "{exp_history}\n"
-    "\n"
-    "{exp_answer_format}\n"
-)
+
 
 
 class SpatialGym(gym.Env):
@@ -58,61 +42,45 @@ class SpatialGym(gym.Env):
         self.n_valid_queries = None
         self.n_redundant_queries = None
 
-    def _get_action_instructions(self) -> str:
-        """Generate action format instructions for active exploration."""
-        move_actions = ["Move", "Rotate", "Return"] if self.config.exp_type == 'active' else []
-        query_actions = ["Query"] if self.config.exp_type != 'passive' else []
-        term_actions = ["Term"] if self.config.exp_type != 'passive' else []
-        
-        return (
-            "## Available Actions\n"
-            f"Movement: {', '.join(move_actions)}\n"
-            f"Query: {', '.join(query_actions)}\n"
-            f"Term: {', '.join(term_actions)}\n"
-            "\n" +
-            ActionSequence.get_usage_instructions()
-        )
-
     def _generate_initial_observation(self) -> str:
         """Generate initial observation based on exploration type."""
         room_desc = self.initial_room.get_room_description()
-        exp_history = ""
-        exp_answer_format = ""
         
         if self.config.exp_type == 'passive':
             auto_explore = AutoExplore(self.initial_room, self.np_random)
             exp_history = f"## Exploration History\n{auto_explore.gen_exp_history()}"
-        else:
-            exp_answer_format = self._get_action_instructions()
-        
-        obs = instruction.format(
-            room_info=room_desc,
-            exp_history=exp_history,
-            exp_answer_format=exp_answer_format
-        )
+            eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            assert eval_question, "No question found after exploration phase"
+            obs = PASSIVE_INSTRUCTION.format(
+                room_info=room_desc,
+                exp_history=exp_history,
+                eval_question=f"## Evaluation Question\n{eval_question}"
+            )
 
-        # Add first evaluation question for passive exploration
-        if self.config.exp_type == 'passive':
-            first_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
-            if first_question:
-                obs = obs + "\n\n" + first_question
+        else:
+            exp_instructions = f"## Action Instructions\n{ActionSequence.get_usage_instructions()}\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
+            obs = ACTIVE_INSTRUCTION.format(
+                room_info=room_desc,
+                exp_instructions=exp_instructions
+            )
 
         return obs
+
 
     def reset(self, seed: int = None):
         """Reset environment for a new episode."""
         super().reset(seed=seed)
         
-        # Initialize episode state
-        self.remaining_exp_steps = self.config.max_exp_steps
-        self.n_valid_queries = 0
-        self.n_redundant_queries = 0
-
         # Generate initial room
         self.initial_room = generate_room(
             **self.config.get_room_config(),
             np_random=self.np_random,
         )
+
+        # Initialize episode state
+        self.remaining_exp_steps = self.config.max_exp_steps
+        self.n_valid_queries = 0
+        self.n_redundant_queries = 0
         
         # Set exploration phase
         self.is_exploration_phase = self.config.exp_type != 'passive'
@@ -129,35 +97,40 @@ class SpatialGym(gym.Env):
     
     def _step_exploration(self, action: str):
         """Handle exploration phase step."""
-        self.remaining_exp_steps -= 1
-        
+        obs = ""
+        reward = 0
+
         # Parse and validate action
         action_sequence = ActionSequence.parse(action)
         if not action_sequence:
-            self.render_cache = "Invalid action"
-            return "Invalid action", -0.1, False, {}
-        
-        # Check if exploration should end
-        if action_sequence.final_action.is_term() or self.remaining_exp_steps < 0:
+            obs += "Invalid action\n"
+            reward += -0.1
+        else:
+            self.n_valid_queries += 1 if not action_sequence.final_action.is_term() else 0
+
+        self.remaining_exp_steps -= 1
+        if self.remaining_exp_steps < 0 or (action_sequence and action_sequence.final_action.is_term()):
+            # End exploration phase
             self.is_exploration_phase = False
+            obs += "Exploration phase ended\n"
             self.final_room = self.exploration_manager.finish_exploration()
             
             # Transition to evaluation
             question = self.evaluation_manager.get_current_question(self.initial_room.copy())
-            obs = question or "Task finished"
-            self.render_cache = obs
-            return obs, 0, not bool(question), {}
+            assert question, "No question found after exploration phase"
+            obs += question
+        else:
+            # Execute exploration action, TODO give reward to efficient exploration
+            if action_sequence:
+                result, exp_info = self.exploration_manager.execute_action_sequence(action_sequence)
+                # Track redundant queries
+                if exp_info.get('redundant', False):
+                    self.n_redundant_queries += 1
+                obs += result
+            obs += f"You have a maximum of {self.remaining_exp_steps} exploration steps left."
         
-        # Execute exploration action
-        self.n_valid_queries += 1
-        result, exp_info = self.exploration_manager.execute_action_sequence(action_sequence)
-        
-        # Track redundant queries
-        if exp_info.get('redundant', False):
-            self.n_redundant_queries += 1
-        
-        self.render_cache = result
-        return result, 0, False, {}
+        self.render_cache = obs
+        return obs, reward, False, {}
     
     def _step_evaluation(self, action: str):
         """Handle evaluation phase step."""
@@ -167,9 +140,9 @@ class SpatialGym(gym.Env):
         # Check for next task
         if self.evaluation_manager.next_task():
             next_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
-            obs = next_question or "Task finished"
-            self.render_cache = obs
-            return obs, reward, not bool(next_question), {}
+            assert next_question, "No question found after evaluation phase"
+            self.render_cache = next_question
+            return next_question, reward, not bool(next_question), {}
         
         # All tasks completed
         self.render_cache = "Task finished"
