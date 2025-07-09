@@ -125,6 +125,7 @@ If you need to make changes to the Base module:
 - [x] Change move: agent can only move to objects it observed
 - [x] Add an object as original position?
 - [x] Add reason for invalid action / input
+- [x] Before exploration, first tell the agent what question it needs to answer
 
 ## NOTE
 1. After exploration, the agent will return the its original position and orientation.

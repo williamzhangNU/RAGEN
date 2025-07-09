@@ -11,7 +11,12 @@ from ragen.env.spatial.Base.tos_base import (
     generate_room
 )
 from ragen.env.spatial.utils.generate_history import AutoExplore
-from ragen.env.spatial.prompts import ACTIVE_INSTRUCTION, PASSIVE_INSTRUCTION
+from ragen.env.spatial.prompts import (
+    ACTIVE_INSTRUCTION, 
+    PASSIVE_INSTRUCTION, 
+    SHORT_EXPLORATION_PROMPT, 
+    SHORT_EVALUATION_PROMPT
+)
 
 
 
@@ -42,6 +47,9 @@ class SpatialGym(gym.Env):
         self.n_valid_queries = None
         self.n_redundant_queries = None
 
+        self.original_render_read = None 
+        # this is in case ctx_manager parses no valid action, so if the original render is read, we will use one short prompt to replace it
+
     def _generate_initial_observation(self) -> str:
         """Generate initial observation based on exploration type."""
         room_desc = self.initial_room.get_room_description()
@@ -65,6 +73,11 @@ class SpatialGym(gym.Env):
             )
 
         return obs
+    
+    def _update_render_cache(self, obs: str):
+        assert self.original_render_read, "Observation is not read yet"
+        self.render_cache = obs
+        self.original_render_read = False
 
 
     def reset(self, seed: int = None):
@@ -92,19 +105,26 @@ class SpatialGym(gym.Env):
 
         # Generate initial observation
         obs = self._generate_initial_observation()
-        self.render_cache = obs
+
+        self.original_render_read = True
+        self._update_render_cache(obs)
         return obs, {}
     
     def _step_exploration(self, action: str):
-        """Handle exploration phase step."""
+        """
+        Handle exploration phase step.
+        TODO:
+        1. Add reward for invalid action
+        2. Add reward for Terminate: based on exploration summary
+        """
         obs = ""
-        reward = 0
+        reward = -0.1 # per step penalty
 
         # Parse and validate action
         action_sequence = ActionSequence.parse(action)
         if not action_sequence:
             obs += "Invalid action\n"
-            reward += -0.1
+            reward += -0.5 # format penalty
         else:
             self.n_valid_queries += 1 if not action_sequence.final_action.is_term() else 0
 
@@ -126,26 +146,30 @@ class SpatialGym(gym.Env):
                 # Track redundant queries
                 if exp_info.get('redundant', False):
                     self.n_redundant_queries += 1
+                    reward += -1 # redundant observe penalty
                 obs += result
-            obs += f"You have a maximum of {self.remaining_exp_steps} exploration steps left."
+            obs += f"\nYou have a maximum of {self.remaining_exp_steps} exploration steps left."
         
-        self.render_cache = obs
+        self._update_render_cache(obs)
         return obs, reward, False, {}
     
     def _step_evaluation(self, action: str):
         """Handle evaluation phase step."""
+        # TODO: different reward for different tasks
+
         # Evaluate answer
-        correct, reward, info = self.evaluation_manager.evaluate_answer(action)
+        correct, info = self.evaluation_manager.evaluate_answer(action)
+        reward = 1 if correct else 0
         
         # Check for next task
         if self.evaluation_manager.next_task():
             next_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
             assert next_question, "No question found after evaluation phase"
-            self.render_cache = next_question
+            self._update_render_cache(next_question)
             return next_question, reward, not bool(next_question), {}
         
         # All tasks completed
-        self.render_cache = "Task finished"
+        self._update_render_cache("Task finished")
         return "Task finished", reward, True, {}
 
     def step(self, action: str):
@@ -156,7 +180,13 @@ class SpatialGym(gym.Env):
             return self._step_evaluation(action)
 
     def render(self):
-        return self.render_cache
+        if not self.original_render_read:
+            self.original_render_read = True
+            return self.render_cache
+        if self.is_exploration_phase:
+            return SHORT_EXPLORATION_PROMPT + f"You have a maximum of {self.remaining_exp_steps} exploration steps left."
+        else:
+            return SHORT_EVALUATION_PROMPT
 
     # =============== Analysis Methods ===============
     def get_env_info(self):
@@ -195,291 +225,172 @@ class SpatialGym(gym.Env):
 
 
 if __name__ == "__main__":
-
-    # TODO
-    def test_passive_exploration():
-        """Test passive exploration mode."""
-        print("Testing Passive Exploration...")
+    # Simple test cases for SpatialGym environment
+    
+    def test_render_cache():
+        """Test render cache functionality."""
+        print("=== Testing Render Cache ===")
         
+        # Create simple config
         config = SpatialGymConfig(
-            exp_type='passive',
-            n_objects=3,
-            room_range=[-5, 5],
-            eval_tasks=[
-                {"task_type": "dir", "task_kwargs": {}},
-                {"task_type": "all_pairs", "task_kwargs": {}}
-            ],
-            max_exp_steps=50
+            exp_type='active',
+            max_exp_steps=2,
+            eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
+            n_objects=2,
+            generation_type="rand",
+            room_range=[-3, 3]
         )
         
+        # Test environment creation and initial render cache
         env = SpatialGym(config)
-        obs, info = env.reset(seed=42)
-        print(f"room: {env.initial_room}")
-        print(f"Initial observation <<{obs}>>")
-        print(f"Contains exploration history: {'Exploration History' in obs}")
+        _, info = env.reset(seed=42)
         
-        # Simulate evaluation answers
-        done = False
-        step_count = 0
-        while not done and step_count < 10:
-            # Simple answer format for testing
-            answer = "(unknown, unknown)"
-            print(f"ground truth answer: {env.evaluation_manager._get_current_eval_task().answer}")
-            obs, reward, done, info = env.step(answer)
-            step_count += 1
-            print(f"observation <<{obs}>>, Step {step_count}: Reward={reward}, Done={done}")
+        # Test render returns cached observation
+        rendered = env.render()
+        print(f"Initial render matches observation: {rendered}")
+
+        rendered = env.render()
+        print(f"Initial render matches observation: {rendered}")
         
-        # Check evaluation performance
-        eval_perf = env.get_eval_performance()
-        print(f"Evaluation accuracy: {eval_perf['accuracy']:.2f}")
-        print("Passive exploration test completed.\n")
+        # Test render cache updates after exploration step
+        _, reward, done, info = env.step("Movement: []\nFinal: Observe()")
+        rendered2 = env.render()
+        print(f"Render cache updated after step: {rendered2}")
+        rendered2 = env.render()
+        print(f"Render cache updated after step again: {rendered2}")
+        
+        # Test render cache updates after evaluation transition
+        _, reward, done, info = env.step("Movement: []\nFinal: Term()")  # End exploration
+        rendered3 = env.render()
+        print(f"Render cache updated after evaluation transition: {rendered3}")
+
+        rendered3 = env.render()
+        print(f"Render cache updated after evaluation transition again: {rendered3}")
+        
+        print(f"Render cache test completed successfully!")
+        print()
+
 
     def test_active_exploration():
         """Test active exploration mode."""
-        print("Testing Active Exploration...")
+        print("=== Testing Active Exploration ===")
         
+        # Create config for active exploration
         config = SpatialGymConfig(
             exp_type='active',
-            n_objects=4,
-            room_range=[-8, 8],
-            eval_tasks=[{"task_type": "dir", "task_kwargs": {}}],
-            max_exp_steps=20
-        )
-        
-        env = SpatialGym(config)
-        obs, info = env.reset(seed=123)
-        print(f"room: {env.initial_room}")
-        env.initial_room.plot()
-        print(f"Initial observation contains action format: {'Available Actions' in obs}")
-        
-        # Test exploration phase
-        exploration_actions = [
-            "Observe()",
-            "Rotate(90); Observe()",
-            "Rotate(180); Observe()",
-            "Rotate(90), Move(chair); Observe()",
-            # "Move(keyboard), Rotate(90); Observe()",
-            # "Rotate(90); Observe()",
-        ]
-        
-        step_count = 0
-        for action in exploration_actions:
-            if env.is_exploration_phase:
-                obs, reward, done, info = env.step(action)
-                step_count += 1
-                print(f"Observation <<{obs}>>, Exploration step {step_count}: Action='{action}', Valid response received")
-                if not env.is_exploration_phase:
-                    print("Transitioned to evaluation phase")
-                    break
-            else:
-                break
-
-        print(f"all objects in exploration manager: {env.exploration_manager.exploration_room.all_objects}")
-        print(f"Exploration graph: {env.exploration_manager.exp_graph.to_dict()}")
-        
-        # Test evaluation phase
-        if not env.is_exploration_phase:
-            answer = "right"
-            print(f"ground truth answer: {env.evaluation_manager._get_current_eval_task().answer}")
-            obs, reward, done, info = env.step(answer)
-            print(f"Evaluation answer: Reward={reward}, Done={done}")
-        
-        # Check exploration efficiency
-        exp_eff = env.get_exp_efficiency()
-        print(f"Exploration coverage: {exp_eff['coverage']:.2f}")
-        print(f"Redundancy: {exp_eff['redundancy']:.2f}")
-        print(f"Valid queries: {exp_eff['n_valid_queries']}")
-        print(f"Redundant queries: {exp_eff['n_redundant_queries']}")
-        print("Active exploration test completed.\n")
-
-    def test_different_generation_types():
-        """Test different room generation types."""
-        print("Testing Different Generation Types...")
-        
-        generation_types = ["rand", "rot", "a2e", "pov"]
-        
-        for gen_type in generation_types:
-            try:
-                print(f"Testing generation type: {gen_type}")
-                
-                # Adjust perspective based on generation type
-                perspective = "ego" if gen_type in ["rot", "pov"] else "ego"
-                
-                config = SpatialGymConfig(
-                    generation_type=gen_type,
-                    perspective=perspective,
-                    exp_type='passive',
-                    n_objects=3,
-                    eval_tasks=[{"task_type": "dir", "task_kwargs": {}}]
-                )
-                
-                env = SpatialGym(config)
-                obs, info = env.reset(seed=42)
-                print(f"room: {env.initial_room}")
-                
-                # Get environment info
-                env_info = env.get_env_info()
-                print(f"  Room generated with {len(env_info['initial_room']['all_objects'])} objects")
-                print(f"  Generation type: {env_info['config']['generation_type']}")
-                
-            except Exception as e:
-                print(f"  Error with {gen_type}: {e}")
-
-        print("Generation types test completed.\n")
-
-    def test_evaluation_tasks():
-        """Test different evaluation task types."""
-        print("Testing Different Evaluation Tasks...")
-        
-        task_configs = [
-            {"task_type": "dir", "task_kwargs": {}},
-            {"task_type": "rot", "task_kwargs": {"turn_direction": "clockwise"}},
-            {"task_type": "pov", "task_kwargs": {}},
-            {"task_type": "all_pairs", "task_kwargs": {}}
-        ]
-        
-        for task_config in task_configs:
-            try:
-                print(f"Testing task: {task_config['task_type']}")
-                
-                config = SpatialGymConfig(
-                    exp_type='passive',
-                    n_objects=3,
-                    eval_tasks=[task_config],
-                    perspective='ego',
-                    generation_type='pov'
-                )
-                
-                env = SpatialGym(config)
-                obs, info = env.reset(seed=42)
-                print(f"room: {env.initial_room}")
-                print(f"observation: {obs}")
-                
-                # Try one evaluation step
-                answer = env.evaluation_manager._get_current_eval_task().answer
-                print(f"ground truth answer: {answer}")
-                obs, reward, done, info = env.step(answer)
-                print(f"  Task executed successfully, reward: {reward}")
-                
-            except Exception as e:
-                print(f"  Error with {task_config['task_type']}: {e}")
-        
-        print("Evaluation tasks test completed.\n")
-
-    def test_action_parsing():
-        """Test action sequence parsing."""
-        # TODO more test cases
-        print("Testing Action Parsing...")
-        
-        from ragen.env.spatial.Base.tos_base import ActionSequence
-        
-        test_actions = [
-            "Observe()",
-            "Move(chair), Rotate(90); Observe()",
-            "Rotate(90); Observe()",
-            "Return(); Observe()",
-            "Term()",
-            "Invalid action",
-            "Observe() Move(chair)",  # Multiple actions
-            ""
-        ]
-        
-        for action_str in test_actions:
-            action_seq = ActionSequence.parse(action_str)
-            if action_seq:
-                print(f"  '{action_str}' -> Valid: {action_seq}")
-            else:
-                print(f"  '{action_str}' -> Invalid")
-        
-        print("Action parsing test completed.\n")
-
-    def test_environment_states():
-        """Test environment state transitions."""
-        print("Testing Environment States...")
-        
-        config = SpatialGymConfig(
-            exp_type='active',
+            max_exp_steps=3,
+            eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
             n_objects=3,
-            max_exp_steps=5
+            generation_type="rand",
+            room_range=[-5, 5]
         )
         
+        
+        # Create and reset environment
         env = SpatialGym(config)
         obs, info = env.reset(seed=42)
+        print(f"Room: {env.initial_room}")
+        print(f"Initial observation: {obs[:100]}...")
         
-        print(f"Initial state - Is exploration: {env.is_exploration_phase}")
-        
-        # Force transition to evaluation by terminating
-        obs, reward, done, info = env.step("Term()")
-        print(f"After termination - Is exploration: {env.is_exploration_phase}")
-        
-        # Test evaluation phase
-        if not env.is_exploration_phase:
-            print(f"ground truth answer: {env.evaluation_manager._get_current_eval_task().answer}")
-            obs, reward, done, info = env.step("left")
-            print(f"Evaluation step completed - Done: {done}")
-        
-        # Check final states
-        env_info = env.get_env_info()
-        print(f"Room states available - initial_room: {bool(env_info['initial_room'])}, "
-              f"final_room: {bool(env_info['final_room'])}")
-        
-        print("Environment states test completed.\n")
+        # Take exploration steps
+        obs, reward, done, info = env.step("Movement: []\nFinal: Observe()")
+        print(f"Step 1 - Reward: {reward}, Done: {done}, Obs: {obs}")
 
-    def test_configuration_validation():
-        """Test configuration validation."""
-        print("Testing Configuration Validation...")
-        
-        # Test valid configurations
-        valid_configs = [
-            {"exp_type": "passive", "perspective": "ego"},
-            {"exp_type": "active", "perspective": "ego"},
-            {"generation_type": "rand", "perspective": "ego"},
-            {"generation_type": "rot", "perspective": "ego"}
-        ]
-        
-        for config_dict in valid_configs:
-            try:
-                config = SpatialGymConfig(**config_dict)
-                print(f"  Valid config: {config_dict}")
-            except Exception as e:
-                print(f"  Unexpected error with {config_dict}: {e}")
-        
-        # Test invalid configurations
-        invalid_configs = [
-            {"generation_type": "invalid_type"},
-            {"exp_type": "invalid_exp"},
-            {"perspective": "invalid_perspective"},
-            {"generation_type": "rot", "perspective": "allo"}  # Incompatible combination
-        ]
-        
-        for config_dict in invalid_configs:
-            try:
-                config = SpatialGymConfig(**config_dict)
-                print(f"  Unexpected success with invalid config: {config_dict}")
-            except Exception as e:
-                print(f"  Expected error with {config_dict}: {type(e).__name__}")
-        
-        print("Configuration validation test completed.\n")
+        obs, reward, done, info = env.step("Movement: [Move(microphone), Rotate(180)]\nFinal: Observe()")
+        print(f"Step 2 - Reward: {reward}, Done: {done}, Obs: {obs}")
 
-    # Run all tests
-    print("="*50)
-    print("SPATIAL GYM ENVIRONMENT TESTS")
-    print("="*50)
+        print(f"Exploration Room: {env.exploration_manager.exploration_room}")
+        
+        # End exploration and get evaluation question
+        obs, reward, done, info = env.step("Movement: []\nFinal: Term()")
+        print(f"Exploration ended - Reward: {reward}, Done: {done}")
+        print(f"Evaluation question: {obs[:100]}...")
+        
+        # Answer evaluation question
+        obs, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        print(f"Final - Reward: {reward}, Done: {done}")
+
+        print(f"Exploration Room: {env.exploration_manager.exploration_room}")
+        print(f"Final Room: {env.final_room}")
+
+        
+        # Get metrics
+        exp_metrics = env.get_exp_efficiency()
+        eval_metrics = env.get_eval_performance()
+        print(f"Exploration efficiency: {exp_metrics}")
+        print(f"Evaluation performance: {eval_metrics}")
+        print()
     
+    def test_passive_exploration():
+        """Test passive exploration mode."""
+        print("=== Testing Passive Exploration ===")
+        
+        # Create config for passive exploration
+        config = SpatialGymConfig(
+            exp_type='passive',
+            max_exp_steps=0,  # Not used in passive mode
+            eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
+            n_objects=3,
+            generation_type="rand",
+            room_range=[-5, 5]
+        )
+        
+        # Create and reset environment
+        env = SpatialGym(config)
+        obs, info = env.reset(seed=42)
+        print(f"Initial observation with auto-exploration: {obs[:100]}...")
+        
+        # Directly answer evaluation question (no exploration phase)
+        obs, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        print(f"Answer - Reward: {reward}, Done: {done}")
+        
+        # Get metrics
+        eval_metrics = env.get_eval_performance()
+        print(f"Evaluation performance: {eval_metrics}")
+        print()
+    
+    def test_basic_functionality():
+        """Test basic environment functionality."""
+        print("=== Testing Basic Functionality ===")
+        
+        # Create simple config
+        config = SpatialGymConfig(
+            exp_type='active',
+            max_exp_steps=2,
+            eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
+            n_objects=2,
+            generation_type="rand",
+            room_range=[-3, 3]
+        )
+        
+        # Test environment creation and reset
+        env = SpatialGym(config)
+        obs, info = env.reset(seed=123)
+        print(f"Environment created and reset successfully")
+        print(f"Initial observation length: {len(obs)}")
+
+        obs, info = env.reset(seed=1234)
+        print(f"Environment created and reset successfully")
+        print(f"Initial observation length: {len(obs)}")
+        
+        # Test render
+        rendered = env.render()
+        print(f"Render works: {rendered == obs}")
+        
+        # Test env info
+        env_info = env.get_env_info()
+        print(f"Environment info available: {'initial_room' in env_info}")
+        print()
+    
+    # Run all tests
     try:
-        # test_passive_exploration()
+        test_render_cache()
         # test_active_exploration()
-        # test_different_generation_types()
-        # test_evaluation_tasks()
-        # test_action_parsing()
-        # test_environment_states()
-        test_configuration_validation()
-        
-        print("="*50)
-        print("ALL TESTS COMPLETED SUCCESSFULLY")
-        print("="*50)
-        
+        # test_passive_exploration()
+        # test_basic_functionality()
+        print("All tests completed successfully!")
     except Exception as e:
         print(f"Test failed with error: {e}")
         import traceback
         traceback.print_exc()
+

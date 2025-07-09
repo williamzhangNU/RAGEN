@@ -16,13 +16,22 @@ PASSIVE_INSTRUCTION = """\
 # Spatial Understanding Task
 
 You will be given a room layout and a tour around the room. 
-After the tour, you will return to your starting position and orientation.
+NOTE: After the tour, you will return to your starting position and orientation.
 Then you need to answer the question based on the tour.
 
 ## Room Layout
 {room_info}
 
 {exp_history}
+You return to your starting position and orientation.
 
 {eval_question}
+"""
+
+SHORT_EXPLORATION_PROMPT = """\
+Please respond with valid actions to explore the room.
+"""
+
+SHORT_EVALUATION_PROMPT = """\
+Please respond with a valid answer to the question.
 """
