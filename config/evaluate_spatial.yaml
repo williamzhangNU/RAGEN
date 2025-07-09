@@ -2,12 +2,12 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial/passive/gpt-4o/rot.json
+output_path: results/spatial/passive/claude-4-sonnet/rot.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: gpt-4o
+  model_name: claude-4-sonnet
   max_concurrency: 8
 
 actor_rollout_ref:

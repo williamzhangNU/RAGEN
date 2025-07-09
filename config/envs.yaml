@@ -139,10 +139,13 @@ custom_envs:
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "passive"
       generation_type: "rot"
+      n_objects: 4
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
             turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
 
   ActiveRot:
     env_type: SpatialGym
@@ -151,12 +154,15 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "active"
+      n_objects: 4
       max_exp_steps: 10 # 10
       generation_type: "rot"
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
             turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
 
   PassiveRotCounter:
     env_type: SpatialGym
