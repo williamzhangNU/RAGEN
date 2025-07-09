@@ -5,7 +5,7 @@ import numpy as np
 from collections import Counter
 
 from typing import List, Tuple, Dict
-from ragen.env.spatial.Base import (
+from ragen.env.spatial.Base.tos_base import (
     Room,
     DirectionalGraph,
     DirPair,
@@ -168,7 +168,7 @@ class AutoExplore:
 
 if __name__ == "__main__":
     import re
-    from ragen.env.spatial.Base import Object, Agent, generate_room, CANDIDATE_OBJECTS
+    from ragen.env.spatial.Base.tos_base import Object, Agent, generate_room, CANDIDATE_OBJECTS
     from gymnasium.utils import seeding
 
     rng1 = seeding.np_random(2)[0]
