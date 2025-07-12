@@ -182,7 +182,7 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 		'overall_performance': {
 			'exploration_efficiency': {
 				'avg_coverage': 0.0,
-				'avg_novelty': 0.0,
+				'avg_redundancy': 0.0,
 			},
 			'evaluation_performance': {
 				'avg_accuracy': 0.0,
@@ -193,7 +193,7 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	
 	# Collect data from all environments
 	total_envs = 0
-	exp_eff_sum = {'coverage': 0.0, 'novelty': 0.0}
+	exp_eff_sum = {'coverage': 0.0, 'redundancy': 0.0}
 	eval_perf_sum = {'accuracy': 0.0}
 	
 	for _, (message, env_id) in enumerate(zip(messages, env_ids)):
@@ -221,7 +221,7 @@ def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
 	if total_envs > 0:
 		saved_data['overall_performance']['exploration_efficiency'] = {
 			'avg_coverage': exp_eff_sum['coverage'] / total_envs,
-			'avg_novelty': exp_eff_sum['novelty'] / total_envs,
+			'avg_redundancy': exp_eff_sum['redundancy'] / total_envs,
 		}
 		saved_data['overall_performance']['evaluation_performance'] = {
 			'avg_accuracy': eval_perf_sum['accuracy'] / total_envs,

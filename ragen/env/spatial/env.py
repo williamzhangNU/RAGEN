@@ -8,7 +8,8 @@ from ragen.env.spatial.Base.tos_base import (
     Room,
     ActionSequence,
     ExplorationManager,
-    generate_room
+    generate_room,
+    BaseAction
 )
 from ragen.env.spatial.utils.generate_history import AutoExplore
 from ragen.env.spatial.prompts import (
@@ -98,6 +99,9 @@ class SpatialGym(gym.Env):
         # Set exploration phase
         self.is_exploration_phase = self.config.exp_type != 'passive'
         
+        # Set field of view for all actions
+        BaseAction.set_field_of_view(self.config.field_of_view)
+        
         # Initialize managers
         if self.config.exp_type == 'active':
             self.exploration_manager = ExplorationManager(self.initial_room)
@@ -105,7 +109,6 @@ class SpatialGym(gym.Env):
 
         # Generate initial observation
         obs = self._generate_initial_observation()
-
         self.original_render_read = True
         self._update_render_cache(obs)
         return obs, {}
@@ -288,26 +291,31 @@ if __name__ == "__main__":
         
         # Create and reset environment
         env = SpatialGym(config)
-        obs, info = env.reset(seed=42)
+        env.reset(seed=42)
+        obs = env.render()
         print(f"Room: {env.initial_room}")
         print(f"Initial observation: {obs[:100]}...")
         
         # Take exploration steps
-        obs, reward, done, info = env.step("Movement: []\nFinal: Observe()")
+        _, reward, done, info = env.step("Movement: []\nFinal: Observe()")
+        obs = env.render()
         print(f"Step 1 - Reward: {reward}, Done: {done}, Obs: {obs}")
 
-        obs, reward, done, info = env.step("Movement: [Move(microphone), Rotate(180)]\nFinal: Observe()")
+        _, reward, done, info = env.step("Movement: [Move(microphone), Rotate(180)]\nFinal: Observe()")
+        obs = env.render()
         print(f"Step 2 - Reward: {reward}, Done: {done}, Obs: {obs}")
 
         print(f"Exploration Room: {env.exploration_manager.exploration_room}")
         
         # End exploration and get evaluation question
-        obs, reward, done, info = env.step("Movement: []\nFinal: Term()")
+        _, reward, done, info = env.step("Movement: []\nFinal: Term()")
+        obs = env.render()
         print(f"Exploration ended - Reward: {reward}, Done: {done}")
         print(f"Evaluation question: {obs[:100]}...")
         
         # Answer evaluation question
-        obs, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        _, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        obs = env.render()
         print(f"Final - Reward: {reward}, Done: {done}")
 
         print(f"Exploration Room: {env.exploration_manager.exploration_room}")
@@ -337,11 +345,13 @@ if __name__ == "__main__":
         
         # Create and reset environment
         env = SpatialGym(config)
-        obs, info = env.reset(seed=42)
+        env.reset(seed=42)
+        obs = env.render()
         print(f"Initial observation with auto-exploration: {obs[:100]}...")
         
         # Directly answer evaluation question (no exploration phase)
-        obs, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        _, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
+        obs = env.render()
         print(f"Answer - Reward: {reward}, Done: {done}")
         
         # Get metrics
@@ -381,13 +391,53 @@ if __name__ == "__main__":
         env_info = env.get_env_info()
         print(f"Environment info available: {'initial_room' in env_info}")
         print()
+
+    
+    def test_field_of_view():
+        """Test field of view configuration."""
+        print("=== Testing Field of View ===")
+        
+        # With seed=42, 'keyboard' is at a position that is outside 90 FOV but inside 180 FOV.
+        # Let's use Observe() to check visibility.
+        def run_test(fov, seed=0):
+            print(f"\n--- Testing {fov}-degree FOV ---")
+            config = SpatialGymConfig(
+                exp_type='active',
+                max_exp_steps=1,
+                eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
+                n_objects=3,
+                generation_type="rand",
+                room_range=[-5, 5],
+                field_of_view=fov
+            )
+            env = SpatialGym(config)
+            env.reset(seed=seed)
+            print(f"Room for {fov} FOV test: {env.initial_room}")
+            obs = env.render()
+            print(f"Initial observation: {obs}")
+            print(f"Room for {fov} FOV test: {env.initial_room}")
+            obs, _, _, _ = env.step("Movement: []\nFinal: Observe()")
+            print(f"Observation with {fov} FOV: {obs}")
+            return obs
+
+        # Test with 90-degree field of view
+        obs_90 = run_test(90)
+        assert "whiteboard" not in obs_90, "whiteboard should not be visible with 90 FOV"
+        print("Keyboard not in observation, as expected.")
+
+        # Test with 180-degree field of view
+        obs_180 = run_test(180)
+        assert "whiteboard" in obs_180, "whiteboard should be visible with 180 FOV"
+        print("Keyboard in observation, as expected.")
+        print()
     
     # Run all tests
     try:
         test_render_cache()
-        # test_active_exploration()
-        # test_passive_exploration()
-        # test_basic_functionality()
+        test_active_exploration()
+        test_passive_exploration()
+        test_basic_functionality()
+        test_field_of_view()
         print("All tests completed successfully!")
     except Exception as e:
         print(f"Test failed with error: {e}")

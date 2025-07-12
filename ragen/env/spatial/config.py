@@ -16,6 +16,7 @@ class SpatialGymConfig:
         generation_type: Type of room generation ('rand', 'rot', 'a2e', 'pov')
         exp_type: Exploration type ('passive', 'active')
         perspective: Perspective of exploration ('ego' or 'allo')
+        field_of_view: Field of view in degrees (90 or 180)
         eval_tasks: List of evaluation tasks with their configurations
         max_exp_steps: Maximum exploration steps for active exploration
         render_mode: Rendering mode (currently only 'text' supported)
@@ -29,6 +30,7 @@ class SpatialGymConfig:
     # Exploration configuration
     exp_type: str = 'passive'
     perspective: str = 'ego'
+    field_of_view: int = 90
     max_exp_steps: int = 100
     
     # Evaluation configuration
@@ -42,6 +44,7 @@ class SpatialGymConfig:
         self._validate_generation_type()
         self._validate_perspective()
         self._validate_exp_type()
+        self._validate_field_of_view()
         self._validate_eval_tasks()
         self._validate_render_mode()
         self._validate_compatibility()
@@ -63,6 +66,12 @@ class SpatialGymConfig:
         valid_exp_types = ["passive", "active"]
         if self.exp_type not in valid_exp_types:
             raise ValueError(f"exp_type must be one of {valid_exp_types}")
+
+    def _validate_field_of_view(self):
+        """Validate field_of_view parameter."""
+        valid_fovs = [90, 180]
+        if self.field_of_view not in valid_fovs:
+            raise ValueError(f"field_of_view must be one of {valid_fovs}")
 
     def _validate_eval_tasks(self):
         """Validate eval_tasks parameter."""
@@ -141,6 +150,7 @@ class SpatialGymConfig:
             'n_objects': self.n_objects,    
             'exp_type': self.exp_type,
             'perspective': self.perspective,
+            'field_of_view': self.field_of_view,
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,

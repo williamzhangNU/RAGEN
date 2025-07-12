@@ -6,6 +6,9 @@ You should explore the room efficiently:
 - Avoid redundant actions
 - Terminate IMMEDIATELY when you know spatial relationships between all object pairs.
 
+After exploration, you will return to your starting position and orientation.
+Then you need to answer question(s) based on your exploration.
+
 ## Room Layout
 {room_info}
 
@@ -23,8 +26,10 @@ Then you need to answer the question based on the tour.
 {room_info}
 
 {exp_history}
-You return to your starting position and orientation.
+"""
 
+EVALUATION_INSTRUCTION = """\
+You return to your starting position and orientation.
 {eval_question}
 """
 
