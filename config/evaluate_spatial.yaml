@@ -2,12 +2,12 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial/active_3_objects/o4-mini/rot.json
+output_path: results/spatial-new/passive_3_objects/gpt-4o/pov.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: o4-mini
+  model_name: gpt-4o
   max_concurrency: 8
 
 actor_rollout_ref:
@@ -25,5 +25,5 @@ es_manager:
     env_groups: 8
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["ActiveRot"]
+      tags: ["PassivePoV"]
       n_groups: [8] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation

@@ -1,13 +1,27 @@
 ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
-Explore the room to know the spatial relationships between objects.
-You should explore the room efficiently:
-- Avoid redundant actions
-- Terminate IMMEDIATELY when you know spatial relationships between all object pairs.
+Your goal: Learn ALL spatial relationships between EVERY pair of objects in the room.
 
-After exploration, you will return to your starting position and orientation.
-Then you need to answer question(s) based on your exploration.
+## Direction Format:
+Spatial relationships are described using <horizontal, vertical> format:
+- **horizontal**: left, right, same, unknown
+- **vertical**: front, back, same, unknown
+- "same" means objects are aligned in that dimension (e.g., same horizontal line)
+
+## Critical Requirements:
+1. **Complete Coverage**: Explore until you know where every object is relative to every other object
+2. **Be Efficient** (Avoid redundant observations):
+   - Focus on areas where you expect to eliminate some unknown relationships
+   - If you know all objects are in one general direction but lack specific details, focus your exploration there 
+      - (e.g., if all objects are to your left but you don't know which are in front vs. back, explore the left side systematically)
+3. **Stop When Done**: End exploration as soon as you have all spatial relationships
+
+
+## Important Notes:
+- Focus on **directional relationships** between objects, not exact distances
+
+After exploration, you return to starting position to answer questions.
 
 ## Room Layout
 {room_info}
@@ -21,6 +35,12 @@ PASSIVE_INSTRUCTION = """\
 You will be given a room layout and a tour around the room. 
 NOTE: After the tour, you will return to your starting position and orientation.
 Then you need to answer the question based on the tour.
+
+## Direction Format:
+Spatial relationships are described using <horizontal, vertical> format:
+- **horizontal**: left, right, same, unknown
+- **vertical**: front, back, same, unknown
+- "same" means objects are aligned in that dimension (e.g., same horizontal line)
 
 ## Room Layout
 {room_info}

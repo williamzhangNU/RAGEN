@@ -5,8 +5,8 @@ import os
 from typing import List, Dict
 import time
 import json
-import datetime
 
+from ragen.env.spatial.env import SpatialGym
 from verl import DataProto
 from omegaconf import ListConfig, DictConfig, OmegaConf
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
@@ -173,66 +173,21 @@ def convert_omegaconf_to_python(obj):
 		return obj
 
 
-def log_each_env_info(envs: List[Dict], messages, env_ids, config, output_path):
+def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[str], env_ids: List[int], config, output_path: str):
+	"""Logs detailed information for each environment and overall performance metrics."""
+	aggregated_data = SpatialGym.aggregate_env_data(envs, messages, env_ids)
+
 	saved_data = {
 		'meta_info': {
 			'model_name': config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name,
 			'n_envs': len(envs),
 		},
-		'overall_performance': {
-			'exploration_efficiency': {
-				'avg_coverage': 0.0,
-				'avg_redundancy': 0.0,
-			},
-			'evaluation_performance': {
-				'avg_accuracy': 0.0,
-			}
-		},
-		'env_data': [],
+		**aggregated_data,
 	}
-	
-	# Collect data from all environments
-	total_envs = 0
-	exp_eff_sum = {'coverage': 0.0, 'redundancy': 0.0}
-	eval_perf_sum = {'accuracy': 0.0}
-	
-	for _, (message, env_id) in enumerate(zip(messages, env_ids)):
-		env = envs[env_id]
-		env_info = env.get_env_info()
-		exp_efficiency = env.get_exp_efficiency()
-		eval_performance = env.get_eval_performance()
-		
-		saved_data['env_data'].append({
-			"message": message,
-			"env_info": env_info,
-			"config": env_info.get("config", {}),
-			"exploration_efficiency": exp_efficiency,
-			"evaluation_performance": eval_performance
-		})
-		
-		# Accumulate for overall statistics
-		total_envs += 1
-		for key in exp_eff_sum:
-			exp_eff_sum[key] += exp_efficiency.get(key, 0)
-		for key in eval_perf_sum:
-			eval_perf_sum[key] += eval_performance.get(key, 0)
-	
-	# Calculate averages for overall performance
-	if total_envs > 0:
-		saved_data['overall_performance']['exploration_efficiency'] = {
-			'avg_coverage': exp_eff_sum['coverage'] / total_envs,
-			'avg_redundancy': exp_eff_sum['redundancy'] / total_envs,
-		}
-		saved_data['overall_performance']['evaluation_performance'] = {
-			'avg_accuracy': eval_perf_sum['accuracy'] / total_envs,
-		}
-	
-	
 
 	# Convert any OmegaConf objects to standard Python types for JSON serialization
 	saved_data = convert_omegaconf_to_python(saved_data)
 	
-	timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
 	with open(output_path, "w") as f:
 		json.dump(saved_data, f, indent=2)

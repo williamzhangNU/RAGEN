@@ -160,6 +160,20 @@ custom_envs:
         - task_type: "all_pairs"
           task_kwargs: {}
 
+  PassivePoV:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      generation_type: "pov"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "pov"
+          task_kwargs: {}
+
+
   ActiveRot:
     env_type: SpatialGym
     max_actions_per_traj: 20

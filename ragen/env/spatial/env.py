@@ -1,6 +1,6 @@
 import gymnasium as gym
 import re
-from typing import Optional
+from typing import Optional, List, Dict
 
 from ragen.env.spatial.config import SpatialGymConfig
 from ragen.env.spatial.Base.tos_base import (
@@ -15,6 +15,7 @@ from ragen.env.spatial.utils.generate_history import AutoExplore
 from ragen.env.spatial.prompts import (
     ACTIVE_INSTRUCTION, 
     PASSIVE_INSTRUCTION, 
+    EVALUATION_INSTRUCTION,
     SHORT_EXPLORATION_PROMPT, 
     SHORT_EVALUATION_PROMPT
 )
@@ -63,8 +64,9 @@ class SpatialGym(gym.Env):
             obs = PASSIVE_INSTRUCTION.format(
                 room_info=room_desc,
                 exp_history=exp_history,
-                eval_question=f"## Evaluation Question\n{eval_question}"
             )
+
+            obs += EVALUATION_INSTRUCTION.format(eval_question=f"## Evaluation Question\n{eval_question}")
 
         else:
             exp_instructions = f"## Action Instructions\n{ActionSequence.get_usage_instructions()}\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
@@ -138,14 +140,14 @@ class SpatialGym(gym.Env):
             obs += "Exploration phase ended\n"
             self.final_room = self.exploration_manager.finish_exploration()
             
-            # Transition to evaluation
-            question = self.evaluation_manager.get_current_question(self.initial_room.copy())
-            assert question, "No question found after exploration phase"
-            obs += question
+            # Transition to evaluation, NOTE question is generated based on the initial room
+            eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            assert eval_question, "No question found after exploration phase"
+            obs += EVALUATION_INSTRUCTION.format(eval_question=f"## Evaluation Question\n{eval_question}")
         else:
             # Execute exploration action, TODO give reward to efficient exploration
             if action_sequence:
-                result, exp_info = self.exploration_manager.execute_action_sequence(action_sequence)
+                result, exp_info = self.exploration_manager.explore(action_sequence)
                 # Track redundant queries
                 if exp_info.get('redundant', False):
                     self.n_redundant_queries += 1
@@ -191,6 +193,8 @@ class SpatialGym(gym.Env):
         else:
             return SHORT_EVALUATION_PROMPT
 
+
+
     # =============== Analysis Methods ===============
     def get_env_info(self):
         """Get environment state information."""
@@ -225,6 +229,43 @@ class SpatialGym(gym.Env):
             }
         
         return self.evaluation_manager.get_evaluation_summary()
+
+
+    @staticmethod
+    def aggregate_env_data(
+        envs: Dict[int, "SpatialGym"], 
+        messages: List[str], 
+        env_ids: List[int]
+    ) -> Dict:
+        """Gathers data from multiple environments and calculates aggregate metrics."""
+        env_data_list = []
+        for message, env_id in zip(messages, env_ids):
+            env = envs[env_id]
+            env_data_list.append({
+                "message": message,
+                "env_info": env.get_env_info(),
+                "exploration_efficiency": env.get_exp_efficiency(),
+                "evaluation_performance": env.get_eval_performance(),
+            })
+
+        num_envs = len(env_data_list)
+        overall_performance = {}
+
+        if num_envs > 0:
+            overall_performance = {
+                'exploration_efficiency': {
+                    'avg_coverage': sum(d['exploration_efficiency'].get('coverage', 0) for d in env_data_list) / num_envs,
+                    'avg_redundancy': sum(d['exploration_efficiency'].get('redundancy', 0) for d in env_data_list) / num_envs,
+                },
+                'evaluation_performance': {
+                    'avg_accuracy': sum(d['evaluation_performance'].get('accuracy', 0) for d in env_data_list) / num_envs,
+                }
+            }
+        
+        return {
+            'overall_performance': overall_performance,
+            'env_data': env_data_list,
+        }
 
 
 if __name__ == "__main__":
