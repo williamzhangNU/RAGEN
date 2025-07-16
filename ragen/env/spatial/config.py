@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 from omegaconf import ListConfig, OmegaConf
 
 from ragen.env.spatial.Base.tos_base import CANDIDATE_OBJECTS
+from ragen.env.spatial.Base.tos_base.evaluation.task_types import EvalTaskType
 
 @dataclass
 class SpatialGymConfig:
@@ -29,7 +30,7 @@ class SpatialGymConfig:
     
     # Exploration configuration
     exp_type: str = 'passive'
-    field_of_view: int = 90
+    field_of_view: int = 180
     max_exp_steps: int = 100
     
     # Evaluation configuration
@@ -66,7 +67,7 @@ class SpatialGymConfig:
 
     def _validate_eval_tasks(self):
         """Validate eval_tasks parameter."""
-        valid_eval_tasks = ["dir", "rot", "pov", "e2a", "all_pairs"]
+        valid_eval_tasks = EvalTaskType.get_short_names()
 
         if isinstance(self.eval_tasks, ListConfig):
             self.eval_tasks = OmegaConf.to_container(self.eval_tasks, resolve=True)

@@ -4,7 +4,7 @@ ACTIVE_INSTRUCTION = """\
 Your goal: Learn ALL spatial relationships between EVERY pair of objects in the room.
 
 ## Direction Format:
-Spatial relationships are described using <horizontal, vertical> format:
+Spatial relationships are described using (<horizontal>, <vertical>) format:
 - **horizontal**: left, right, same, unknown
 - **vertical**: front, back, same, unknown
 - "same" means objects are aligned in that dimension (e.g., same horizontal line)
@@ -37,7 +37,7 @@ NOTE: After the tour, you will return to your starting position and orientation.
 Then you need to answer the question based on the tour.
 
 ## Direction Format:
-Spatial relationships are described using <horizontal, vertical> format:
+Spatial relationships are described using (<horizontal>, <vertical>) format:
 - **horizontal**: left, right, same, unknown
 - **vertical**: front, back, same, unknown
 - "same" means objects are aligned in that dimension (e.g., same horizontal line)
