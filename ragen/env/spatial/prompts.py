@@ -9,6 +9,14 @@ Spatial relationships are described using (<horizontal>, <vertical>) format:
 - **vertical**: front, back, same, unknown
 - "same" means objects are aligned in that dimension (e.g., same horizontal line)
 
+## Face direction
+There are EXACTLY four facing directions: north, south, east, west. No other directions exist.
+Suppose you are facing north, then:
+- **forward**: north (same direction as you)
+- **backward**: south (opposite direction as you)
+- **right**: east (90° clockwise)
+- **left**: west (90° counterclockwise)
+
 ## Critical Requirements:
 1. **Complete Coverage**: Explore until you know where every object is relative to every other object
 2. **Be Efficient** (Avoid redundant observations):

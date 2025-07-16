@@ -5,6 +5,7 @@ import os
 from typing import List, Dict
 import time
 import json
+import re
 
 from ragen.env.spatial.env import SpatialGym
 from verl import DataProto
@@ -173,7 +174,7 @@ def convert_omegaconf_to_python(obj):
 		return obj
 
 
-def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[str], env_ids: List[int], config, output_path: str):
+def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_ids: List[int], config, output_path: str):
 	"""Logs detailed information for each environment and overall performance metrics."""
 	aggregated_data = SpatialGym.aggregate_env_data(envs, messages, env_ids)
 
@@ -191,8 +192,93 @@ def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[str], env_id
 	os.makedirs(os.path.dirname(output_path), exist_ok=True)
 	with open(output_path, "w") as f:
 		json.dump(saved_data, f, indent=2)
+
+	conversation_output_path = config.output_path.replace('.json', '_conversations.txt')
+	format_conversations(
+		messages=messages,
+		env_ids=env_ids,
+		output_path=conversation_output_path
+	)
 	
 	print(f"Environment data logged to {output_path}")
+	return output_path
+
+
+def format_conversations(messages: List[Dict], env_ids: List[int], output_path: str):
+	"""Parse and format conversations with clear separation of introduction, turns, and think/answer sections."""
+	formatted_conversations = []
+	
+	for env_id, message_list in zip(env_ids, messages):
+		
+		# Extract introduction (first part)
+		introduction = message_list[0] if message_list else ""
+		
+		# Parse remaining parts into turns
+		turns = []
+		current_turn = {"user": "", "agent_think": "", "agent_answer": ""}
+		
+		for message in message_list[1:]:
+			if message['role'] == "user":
+				# Save previous turn if exists
+				if current_turn["user"] or current_turn["agent_think"] or current_turn["agent_answer"]:
+					turns.append(current_turn)
+				# Start new turn
+				current_turn = {"user": message['content'], "agent_think": "", "agent_answer": ""}
+			elif message['role'] == "assistant":
+				# Parse agent response for think/answer sections
+				agent_text = message['content']
+				
+				# Extract think section
+				think_match = re.search(r'<think>(.*?)</think>', agent_text, re.DOTALL)
+				current_turn["agent_think"] = think_match.group(1).strip() if think_match else ""
+				
+				# Extract answer section
+				answer_match = re.search(r'<answer>(.*?)</answer>', agent_text, re.DOTALL)
+				current_turn["agent_answer"] = answer_match.group(1).strip() if answer_match else ""
+				
+				# If no think/answer tags, treat whole response as answer
+				if not think_match and not answer_match:
+					current_turn["agent_answer"] = agent_text.replace("Assistant:", "").strip()
+		
+		# Add final turn
+		if current_turn["user"] or current_turn["agent_think"] or current_turn["agent_answer"]:
+			turns.append(current_turn)
+		
+		formatted_conversations.append({
+			"env_id": env_id,
+			"introduction": introduction,
+			"turns": turns
+		})
+	
+	# Format for readable output
+	formatted_text = ""
+	for conv in formatted_conversations:
+		formatted_text += f"=" * 80 + "\n"
+		formatted_text += f"ENVIRONMENT {conv['env_id']}\n"
+		formatted_text += f"=" * 80 + "\n\n"
+		
+		formatted_text += f"INTRODUCTION:\n{'-' * 40}\n{conv['introduction']}\n\n"
+		
+		for i, turn in enumerate(conv['turns'], 1):
+			formatted_text += f"TURN {i}:\n{'-' * 40}\n"
+			
+			if turn["user"]:
+				formatted_text += f"USER:\n{turn['user']}\n\n"
+			
+			if turn["agent_think"]:
+				formatted_text += f"AGENT THINKING:\n{turn['agent_think']}\n\n"
+			
+			if turn["agent_answer"]:
+				formatted_text += f"AGENT ANSWER:\n{turn['agent_answer']}\n\n"
+		
+		formatted_text += "\n"
+	
+	# Save formatted conversations
+	os.makedirs(os.path.dirname(output_path), exist_ok=True)
+	with open(output_path, "w", encoding="utf-8") as f:
+		f.write(formatted_text)
+	
+	print(f"Formatted conversations saved to {output_path}")
 	return output_path
 
 @hydra.main(version_base=None, config_path="../../config", config_name="evaluate_spatial")
@@ -233,6 +319,9 @@ def main(config):
 		config=config,
 		output_path=config.output_path
 	)
+	
+	# format conversations for readable output
+	
 
 if __name__ == "__main__":
 	main()

@@ -2,12 +2,12 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial-new/passive_3_objects/gpt-4o/false_belief.json
+output_path: results/spatial-new/passive_3_objects/o4-mini/false_belief.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: gpt-4o
+  model_name: o4-mini
   max_concurrency: 8
 
 actor_rollout_ref:
