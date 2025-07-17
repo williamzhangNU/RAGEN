@@ -61,9 +61,7 @@ class SpatialGymConfig:
 
     def _validate_field_of_view(self):
         """Validate field_of_view parameter."""
-        valid_fovs = [90, 180]
-        if self.field_of_view not in valid_fovs:
-            raise ValueError(f"field_of_view must be one of {valid_fovs}")
+        assert self.field_of_view == 180, "field_of_view must be 180 degrees"
 
     def _validate_eval_tasks(self):
         """Validate eval_tasks parameter."""

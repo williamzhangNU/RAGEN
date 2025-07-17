@@ -1,7 +1,7 @@
 ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
-Your goal: Learn ALL spatial relationships between EVERY pair of objects in the room.
+Your goal: Learn ALL spatial relationships between EACH pair of objects in the room.
 
 ## Direction Format:
 Spatial relationships are described using (<horizontal>, <vertical>) format:
@@ -18,12 +18,17 @@ Suppose you are facing north, then:
 - **left**: west (90° counterclockwise)
 
 ## Critical Requirements:
-1. **Complete Coverage**: Explore until you know where every object is relative to every other object
+1. **Complete Coverage**: 
+   - Explore until you know where every object is relative to every other object. Only stop when you have all spatial relationships.
+   - Only know relationships between object and yourself is NOT enough.
 2. **Be Efficient** (Avoid redundant observations):
    - Focus on areas where you expect to eliminate some unknown relationships
    - If you know all objects are in one general direction but lack specific details, focus your exploration there 
       - (e.g., if all objects are to your left but you don't know which are in front vs. back, explore the left side systematically)
 3. **Stop When Done**: End exploration as soon as you have all spatial relationships
+
+## Tips:
+- If you do not see one object in field of view, it also provides spatial information that the object is behind you (field of view is 180 degrees)
 
 
 ## Important Notes:

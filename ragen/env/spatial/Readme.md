@@ -121,7 +121,8 @@ If you need to make changes to the Base module:
 **Important**: All imports from the Base module should use the path `ragen.env.spatial.Base.tos_base` instead of `ragen.env.spatial.Base`.
 
 ## TODO
-- [x] Testing efficiency of exploration (90 and 180)
+- [x] Testing efficiency of exploration (90 and 180) ✓
+- [x] Sometimes not all evaluation tasks are finished
 - [x] Change move: agent can only move to objects it observed
 - [x] Add an object as original position?
 - [x] Add reason for invalid action / input
