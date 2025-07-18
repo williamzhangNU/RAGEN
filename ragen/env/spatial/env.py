@@ -19,6 +19,7 @@ from ragen.env.spatial.prompts import (
     SHORT_EXPLORATION_PROMPT, 
     SHORT_EVALUATION_PROMPT
 )
+from ragen.env.spatial.utils.action_utils import action_results_to_text
 
 
 
@@ -147,12 +148,12 @@ class SpatialGym(gym.Env):
         else:
             # Execute exploration action, TODO give reward to efficient exploration
             if action_sequence:
-                result, exp_info = self.exploration_manager.explore(action_sequence)
+                exp_info, action_results = self.exploration_manager.execute_action_sequence(action_sequence)
                 # Track redundant queries
                 if exp_info.get('redundant', False):
                     self.n_redundant_queries += 1
                     reward += -1 # redundant observe penalty
-                obs += result
+                obs += action_results_to_text(action_results)
             obs += f"\nYou have a maximum of {self.remaining_exp_steps} exploration steps left."
         
         self._update_render_cache(obs)

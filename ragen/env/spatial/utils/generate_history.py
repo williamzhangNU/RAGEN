@@ -20,6 +20,7 @@ from ragen.env.spatial.Base.tos_base import (
     Object,
     Agent,
 )
+from ragen.env.spatial.utils.action_utils import action_results_to_text
 
 class AutoExplore:
     """
@@ -32,27 +33,22 @@ class AutoExplore:
         self.np_random = np_random
         self.exp_manager = ExplorationManager(self.room)
 
-    
-
-    def _generate_history_passive(self) -> List[Tuple]:
+    def _generate_history_passive(self) -> List[List]:
         """
-        Generate exploration history of egocentric exploration using ExplorationManager
-        NOTE oracle generation
-        
+        Generate exploration history using ExplorationManager.
         Returns:
-            history: list of ((obj_name, dir_pair))
-            actions: list of Action instances in chronological order
+            action_results_per_turn: ActionResults for each turn
         """
         assert self.room.agent is not None, "Agent is not in the room"
 
-        observe_result, actions, actions_in_a_turn = [], [], []
+        action_results_per_turn, actions_in_a_turn = [], []
         agent_idx = self.exp_manager._get_index(self.room.agent.name)
 
         while True:
             unknown_pairs = self.exp_manager.get_unknown_pairs()
             if not unknown_pairs:
                 # no unknown pairs --> terminate
-                actions.append([TermAction()])
+                action_results_per_turn.append([])  # Empty turn for termination
                 break
 
             # Get unknowns involving agent
@@ -71,14 +67,14 @@ class AutoExplore:
                 # Turn to face target before moving
                 rotation = self._find_rotation_to_see_object(next_obj_idx)
                 if rotation != 0:
-                    action = RotateAction(rotation)
-                    actions_in_a_turn.append(action)
-                    self.exp_manager.execute_action(action)
+                    result = self.exp_manager.execute_action(RotateAction(rotation))
+                    assert result.success, f"Failed to rotate: {result.message}"
+                    actions_in_a_turn.append(result)
                 
                 # Move to target object
-                action = MoveAction(obj_name)
-                actions_in_a_turn.append(action)
-                self.exp_manager.execute_action(action)
+                result = self.exp_manager.execute_action(MoveAction(obj_name))
+                assert result.success, f"Failed to move: {result.message}"
+                actions_in_a_turn.append(result)
                 continue
             
             # Check if there are already visible unknowns in current direction
@@ -89,22 +85,21 @@ class AutoExplore:
             if current_visible_count == 0:
                 best_direction = self._find_best_direction(agent_unknown_pairs)
                 if best_direction != 0:
-                    action = RotateAction(best_direction)
-                    actions_in_a_turn.append(action)
-                    self.exp_manager.execute_action(action)
+                    result = self.exp_manager.execute_action(RotateAction(best_direction))
+                    assert result.success, f"Failed to rotate: {result.message}"
+                    actions_in_a_turn.append(result)
             
             # Perform observation
-            action = ObserveAction()
-            actions_in_a_turn.append(action)
-            success, message, data = self.exp_manager._execute_and_update(action)
-            
-            observe_result.append(message)
+            result = self.exp_manager.execute_action(ObserveAction())
+            assert result.success, f"Failed to observe: {result.message}"
+            actions_in_a_turn.append(result)
             
             # Observation marks end of turn
-            actions.append(actions_in_a_turn)
+            action_results_per_turn.append(actions_in_a_turn)
             actions_in_a_turn = []
 
-        return observe_result, actions
+        return action_results_per_turn
+    
 
     def _would_be_visible_after_rotation(self, target_idx: int, rotation: int) -> bool:
         """Check visibility after rotation"""
@@ -135,7 +130,6 @@ class AutoExplore:
         
         return best_direction
 
-
     def _find_rotation_to_see_object(self, target_idx: int) -> int:
         """Find rotation needed to see specific object"""
         for rotation in [0, 90, 180, 270]:
@@ -143,41 +137,36 @@ class AutoExplore:
                 return rotation
         return 0
     
-    def _format_history_to_string(self, observe_result: List[str], actions: List[List[BaseAction]]) -> str:
-        """Convert history and actions to formatted string with numbered turns."""
+    def _format_history_to_obs(self, action_results_per_turn: List[List]) -> Dict:
+        """Convert action results to obs format with multi_modal_data."""
         turn_strings = []
-        observe_idx = 0
         
-        for turn_num, turn_actions in enumerate(actions, 1):
-            action_strings = []
-            
-            for action in turn_actions:
-                if isinstance(action, ObserveAction) and observe_idx < len(observe_result):
-                    action_strings.append(observe_result[observe_idx])
-                    observe_idx += 1
-                else:
-                    action_strings.append(action.success_message())
-            
-            turn_strings.append(f"{turn_num}. {' '.join(action_strings)}")
+        for turn_num, turn_results in enumerate(action_results_per_turn, 1):
+            if not turn_results:  # Empty turn (termination)
+                continue
+                
+            turn_text = action_results_to_text(turn_results)
+            turn_strings.append(f"{turn_num}. {turn_text}")
         
-        return "\n".join(turn_strings)
-    
+        obs = "\n".join(turn_strings)
+        return obs
+            
     def gen_exp_history(self) -> str:
-        observe_result, actions = self._generate_history_passive()
-        return self._format_history_to_string(observe_result, actions)
+        """Generate exploration history in obs format."""
+        return self._format_history_to_obs(self._generate_history_passive())
 
 if __name__ == "__main__":
     import re
     from ragen.env.spatial.Base.tos_base import Object, Agent, generate_room, CANDIDATE_OBJECTS
     from gymnasium.utils import seeding
 
+    BaseAction.set_field_of_view(180)
     rng1 = seeding.np_random(2)[0]
     room = generate_room(
         room_range=(-5, 5),
         n_objects=3,
         candidate_objects=CANDIDATE_OBJECTS,
         generation_type='rand',
-        perspective='ego',
         np_random=rng1,
     )
     print(room)
