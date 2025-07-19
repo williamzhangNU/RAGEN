@@ -4,3 +4,6 @@
 [submodule "external/webshop-minimal"]
 	path = external/webshop-minimal
 	url = https://github.com/ZihanWang314/webshop-minimal.git
+[submodule "ragen/env/spatial/ToS_Base"]
+	path = ragen/env/spatial/ToS_Base
+	url = https://github.com/williamzhangNU/ToS_Base

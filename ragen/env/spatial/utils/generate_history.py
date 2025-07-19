@@ -5,7 +5,7 @@ import numpy as np
 from collections import Counter
 
 from typing import List, Tuple, Dict
-from ragen.env.spatial.Base import (
+from ragen.env.spatial.ToS_Base.tos_base import (
     Room,
     DirectionalGraph,
     DirPair,
@@ -14,7 +14,6 @@ from ragen.env.spatial.Base import (
     BaseAction,
     MoveAction,
     RotateAction,
-    QueryAction,
     TermAction,
     ExplorationManager
 )

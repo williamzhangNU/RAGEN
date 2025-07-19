@@ -3,7 +3,7 @@ import re
 from typing import Optional
 
 from ragen.env.spatial.config import SpatialGymConfig
-from ragen.env.spatial.Base import (
+from ragen.env.spatial.ToS_Base.tos_base import (
     EvaluationManager,
     Room,
     ActionSequence,
@@ -459,7 +459,7 @@ if __name__ == "__main__":
         """Test action sequence parsing."""
         print("Testing Action Parsing...")
         
-        from ragen.env.spatial.Base import ActionSequence
+        from ragen.env.spatial.ToS_Base.tos_base import ActionSequence
         
         test_actions = [
             "Query(table)",
