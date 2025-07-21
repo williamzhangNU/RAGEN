@@ -19,22 +19,18 @@ env = SpatialGym(config)
 observation = env.reset()
 
 # Agent explores
-action = "Move(table)"
-observation, reward, done, info = env.step(action)
-
-# Agent observes
-action = "Observe()"
+action = "Movement: [Move(table), Rotate(90)]; Final: Observe()"
 observation, reward, done, info = env.step(action)
 
 # End exploration
-action = "Terminate()"
+action = "Movement: []; Final: Term()"
 observation, reward, done, info = env.step(action)
 ```
 
 ## Exploration Modes
 
 ### Active Exploration
-- Agent has 90° field of view
+- Agent has 180° field of view
 - Can only query visible objects
 - Must move strategically to discover all relationships
 
@@ -57,11 +53,16 @@ observation, reward, done, info = env.step(action)
 
 ## Evaluation Tasks
 
-The environment includes various spatial reasoning tasks:
-- **Direction**: Understanding cardinal directions (N, S, E, W)
-- **Rotation**: Understanding rotational relationships  
-- **Point of View**: Spatial relationships from different perspectives
-- **Object Relations**: Relative positions between objects
+The environment includes various spatial reasoning tasks (`ragen/env/spatial/Base/tos_base/evaluation/task_types.py`):
+- **all_pairs**: Understanding all pairs of objects
+- **rot**: Mental Rotation
+- **rot_dual**: Mental Rotation (dual task)
+- **pov**: Spatial relationships from different perspectives
+- **rot_pov**: Mental rotation from a different perspective
+- **e2a**: Allocentric representation
+- **loc**: Determine where the agent is
+- **false_belief**: False Belief with object rotation only
+- **false_belief (w/ movement)**: False Belief with object movement
 
 ## Configuration
 
@@ -112,13 +113,30 @@ git submodule status
 If you need to make changes to the Base module:
 
 1. Navigate to the submodule directory: `cd ragen/env/spatial/Base`
-2. Create a new branch: `git checkout -b feature/your-feature`
-3. Make your changes and commit them
-4. Push to the submodule repository: `git push origin feature/your-feature`
-5. Create a pull request in the submodule repository
-6. Once merged, update the main repository to point to the new commit
+2. Make your changes and commit them
+3. Push to the submodule repository: `git push origin main`
+4. Once pushed, update the main repository to point to the new commit
 
-**Important**: All imports from the Base module should use the path `ragen.env.spatial.Base.tos_base` instead of `ragen.env.spatial.Base`.
+
+## NOTE
+1. After exploration, the agent will return the its original position and orientation.
+
+
+## Run Evaluation
+
+### Prompts
+1. Overall Prompts at `ragen/env/spatial/prompts.py`
+2. Action Prompts at `ragen/env/spatial/Base/tos_base/actions/actions.py`
+
+### Settings
+1. Add or modify environment settings at `config/envs.yaml`
+2. Environment config file: `ragen/env/spatial/config.py`, when you edit `config/envs.yaml`, you need to refer to `config.py`
+3. Add or modify models to be evaluated at `config/evaluate_api_llm.yaml`
+
+### Evaluation
+1. The main config file is `config/evaluate_spatial.yaml`
+2. Run `python -m ragen.llm_agent.agent_proxy` to run evaluation
+
 
 ## TODO
 - [x] Testing efficiency of exploration (90 and 180) ✓
@@ -127,6 +145,4 @@ If you need to make changes to the Base module:
 - [x] Add an object as original position?
 - [x] Add reason for invalid action / input
 - [x] Before exploration, first tell the agent what question it needs to answer
-
-## NOTE
-1. After exploration, the agent will return the its original position and orientation.
+- [x] Write a script to evaluate all tasks and all models

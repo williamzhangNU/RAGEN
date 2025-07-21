@@ -139,11 +139,27 @@ custom_envs:
     env_config: # keys should be a subset of SokobanConfig
       exp_type: "passive"
       generation_type: "rot"
-      n_objects: 4
+      n_objects: 3
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
             turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
+
+  PassiveCounterRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "counterclockwise"
             if_turn: false
             if_move: false
 
@@ -158,33 +174,6 @@ custom_envs:
       n_objects: 3
       eval_tasks:
         - task_type: "all_pairs"
-          task_kwargs: {}
-
-  ActiveAllPairs:
-    env_type: SpatialGym
-    max_actions_per_traj: 20
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      exp_type: "active"
-      generation_type: "rand"
-      max_exp_steps: 10
-      n_objects: 3
-      eval_tasks:
-        - task_type: "all_pairs"
-          task_kwargs: {}
-
-  PassivePoV:
-    env_type: SpatialGym
-    max_actions_per_traj: 1
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      exp_type: "passive"
-      generation_type: "pov"
-      n_objects: 3
-      eval_tasks:
-        - task_type: "pov"
           task_kwargs: {}
 
   PassiveLoc:
@@ -213,6 +202,51 @@ custom_envs:
         - task_type: "false_belief"
           task_kwargs: {'action_type': 'rotation'}
 
+  PassivePoV:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      generation_type: "pov"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "pov"
+          task_kwargs: {}
+
+  PassiveRotDual:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "rot_dual"
+          task_kwargs: {}
+
+
+
+
+
+
+
+  ActiveAllPairs:
+    env_type: SpatialGym
+    max_actions_per_traj: 20
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      exp_type: "active"
+      generation_type: "rand"
+      max_exp_steps: 10
+      n_objects: 3
+      eval_tasks:
+        - task_type: "all_pairs"
+          task_kwargs: {}
 
   ActiveRot:
     env_type: SpatialGym
@@ -230,16 +264,3 @@ custom_envs:
             turn_direction: "clockwise"
             if_turn: false
             if_move: false
-
-  PassiveRotCounter:
-    env_type: SpatialGym
-    max_actions_per_traj: 1
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      exp_type: "passive"
-      turn_direction: "counterclockwise"
-      generation_type: "rot"
-      eval_tasks:
-        - task_type: "rot"
-          task_kwargs: {}
