@@ -230,7 +230,13 @@ class SpatialGym(gym.Env):
             }
         
         return self.evaluation_manager.get_evaluation_summary()
-
+    def get_exploration_per_turn_metrics(self):
+        """Get exploration per turn metrics"""
+        assert self.exploration_manager, "Exploration manager not initialized"
+        return self.exploration_manager.get_metrics_log()
+    def get_evaluation_per_turn_metrics(self):
+        """Get evaluation per turn metrics"""
+        return self.evaluation_manager.get_eval_metrics_log()
 
     @staticmethod
     def aggregate_env_data(
@@ -247,6 +253,8 @@ class SpatialGym(gym.Env):
                 "env_info": env.get_env_info(),
                 "exploration_efficiency": env.get_exp_efficiency(),
                 "evaluation_performance": env.get_eval_performance(),
+                "exploration_metrics_log": env.get_exploration_per_turn_metrics(),
+                "evaluation_metrics_log": env.get_evaluation_per_turn_metrics()
             })
 
         num_envs = len(env_data_list)

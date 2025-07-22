@@ -6,15 +6,15 @@ from typing import List, Dict
 import time
 import json
 import re
-
 from ragen.env.spatial.env import SpatialGym
-from verl import DataProto
+from ragen.utilities.visualization import visualize
+from verl.verl import DataProto
 from omegaconf import ListConfig, DictConfig, OmegaConf
-from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
-from .ctx_manager import ContextManager
+from verl.verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from .es_manager import EnvStateManager
-from vllm import LLM, SamplingParams
-from verl.single_controller.ray.base import RayWorkerGroup
+from .ctx_manager import ContextManager
+#from vllm import LLM, SamplingParams
+from verl.verl.single_controller.ray.base import RayWorkerGroup
 from .base_llm import ConcurrentLLM
 
 class VllmWrapperWg: # Thi is a developing class for eval and test
@@ -25,19 +25,19 @@ class VllmWrapperWg: # Thi is a developing class for eval and test
 		ro_config = config.actor_rollout_ref.rollout
 		self.llm = LLM(
 			model_name,
-            enable_sleep_mode=True,
-            tensor_parallel_size=ro_config.tensor_model_parallel_size,
-            dtype=ro_config.dtype,
-            enforce_eager=ro_config.enforce_eager,
-            gpu_memory_utilization=ro_config.gpu_memory_utilization,
-            disable_custom_all_reduce=True,
-            disable_mm_preprocessor_cache=True,
-            skip_tokenizer_init=False,
-            max_model_len=ro_config.max_model_len,
-            disable_log_stats=ro_config.disable_log_stats,
-            max_num_batched_tokens=ro_config.max_num_batched_tokens,
-            enable_chunked_prefill=ro_config.enable_chunked_prefill,
-            enable_prefix_caching=True,
+			enable_sleep_mode=True,
+			tensor_parallel_size=ro_config.tensor_model_parallel_size,
+			dtype=ro_config.dtype,
+			enforce_eager=ro_config.enforce_eager,
+			gpu_memory_utilization=ro_config.gpu_memory_utilization,
+			disable_custom_all_reduce=True,
+			disable_mm_preprocessor_cache=True,
+			skip_tokenizer_init=False,
+			max_model_len=ro_config.max_model_len,
+			disable_log_stats=ro_config.disable_log_stats,
+			max_num_batched_tokens=ro_config.max_num_batched_tokens,
+			enable_chunked_prefill=ro_config.enable_chunked_prefill,
+			enable_prefix_caching=True,
 		)
 		print("LLM initialized")
 		self.sampling_params = SamplingParams(
@@ -73,47 +73,47 @@ class VllmWrapperWg: # Thi is a developing class for eval and test
 		return lm_outputs
 	
 class ApiCallingWrapperWg:
-    """Wrapper class for API-based LLM calls that fits into the VERL framework"""
-    
-    def __init__(self, config, tokenizer):
-        self.config = config
-        self.tokenizer = tokenizer
-        model_info = config.model_info[config.api_model_info.model_name]
-        self.llm_kwargs = model_info.generation_kwargs
-        
-        
-        self.llm = ConcurrentLLM(
+	"""Wrapper class for API-based LLM calls that fits into the VERL framework"""
+	
+	def __init__(self, config, tokenizer):
+		self.config = config
+		self.tokenizer = tokenizer
+		model_info = config.model_info[config.api_model_info.model_name]
+		self.llm_kwargs = model_info.generation_kwargs
+		
+		
+		self.llm = ConcurrentLLM(
 			provider=model_info.provider_name,
-            model_name=model_info.model_name,
-            max_concurrency=config.api_model_info.max_concurrency
-        )
-        
-        print(f'API-based LLM ({model_info.provider_name} - {model_info.model_name}) initialized')
+			model_name=model_info.model_name,
+			max_concurrency=config.api_model_info.max_concurrency
+		)
+		
+		print(f'API-based LLM ({model_info.provider_name} - {model_info.model_name}) initialized')
 
 
-    def generate_sequences(self, lm_inputs: DataProto) -> DataProto:
-        """
-        Convert the input ids to text, make API calls to generate responses, 
-        and create a DataProto with the results.
-        """
+	def generate_sequences(self, lm_inputs: DataProto) -> DataProto:
+		"""
+		Convert the input ids to text, make API calls to generate responses, 
+		and create a DataProto with the results.
+		"""
 
-        messages_list = lm_inputs.non_tensor_batch['messages_list'].tolist()
-        results, failed_messages = self.llm.run_batch(
-            messages_list=messages_list,
-            **self.llm_kwargs
-        )
-        assert not failed_messages, f"Failed to generate responses for the following messages: {failed_messages}"
+		messages_list = lm_inputs.non_tensor_batch['messages_list'].tolist()
+		results, failed_messages = self.llm.run_batch(
+			messages_list=messages_list,
+			**self.llm_kwargs
+		)
+		assert not failed_messages, f"Failed to generate responses for the following messages: {failed_messages}"
 
-        texts = [result["response"] for result in results]
-        lm_outputs = DataProto()
-        lm_outputs.non_tensor_batch = {
+		texts = [result["response"] for result in results]
+		lm_outputs = DataProto()
+		lm_outputs.non_tensor_batch = {
 			'response_texts': texts,
 			'env_ids': lm_inputs.non_tensor_batch['env_ids'],
 			'group_ids': lm_inputs.non_tensor_batch['group_ids']
 		} # this is a bit hard-coded to bypass the __init__ check in DataProto
-        lm_outputs.meta_info = lm_inputs.meta_info
-        
-        return lm_outputs
+		lm_outputs.meta_info = lm_inputs.meta_info
+		
+		return lm_outputs
 
 class LLMAgentProxy:
 	"""
@@ -173,7 +173,6 @@ def convert_omegaconf_to_python(obj):
 	else:
 		return obj
 
-
 def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_ids: List[int], config, output_path: str):
 	"""Logs detailed information for each environment and overall performance metrics."""
 	aggregated_data = SpatialGym.aggregate_env_data(envs, messages, env_ids)
@@ -199,9 +198,11 @@ def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_i
 		env_ids=env_ids,
 		output_path=conversation_output_path
 	)
-	
+	dashboard_path = visualize(envs, messages, env_ids, config, output_path)
 	print(f"Environment data logged to {output_path}")
+	print(f"Dashboard written to {dashboard_path}")
 	return output_path
+
 
 
 def format_conversations(messages: List[Dict], env_ids: List[int], output_path: str):
