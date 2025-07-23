@@ -143,9 +143,11 @@ def visualize(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_ids: List
 			ev_static = entry.get('evaluation_performance', {})
 			metrics   = {**em_static, **ev_static}
 
-		# plot room
+		# write room config and plot room
 			env_id  = env_ids[idx]
 			room    = envs[env_id].initial_room
+			env_info = envs[env_id].get_env_info()
+			env_config = {**env_info['config']}
 			turn_img_name = f"{base}_turn{idx+1}.png"
 			turn_img_path = os.path.join(html_dir, turn_img_name)
 			room.plot(render_mode='img', save_path=turn_img_path)
@@ -154,7 +156,10 @@ def visualize(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_ids: List
 			f.write(f"<section class='sample-page' id='page{idx}'>\n")
 			f.write(f"<h2>Sample {idx+1}</h2>\n")
 			f.write(f"<img src='{turn_img_name}' alt='room' class='room'>\n")
-
+			f.write("<div class='metrics'><strong>Env Info</strong>\n")
+			for k,v in env_config.items():
+				f.write(f"<div>{escape(str(k))}: {escape(str(v))}</div>")
+			f.write("</div>\n")  # metrics
 			turns = split_into_turns(entry.get("message", []))
 			exp_log_raw = entry.get("exploration_metrics_log", [])
 			exp_log = squash_exp_logs(exp_log_raw)
