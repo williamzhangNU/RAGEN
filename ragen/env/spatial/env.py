@@ -55,18 +55,16 @@ class SpatialGym(gym.Env):
 
     def _generate_initial_observation(self) -> str:
         """Generate initial observation based on exploration type."""
-        room_desc = self.initial_room.get_room_description()
+        room_desc = self.initial_room.get_room_description(with_topdown=self.config.with_topdown)
         
         if self.config.exp_type == 'passive':
-            auto_explore = AutoExplore(self.initial_room, self.np_random)
-            exp_history = f"## Exploration History\n{auto_explore.gen_exp_history()}"
+            exp_history = f"## Exploration History\n{AutoExplore(self.initial_room, self.np_random).gen_exp_history()}" if not self.config.with_topdown else ""
             eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
             assert eval_question, "No question found after exploration phase"
             obs = PASSIVE_INSTRUCTION.format(
                 room_info=room_desc,
                 exp_history=exp_history,
             )
-
             obs += EVALUATION_INSTRUCTION.format(eval_question=f"## Evaluation Question\n{eval_question}")
 
         else:
@@ -100,13 +98,13 @@ class SpatialGym(gym.Env):
         self.n_redundant_queries = 0
         
         # Set exploration phase
-        self.is_exploration_phase = self.config.exp_type != 'passive'
+        self.is_exploration_phase = self.config.exp_type not in ['passive', 'overview']
         
         # Set field of view for all actions
         BaseAction.set_field_of_view(self.config.field_of_view)
         
         # Initialize managers
-        if self.config.exp_type == 'active':
+        if self.config.exp_type in ['active', 'active_overview']:
             self.exploration_manager = ExplorationManager(self.initial_room)
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random)
 
@@ -196,6 +194,10 @@ class SpatialGym(gym.Env):
 
 
 
+
+
+
+
     # =============== Analysis Methods ===============
     def get_env_info(self):
         """Get environment state information."""
@@ -238,35 +240,87 @@ class SpatialGym(gym.Env):
         messages: List[str], 
         env_ids: List[int]
     ) -> Dict:
-        """Gathers data from multiple environments and calculates aggregate metrics."""
-        env_data_list = []
+        """
+        Group environments by config name and calculate aggregate metrics.
+        
+        Returns:
+            Dict with structure:
+            {
+                'config_groups': {
+                    'config_name': {
+                        'env_data': [list of env data for this config]
+                    }
+                },
+                'exploration_efficiency': {
+                    'overall_performance': {...},
+                    'group_performance': {'config_name': {...}}
+                },
+                'evaluation_performance': {
+                    'overall_performance': {...},
+                    'group_performance': {'config_name': {...}}
+                }
+            }
+        """
+        from collections import defaultdict
+        
+        # Group environments by config name
+        config_groups = defaultdict(list)
         for message, env_id in zip(messages, env_ids):
             env = envs[env_id]
-            env_data_list.append({
+            config_name = env.config.name
+            env_data = {
                 "message": message,
                 "env_info": env.get_env_info(),
                 "exploration_efficiency": env.get_exp_efficiency(),
                 "evaluation_performance": env.get_eval_performance(),
-            })
-
-        num_envs = len(env_data_list)
-        overall_performance = {}
-
-        if num_envs > 0:
-            overall_performance = {
-                'exploration_efficiency': {
-                    'avg_coverage': sum(d['exploration_efficiency'].get('coverage', 0) for d in env_data_list) / num_envs,
-                    'avg_redundancy': sum(d['exploration_efficiency'].get('redundancy', 0) for d in env_data_list) / num_envs,
-                },
-                'evaluation_performance': {
-                    'avg_accuracy': sum(d['evaluation_performance'].get('accuracy', 0) for d in env_data_list) / num_envs,
-                }
+            }
+            config_groups[config_name].append(env_data)
+        
+        # Initialize result structure
+        result = {
+            "config_groups": {},
+            "exploration_efficiency": {"overall_performance": {}, "group_performance": {}},
+            "evaluation_performance": {"overall_performance": {}, "group_performance": {}}
+        }
+        
+        # Collect all metrics for overall calculation
+        all_exp_data, all_eval_data = [], []
+        
+        for config_name, env_data_list in config_groups.items():
+            # Store environment data
+            result["config_groups"][config_name] = {"env_data": env_data_list}
+            
+            # Extract metrics for this group
+            exp_metrics = [d['exploration_efficiency'] for d in env_data_list]
+            eval_metrics = [d['evaluation_performance'] for d in env_data_list]
+            
+            # Calculate group performance
+            result["exploration_efficiency"]["group_performance"][config_name] = {
+                'avg_coverage': sum(m.get('coverage', 0) for m in exp_metrics) / len(exp_metrics),
+                'avg_redundancy': sum(m.get('redundancy', 0) for m in exp_metrics) / len(exp_metrics),
+            }
+            
+            result["evaluation_performance"]["group_performance"][config_name] = {
+                'avg_accuracy': sum(m.get('accuracy', 0) for m in eval_metrics) / len(eval_metrics),
+            }
+            
+            # Collect for overall calculation
+            all_exp_data.extend(exp_metrics)
+            all_eval_data.extend(eval_metrics)
+        
+        # Calculate overall performance
+        if all_exp_data:
+            result["exploration_efficiency"]["overall_performance"] = {
+                'avg_coverage': sum(m.get('coverage', 0) for m in all_exp_data) / len(all_exp_data),
+                'avg_redundancy': sum(m.get('redundancy', 0) for m in all_exp_data) / len(all_exp_data),
             }
         
-        return {
-            'overall_performance': overall_performance,
-            'env_data': env_data_list,
-        }
+        if all_eval_data:
+            result["evaluation_performance"]["overall_performance"] = {
+                'avg_accuracy': sum(m.get('accuracy', 0) for m in all_eval_data) / len(all_eval_data),
+            }
+        
+        return result
 
 
 if __name__ == "__main__":
@@ -278,6 +332,7 @@ if __name__ == "__main__":
         
         # Create simple config
         config = SpatialGymConfig(
+            name="render_test",
             exp_type='active',
             max_exp_steps=2,
             eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
@@ -322,6 +377,7 @@ if __name__ == "__main__":
         
         # Create config for active exploration
         config = SpatialGymConfig(
+            name="active_test",
             exp_type='active',
             max_exp_steps=3,
             eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
@@ -377,19 +433,22 @@ if __name__ == "__main__":
         
         # Create config for passive exploration
         config = SpatialGymConfig(
+            name="passive_test",
             exp_type='passive',
             max_exp_steps=0,  # Not used in passive mode
             eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
             n_objects=3,
             generation_type="rand",
-            room_range=[-5, 5]
+            room_range=[-5, 5],
+            with_topdown=True
         )
         
         # Create and reset environment
         env = SpatialGym(config)
         env.reset(seed=42)
+        print(f"Initial room: {env.initial_room}")
         obs = env.render()
-        print(f"Initial observation with auto-exploration: {obs[:100]}...")
+        print(f"Initial observation with auto-exploration: {obs}")
         
         # Directly answer evaluation question (no exploration phase)
         _, reward, done, info = env.step("['keyboard', 'sofa', 'microphone']")
@@ -407,6 +466,7 @@ if __name__ == "__main__":
         
         # Create simple config
         config = SpatialGymConfig(
+            name="basic_test",
             exp_type='active',
             max_exp_steps=2,
             eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
@@ -444,6 +504,7 @@ if __name__ == "__main__":
         def run_test(fov, seed=0):
             print(f"\n--- Testing {fov}-degree FOV ---")
             config = SpatialGymConfig(
+                name=f"fov_test_{fov}",
                 exp_type='active',
                 max_exp_steps=1,
                 eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
@@ -473,16 +534,47 @@ if __name__ == "__main__":
         print("Keyboard in observation, as expected.")
         print()
     
+    def test_config_grouping():
+        """Test config grouping in aggregate_env_data."""
+        print("=== Testing Config Grouping ===")
+        
+        # Create environments with different config names
+        config1 = SpatialGymConfig(name="config_A", exp_type='active', max_exp_steps=1, n_objects=2)
+        config2 = SpatialGymConfig(name="config_B", exp_type='passive', n_objects=3)
+        config3 = SpatialGymConfig(name="config_A", exp_type='active', max_exp_steps=1, n_objects=2)  # Same as config1
+        
+        envs = {}
+        messages = ["msg1", "msg2", "msg3"]
+        env_ids = [1, 2, 3]
+        
+        # Create and reset environments
+        for i, config in enumerate([config1, config2, config3], 1):
+            env = SpatialGym(config)
+            env.reset(seed=42)
+            envs[i] = env
+        
+        # Test aggregation
+        result = SpatialGym.aggregate_env_data(envs, messages, env_ids)
+        
+        print(f"Config groups found: {list(result['config_groups'].keys())}")
+        print(f"Config A has {len(result['config_groups']['config_A']['env_data'])} environments")
+        print(f"Config B has {len(result['config_groups']['config_B']['env_data'])} environments")
+        print(f"Exploration efficiency sections: {list(result['exploration_efficiency'].keys())}")
+        print(f"Evaluation performance sections: {list(result['evaluation_performance'].keys())}")
+        print(f"Result: {result}")
+    
     # Run all tests
     try:
-        test_render_cache()
-        test_active_exploration()
+        # test_render_cache()
+        # test_active_exploration()
         test_passive_exploration()
-        test_basic_functionality()
-        test_field_of_view()
+        # test_basic_functionality()
+        # test_field_of_view()
+        # test_config_grouping()
         print("All tests completed successfully!")
     except Exception as e:
         print(f"Test failed with error: {e}")
         import traceback
         traceback.print_exc()
+
 

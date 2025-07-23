@@ -2,13 +2,13 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial-0720/passive_3_objects/o4-mini/results.json
+output_path: results/spatial-0720/passive_3_objects/o4-mini/rot.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
   model_name: o4-mini
-  max_concurrency: 8
+  max_concurrency: 64
 
 actor_rollout_ref:
   rollout:
@@ -22,8 +22,9 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 8
+    env_groups: 100
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["PassiveRotDual"] # ["PassivePoV", "PassiveRotDual", "PassiveRot", "PassiveAllPairs", "PassiveLoc", "PassiveFalseBelief", "PassiveCounterRot"]
-      n_groups: [8] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      # tags: ["PassiveRot", "PassiveCounterRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveAllPairs", "PassiveLoc", "PassiveFalseBelief", "PassiveE2A"]
+      tags: ["PassiveRot", "PassiveCounterRot"]
+      n_groups: [50, 50] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
