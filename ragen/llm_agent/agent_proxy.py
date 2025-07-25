@@ -2,12 +2,13 @@
 from transformers import AutoTokenizer
 import hydra
 import os
+from pathlib import Path
 from typing import List, Dict
 import time
 import json
 import re
 from ragen.env.spatial.env import SpatialGym
-from ragen.utilities.visualization import visualize
+from ragen.utilities.visualization import visualize_json
 from verl.verl import DataProto
 from omegaconf import ListConfig, DictConfig, OmegaConf
 from verl.verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
@@ -198,7 +199,13 @@ def log_each_env_info(envs: Dict[int, "SpatialGym"], messages: List[Dict], env_i
 		env_ids=env_ids,
 		output_path=conversation_output_path
 	)
-	dashboard_path = visualize(envs, messages, env_ids, config, output_path)
+	html_dir = os.path.dirname(output_path)
+	base = Path(output_path).stem
+
+	# Generate HTML dashboard
+	html_name = f"{base}_dashboard.html"
+	html_path = os.path.join(html_dir, html_name)
+	dashboard_path = visualize_json(output_path, html_path, True)
 	print(f"Environment data logged to {output_path}")
 	print(f"Dashboard written to {dashboard_path}")
 	return output_path
