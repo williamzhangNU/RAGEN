@@ -34,10 +34,6 @@ observation, reward, done, info = env.step(action)
 - Can only query visible objects
 - Must move strategically to discover all relationships
 
-### Semi-Active Exploration  
-- Agent can ask about any two objects
-- More flexible than active mode
-
 ### Passive Exploration
 - System provides complete exploration history
 - No agent movement required
@@ -127,6 +123,7 @@ If you need to make changes to the Base module:
 ### Prompts
 1. Overall Prompts at `ragen/env/spatial/prompts.py`
 2. Action Prompts at `ragen/env/spatial/Base/tos_base/actions/actions.py`
+3. Evaluation Prompts at `ragen/env/spatial/Base/tos_base/evaluation/tasks.py`
 
 ### Settings
 1. Add or modify environment settings at `config/envs.yaml`

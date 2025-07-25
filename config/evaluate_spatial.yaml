@@ -2,7 +2,7 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial-0720/passive_3_objects/o4-mini/rot.json
+output_path: results/spatial-0724/passive_3_objects/o4-mini/rot_dual.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
@@ -22,9 +22,17 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 100
+    env_groups: 50 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      # tags: ["PassiveRot", "PassiveCounterRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveAllPairs", "PassiveLoc", "PassiveFalseBelief", "PassiveE2A"]
-      tags: ["PassiveRot", "PassiveCounterRot"]
-      n_groups: [50, 50] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      tags: ["PassiveRotDual"]
+      n_groups: [50]
+      # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
+      # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
+      # tags: ["PassiveTopDownRot", "PassiveTopDownCounterRot", "PassiveTopDownRotDual", "PassiveTopDownCircularRot", "PassiveTopDownPoV", "PassiveTopDownAllPairs", "PassiveTopDownE2A", "PassiveTopDownLoc", "PassiveTopDownFalseBelief", "PassiveTopDownFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50]
+      # tags: ["ActiveTopDownRot"]
+      # n_groups: [50] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+
