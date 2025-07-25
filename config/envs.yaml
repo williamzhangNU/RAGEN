@@ -144,26 +144,8 @@ custom_envs:
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
-            turn_direction: "clockwise"
             if_turn: false
             if_move: false
-
-  PassiveCounterRot:
-    env_type: SpatialGym
-    max_actions_per_traj: 1
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      name: "passive_counter_rot"
-      exp_type: "passive"
-      generation_type: "rot"
-      n_objects: 3
-      eval_tasks:
-        - task_type: "rot"
-          task_kwargs:
-            turn_direction: "counterclockwise"
-            if_move: false
-            if_turn: false
 
   PassiveCircularRot:
     env_type: SpatialGym
@@ -180,20 +162,19 @@ custom_envs:
           task_kwargs:
             turn_direction: "clockwise"
 
-  PassiveAllPairs:
+  PassiveDir:
     env_type: SpatialGym
     max_actions_per_traj: 1
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
-      name: "passive_all_pairs"
+      name: "passive_dir"
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
       eval_tasks:
-        - task_type: "all_pairs"
-          task_kwargs:
-            num_pairs: 2
+        - task_type: "dir"
+          task_kwargs: {}
 
   PassiveLoc:
     env_type: SpatialGym
@@ -209,13 +190,13 @@ custom_envs:
         - task_type: "loc"
           task_kwargs: {}
 
-  PassiveFalseBelief:
+  PassiveFalseBeliefRotation:
     env_type: SpatialGym
     max_actions_per_traj: 1
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
-      name: "passive_false_belief"
+      name: "passive_false_belief_rotation"
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -235,7 +216,7 @@ custom_envs:
       n_objects: 3
       eval_tasks:
         - task_type: "false_belief"
-          task_kwargs: {'action_type': 'both'}
+          task_kwargs: {'action_type': 'movement'}
 
   PassivePoV:
     env_type: SpatialGym
@@ -281,6 +262,150 @@ custom_envs:
             if_move: false
             if_turn: false
 
+  
+  
+  PassiveTopDownRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_rot"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
+
+  PassiveTopDownCounterRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_counter_rot"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "counterclockwise"
+            if_move: false
+            if_turn: false
+
+  PassiveTopDownCircularRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_circular_rot"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "circular_rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+
+  PassiveTopDownDir:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_dir"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rand"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "dir"
+          task_kwargs: {}
+
+  PassiveTopDownLoc:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_loc"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rand"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "loc"
+          task_kwargs: {}
+
+  PassiveTopDownFalseBeliefRotation:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_false_belief_rotation"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rand"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "false_belief"
+          task_kwargs: {'action_type': 'rotation'}
+
+  PassiveTopDownFalseBeliefMovement:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_false_belief_movement"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rand"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "false_belief"
+          task_kwargs: {'action_type': 'movement'}
+
+  PassiveTopDownPoV:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_pov"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "pov"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "pov"
+          task_kwargs: {}
+
+  PassiveTopDownRotDual:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_topdown_rot_dual"
+      with_topdown: true
+      exp_type: "passive"
+      generation_type: "rot"
+      n_objects: 3
+      eval_tasks:
+        - task_type: "rot_dual"
+          task_kwargs: {}
+
   PassiveTopDownE2A:
     env_type: SpatialGym
     max_actions_per_traj: 1
@@ -297,38 +422,6 @@ custom_envs:
           task_kwargs: 
             if_move: false
             if_turn: false
-
-  PassiveTopDownRot:
-    env_type: SpatialGym
-    max_actions_per_traj: 1
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      name: "passive_topdown_rot"
-      with_topdown: true
-      exp_type: "passive"
-      generation_type: "rand"
-      n_objects: 3
-      eval_tasks:
-        - task_type: "rot"
-          task_kwargs: 
-            turn_direction: "clockwise"
-
-  PassiveTopDownCounterRot:
-    env_type: SpatialGym
-    max_actions_per_traj: 1
-    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
-    env_config: # keys should be a subset of SokobanConfig
-      name: "passive_topdown_counter_rot"
-      with_topdown: true
-      exp_type: "passive"
-      generation_type: "rand"
-      n_objects: 3
-      eval_tasks:
-        - task_type: "rot"
-          task_kwargs: 
-            turn_direction: "counterclockwise"
 
 
 
@@ -362,6 +455,25 @@ custom_envs:
       n_objects: 3
       max_exp_steps: 10 # 10
       generation_type: "rot"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
+
+  ActiveTopDownRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 20
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "active_topdown_rot"
+      exp_type: "active"
+      n_objects: 3
+      max_exp_steps: 10 # 10
+      generation_type: "rot"
+      with_topdown: true
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
