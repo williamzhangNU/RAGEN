@@ -11,6 +11,7 @@ class SpatialGymConfig:
     Configuration for the SpatialGym environment.
     
     Parameters:
+        name: Identifier for this configuration
         room_range: Range for room dimensions
         n_objects: Number of objects in the room
         candidate_objects: List of objects that can be placed in the room
@@ -22,11 +23,15 @@ class SpatialGymConfig:
         max_exp_steps: Maximum exploration steps for active exploration
         render_mode: Rendering mode (currently only 'text' supported)
     """
+    # Configuration name
+    name: str = "default"
+    
     # Room configuration
     room_range: List[int] = field(default_factory=lambda: [-10, 10])
     n_objects: int = 3
     candidate_objects: List[str] = field(default_factory=lambda: CANDIDATE_OBJECTS)
     generation_type: str = "rand"
+    with_topdown: bool = False  # Whether to include topdown view in room description
     
     # Exploration configuration
     exp_type: str = 'passive'
@@ -34,7 +39,7 @@ class SpatialGymConfig:
     max_exp_steps: int = 100
     
     # Evaluation configuration
-    eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "dir", "task_kwargs": {}}])
+    eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
     # Rendering configuration
     render_mode: str = "text"
@@ -55,7 +60,7 @@ class SpatialGymConfig:
 
     def _validate_exp_type(self):
         """Validate exp_type parameter."""
-        valid_exp_types = ["passive", "active"]
+        valid_exp_types = ["passive", "active", "overview", "active_overview"]
         if self.exp_type not in valid_exp_types:
             raise ValueError(f"exp_type must be one of {valid_exp_types}")
 
@@ -87,13 +92,13 @@ class SpatialGymConfig:
 
     def _validate_task_kwargs(self, task_type: str, kwargs: Dict[str, Any]):
         """Validate task-specific parameters."""
-        if task_type == 'dir':
-            movement = kwargs.get('movement', 'static')
-            valid_movements = ['static', 'object_move', 'agent_move', 'agent_turn']
-            if movement not in valid_movements:
-                raise ValueError(f"dir task movement must be one of {valid_movements}")
+        # if task_type == 'dir':
+        #     movement = kwargs.get('movement', 'static')
+        #     valid_movements = ['static', 'object_move', 'agent_move', 'agent_turn']
+        #     if movement not in valid_movements:
+        #         raise ValueError(f"dir task movement must be one of {valid_movements}")
         
-        elif task_type == 'rot':
+        if task_type == 'rot':
             turn_direction = kwargs.get('turn_direction', 'clockwise')
             valid_directions = ['clockwise', 'counterclockwise']
             if turn_direction not in valid_directions:
@@ -117,6 +122,7 @@ class SpatialGymConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
+            'name': self.name,
             'room_range': self.room_range,
             'generation_type': self.generation_type,
             'n_objects': self.n_objects,    
