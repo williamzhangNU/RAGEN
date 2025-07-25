@@ -234,6 +234,8 @@ class SpatialGym(gym.Env):
         return self.evaluation_manager.get_evaluation_summary()
     def get_exploration_per_turn_metrics(self):
         """Get exploration per turn metrics"""
+        if self.config.exp_type == 'passive':
+            return []
         assert self.exploration_manager, "Exploration manager not initialized"
         return self.exploration_manager.get_metrics_log()
     def get_evaluation_per_turn_metrics(self):

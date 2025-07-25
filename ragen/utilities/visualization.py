@@ -45,17 +45,13 @@ def squash_exp_logs(exp_log: List[Dict]) -> List[Dict]:
 			merged.append(first)
 	return merged
 
-# --- optional: plot rooms from json using your Room class (comment out if not needed) ---
 def plot_initial_room(entry, out_dir, base, idx):
-	try:
-		from ragen.env.spatial.Base.tos_base.core.room import Room
-		room = Room.from_dict(entry["env_info"]["initial_room"])
-		img_name = f"{base}_turn{idx+1}.png"
-		img_path = os.path.join(out_dir, img_name)
-		room.plot(render_mode='img', save_path=img_path)
-		return img_name
-	except Exception:
-		return None
+	from ragen.env.spatial.Base.tos_base.core.room import Room
+	room = Room.from_dict(entry["env_info"]["initial_room"])
+	img_name = f"{base}_turn{idx+1}.png"
+	img_path = os.path.join(out_dir, img_name)
+	room.plot(render_mode='img', save_path=img_path)
+	return img_name
 
 def visualize_json(json_path: str, output_html: str, plot_rooms: bool = True):
 	"""
@@ -67,13 +63,26 @@ def visualize_json(json_path: str, output_html: str, plot_rooms: bool = True):
 		data = json.load(f)
 
 	meta = data.get("meta_info", {})
+	config_groups = data["config_groups"]  
+	total_groups = len(config_groups)
 	env_data = data.get("env_data", [])
 	overall = data.get("overall_performance", {})
 
 	out_dir = os.path.dirname(output_html)
 	base = Path(output_html).stem
 
-	total_pages = len(env_data)
+	samples_per_group = {
+	  gname: len(group["env_data"])
+	  for gname, group in config_groups.items()
+	}
+	total_samples = sum(samples_per_group.values())
+	total_pages   = 1 + total_samples   # page 0 = TOC
+
+	# Build a flat list of (group_name, sample_idx, entry)
+	flat = []
+	for gname, group in config_groups.items():
+		for sidx, entry in enumerate(group["env_data"]):
+			flat.append((gname, sidx, entry))
 
 	with open(output_html, "w") as f:
 		f.write(f"""<!DOCTYPE html>
@@ -145,67 +154,83 @@ window.addEventListener('load', ()=>{{
   <span id='counter'></span>
 </div>
 """)
+		f.write(f"<h1>Model: {escape(meta['model_name'])}</h1>\n")
+		# --- TOC page ---
+		f.write("<section class='sample-page' id='page0'>\n")
+		f.write("<h2>Table of Contents</h2>\n<ul>\n")
+		running_page = 1
+		for gname, group in config_groups.items():
+			f.write(f"<li><strong>{escape(gname)}</strong>\n  <ul>\n")
+			for idx in range(len(group["env_data"])):
+				label = f"Sample {idx+1}"
+				f.write(
+				  f"    <li>"
+				  f"<a href='#' onclick=\"showPage({running_page}, {total_pages});return false;\">"
+				  f"{label}</a></li>\n"
+				)
+				running_page += 1
+			f.write("  </ul>\n</li>\n")
+		f.write("</ul>\n</section>\n")
 
-		# header
-		f.write(f"<h1>Model: {escape(str(meta.get('model_name','')))}</h1>\n")
-		if overall:
-			f.write("<section class='sample-page active' id='overview'>")
-			f.write("<h2>Overall Performance</h2>")
-			for k,v in overall.items():
-				f.write(f"<div class='metrics'><strong>{escape(k)}</strong>")
-				f.write(dict_to_html(v))
-				f.write("</div>")
-			f.write("</section>\n")
+		# --- One section per sample ---
+		for page_idx, (gname, sidx, entry) in enumerate(flat, start=1):
+			f.write(f"<section class='sample-page' id='page{page_idx}'>\n")
+			f.write(f"<h2>{escape(gname)} — Sample {sidx+1}</h2>\n")
 
-		# samples
-		for idx, entry in enumerate(env_data):
-			# metrics
-			em_static = entry.get('exploration_efficiency', {})
-			ev_static = entry.get('evaluation_performance', {})
-			metrics = {**em_static, **ev_static}
-
-			# plot room if desired
-			img_name = None
 			if plot_rooms:
-				img_name = plot_initial_room(entry, out_dir, base, idx)
+				img_name = plot_initial_room(entry, out_dir, base, page_idx)
+				if img_name:
+					f.write(f"<img src='{img_name}' class='room'>\n")
 
-			f.write(f"<section class='sample-page' id='page{idx}'>\n")
-			f.write(f"<h2>Sample {idx+1}</h2>\n")
-			if img_name:
-				f.write(f"<img src='{img_name}' alt='room' class='room'>\n")
+			# env config
+			cfg = entry["env_info"]["config"]
+			f.write("<div class='metrics'><strong>Env Config</strong>")
+			f.write(dict_to_html(cfg))
+			f.write("</div>\n")
 
-			# env info
-			env_config = entry.get("env_info",{}).get("config",{})
-			f.write("<div class='metrics'><strong>Env Info</strong>")
-			f.write(dict_to_html(env_config))
-			f.write("</div>")
-
-			turns = split_into_turns(entry.get("message", []))
-			exp_log = squash_exp_logs(entry.get("exploration_metrics_log", []))
+			# conversation turns + metrics + evaluation answers
+			turns   = split_into_turns(entry["message"])
+			exp_log = squash_exp_logs(entry["exploration_metrics_log"])
+			eval_answers = entry.get("evaluation_metrics_log", [])
+			# attach eval answers to last turns as before
+			for i, ans in enumerate(eval_answers):
+				turn_idx = len(turns) - len(eval_answers) + i
+				if 0 <= turn_idx < len(turns):
+					turns[turn_idx]["eval_answer"] = ans
 
 			for t_idx, (turn, em) in enumerate(zip_longest(turns, exp_log, fillvalue={})):
 				f.write("<div class='turn'>\n")
 				f.write(f"<h3>Turn {t_idx+1}</h3>\n")
 				if turn.get("user"):
-					f.write(f"<div class='block user'><strong>User</strong><br>{turn['user']}</div>\n")
+					u = escape(turn["user"]).replace("\n","<br>")
+					f.write(f"<div class='block user'><strong>User</strong><br>{u}</div>\n")
 				if turn.get("think"):
-					f.write(f"<div class='block think'><strong>Agent Think</strong><br>{turn['think']}</div>\n")
+					th = escape(turn["think"]).replace("\n","<br>")
+					f.write(f"<div class='block think'><strong>Agent Think</strong><br>{th}</div>\n")
 				if turn.get("answer"):
-					f.write(f"<div class='block answer'><strong>Agent Answer</strong><br>{turn['answer']}</div>\n")
+					an = escape(turn["answer"]).replace("\n","<br>")
+					f.write(f"<div class='block answer'><strong>Agent Answer</strong><br>{an}</div>\n")
+				if "eval_answer" in turn:
+					eva = ", ".join(turn["eval_answer"])
+					f.write(f"<div class='block evaluation'><strong>Evaluation Answer</strong><br>{escape(eva)}</div>\n")
 
-				f.write("<div class='metrics'><strong>Per Turn Metrics</strong>")
+				f.write("<div class='metrics'><strong>Turn Metrics</strong>")
 				f.write(dict_to_html(em) or "<div>(none)</div>")
-				f.write("</div>\n")  # metrics
+				f.write("</div>\n")
+				f.write("</div>\n")
 
-				f.write("</div>\n")  # .turn
-
-			f.write("<div class='metrics'><strong>Final Metrics</strong>")
-			f.write(dict_to_html(metrics))
+			# final metrics
+			fe = entry["exploration_efficiency"]
+			fv = entry["evaluation_performance"]
+			f.write("<div class='metrics'><strong>Sample Final Metrics</strong>")
+			f.write(dict_to_html({**fe, **fv}))
 			f.write("</div>\n")
 
 			f.write("</section>\n")
 
 		f.write("</body></html>")
 
-	print(f"Dashboard written to {output_html}")
 	return output_html
+
+
+		
