@@ -4,7 +4,7 @@ from pathlib import Path
 from html import escape
 from itertools import zip_longest
 from typing import List, Dict
-
+from ragen.env.spatial.Base.tos_base.core.room import Room
 # ------- regex helpers -------
 THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE)
 ANS_RE   = re.compile(r"<answer>(.*?)</answer>", re.DOTALL | re.IGNORECASE)
@@ -46,12 +46,18 @@ def squash_exp_logs(exp_log: List[Dict]) -> List[Dict]:
 	return merged
 
 def plot_initial_room(entry, out_dir, base, idx):
-	from ragen.env.spatial.Base.tos_base.core.room import Room
 	room = Room.from_dict(entry["env_info"]["initial_room"])
 	img_name = f"{base}_turn{idx+1}.png"
 	img_path = os.path.join(out_dir, img_name)
 	room.plot(render_mode='img', save_path=img_path)
 	return img_name
+
+"""def plot_final_room(entry, out_dir, base, idx):
+	room = Room.from_dict(entry["env_info"]["final_room"])
+	img_name = f"{base}_turn{idx+1}_final.png"
+	img_path = os.path.join(out_dir, img_name)
+	room.plot(render_mode='img', save_path=img_path)
+	return img_name"""
 
 def visualize_json(json_path: str, output_html: str, plot_rooms: bool = True):
 	"""
@@ -192,7 +198,7 @@ window.addEventListener('load', ()=>{{
 			turns   = split_into_turns(entry["message"])
 			exp_log = squash_exp_logs(entry["exploration_metrics_log"])
 			eval_answers = entry.get("evaluation_metrics_log", [])
-			# attach eval answers to last turns as before
+			# attach eval answers to last turns
 			for i, ans in enumerate(eval_answers):
 				turn_idx = len(turns) - len(eval_answers) + i
 				if 0 <= turn_idx < len(turns):
@@ -218,7 +224,10 @@ window.addEventListener('load', ()=>{{
 				f.write(dict_to_html(em) or "<div>(none)</div>")
 				f.write("</div>\n")
 				f.write("</div>\n")
-
+			"""if plot_rooms:
+				img_name = plot_final_room(entry, out_dir, base, page_idx)
+				if img_name:
+					f.write(f"<img src='{img_name}' class='room'>\n")"""
 			# final metrics
 			fe = entry["exploration_efficiency"]
 			fv = entry["evaluation_performance"]
