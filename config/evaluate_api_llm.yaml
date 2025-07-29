@@ -40,6 +40,8 @@ model_info:
     model_name: gpt-4o
     generation_kwargs:
       temperature: 0
+      top_p: 1
+      seed: 42
       max_tokens: 1024
   gpt-4.1-nano:
     provider_name: openai
