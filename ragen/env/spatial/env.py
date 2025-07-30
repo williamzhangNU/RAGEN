@@ -129,6 +129,8 @@ class SpatialGym(gym.Env):
         if not action_sequence:
             obs += "Invalid action\n"
             reward += -0.5 # format penalty
+            self.exploration_manager.metrics_log.append({})
+            self.exploration_manager.metrics_log.append({})
         else:
             self.n_valid_queries += 1 if not action_sequence.final_action.is_term() else 0
 
