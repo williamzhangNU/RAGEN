@@ -36,10 +36,30 @@ class VisualizationHelper:
                 # Color-code booleans
                 color_class = "true" if v else "false"
                 html += f"<div class='dict-item'><span class='dict-key'>{escape(str(k))}:</span> <span class='dict-value {color_class}'>{str(v)}</span></div>"
+            elif isinstance(v, dict):
+                # Handle nested dictionaries
+                nested_html = VisualizationHelper.dict_to_html(v)
+                html += f"<div class='dict-item nested'><span class='dict-key'>{escape(str(k))}:</span> <div class='dict-value nested-dict'>{nested_html}</div></div>"
             else:
-                html += f"<div class='dict-item'><span class='dict-key'>{escape(str(k))}:</span> <span class='dict-value'>{escape(str(v))}</span></div>"
+                # String values with consistent styling
+                html += f"<div class='dict-item'><span class='dict-key'>{escape(str(k))}:</span> <span class='dict-value string'>{escape(str(v))}</span></div>"
         html += "</div>"
         return html
+    
+    @staticmethod
+    def extract_think_and_answer(text: str) -> tuple[str, str]:
+        """Extract think and answer content from text using regex patterns"""
+        think_pattern = r'<think>(.*?)</think>'
+        answer_pattern = r'<answer>(.*?)</answer>'
+        
+        think_match = re.search(think_pattern, text, re.DOTALL)
+        answer_match = re.search(answer_pattern, text, re.DOTALL)
+        
+        think_content = think_match.group(1).strip() if think_match else text
+        answer_content = answer_match.group(1).strip() if answer_match else text
+        
+        return think_content, answer_content
+
 
 
 
@@ -212,18 +232,28 @@ class HTMLGenerator:
             
             # Display user message (environment observation)
             if env_log['user_message']:
-                u = escape(env_log['user_message'][:200]).replace("\n", "<br>")
-                f.write(f"<div class='block user'><strong>👤 Environment Observation</strong><br>{u}...</div>\n")
+                u_short = escape(env_log['user_message'][:200]).replace("\n", "<br>")
+                u_full = escape(env_log['user_message']).replace("\n", "<br>")
+                obs_id = f"obs_{page_idx}_{t_idx}"
+                f.write(f"<div class='block user expandable' onclick='expandObservation(\"{obs_id}\")'><strong>👤 Environment Observation <span class='expand-hint'>(click to expand)</span></strong><br>{u_short}...</div>\n")
+                f.write(f"<div id='{obs_id}' class='observation-full' style='display:none'>{u_full}</div>\n")
             
-            # Display assistant raw message
-            if env_log['assistant_raw_message']:
-                raw = escape(env_log['assistant_raw_message']).replace("\n", "<br>")
-                f.write(f"<div class='block answer'><strong>💬 Assistant Action</strong><br>{raw}</div>\n")
-
-            # Display assistant parsed message
-            if env_log['assistant_parsed_message']:
-                raw = escape(env_log['assistant_parsed_message']).replace("\n", "<br>")
-                f.write(f"<div class='block answer'><strong>💬 Assistant Parsed Action</strong><br>{raw}</div>\n")
+            think_content, answer_content = VisualizationHelper.extract_think_and_answer(env_log['assistant_raw_message'])
+            # Display think content
+            if think_content:
+                if len(think_content) > 300:  # Make expandable if long
+                    think_short = escape(think_content[:300]).replace("\n", "<br>")
+                    think_full = escape(think_content).replace("\n", "<br>")
+                    think_id = f"think_{page_idx}_{t_idx}"
+                    f.write(f"<div class='block think expandable' onclick='expandThinking(\"{think_id}\")'><strong>🤔 Assistant Thinking <span class='expand-hint'>(click to expand)</span></strong><br>{think_short}...</div>\n")
+                    f.write(f"<div id='{think_id}' class='thinking-full' style='display:none'>{think_full}</div>\n")
+                else:
+                    think = escape(think_content).replace("\n", "<br>")
+                    f.write(f"<div class='block think'><strong>🤔 Assistant Thinking</strong><br>{think}</div>\n")
+            # Display answer content
+            if answer_content:
+                answer = escape(answer_content).replace("\n", "<br>")
+                f.write(f"<div class='block answer'><strong>💬 Assistant Action</strong><br>{answer}</div>\n")
             
             # Display evaluation information if available
             if not env_log['is_exploration_phase'] and env_log['evaluation_log']:

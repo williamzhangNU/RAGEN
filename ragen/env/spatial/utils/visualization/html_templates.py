@@ -235,6 +235,25 @@ body {
     font-weight: 600;
 }
 
+.dict-value.string {
+    color: #6f42c1;
+    font-weight: 600;
+}
+
+.dict-item.nested {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.dict-value.nested-dict {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+}
+
 .empty-dict {
     color: #6c757d;
     font-style: italic;
@@ -272,12 +291,13 @@ body {
     background: #fff;
     border: 1px solid #e1e5e9;
     border-radius: 12px;
-    margin: 20px 0;
-    padding: 20px;
+    margin: 30px 0;
+    padding: 30px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
+    min-height: 600px;
 }
 
 .turn-split:hover {
@@ -286,7 +306,7 @@ body {
 }
 
 .turn-split h3 {
-    margin: 0 0 15px 0;
+    margin: 0 0 25px 0;
     font-size: 18px;
     color: #2c3e50;
     font-weight: 600;
@@ -353,11 +373,75 @@ body {
     color: #1565c0;
 }
 
+.block.user.expandable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.block.user.expandable:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.expand-hint {
+    font-size: 0.8em;
+    color: #1976d2;
+    font-weight: normal;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    font-weight: bold;
+}
+
+.modal-close:hover {
+    color: #333;
+}
+
 .block.think {
     background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
     border-left-color: #ff9800;
     color: #e65100;
     font-style: italic;
+}
+
+.block.think.expandable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.block.think.expandable:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
 }
 
 .block.answer {
@@ -709,4 +793,87 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.head.appendChild(style);
 });
+
+// Expand observation functionality
+function expandObservation(obsId) {
+    const fullContent = document.getElementById(obsId).innerHTML;
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('obs-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'obs-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeObservation()">&times;</span>
+                <h3>🔍 Full Environment Observation</h3>
+                <div id="modal-obs-content"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeObservation();
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeObservation();
+        });
+    }
+    
+    // Set content and show modal
+    document.getElementById('modal-obs-content').innerHTML = fullContent;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeObservation() {
+    const modal = document.getElementById('obs-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Expand thinking functionality
+function expandThinking(thinkId) {
+    const fullContent = document.getElementById(thinkId).innerHTML;
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('think-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'think-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeThinking()">&times;</span>
+                <h3>🤔 Full Assistant Thinking</h3>
+                <div id="modal-think-content"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeThinking();
+        });
+    }
+    
+    // Set content and show modal
+    document.getElementById('modal-think-content').innerHTML = fullContent;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeThinking() {
+    const modal = document.getElementById('think-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
 """

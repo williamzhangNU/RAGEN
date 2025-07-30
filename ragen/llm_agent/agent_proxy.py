@@ -15,7 +15,7 @@ from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from verl.single_controller.ray.base import RayWorkerGroup
 
 from ragen.env.spatial.env import SpatialGym
-from ragen.utilities.visualization import visualize_json
+from ragen.env.spatial.utils.visualization import visualize_json
 from .es_manager import EnvStateManager
 from .ctx_manager import ContextManager
 from .base_llm import ConcurrentLLM

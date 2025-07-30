@@ -272,11 +272,15 @@ class SpatialGym(gym.Env):
     
     def get_env_summary(self) -> Dict[str, Any]:
         """Aggregate environment metrics from all turns."""
-        
+
         return {
-            "total_turns": len(self.turn_logs),
-            "exp_summary": self.get_exp_summary(),
-            "eval_summary": self.get_eval_summary()
+            'env_info': self._get_env_info(),
+            'env_turn_logs': [turn_log.to_dict() for turn_log in self.turn_logs],
+            'env_summary': {
+                'total_turns': len(self.turn_logs),
+                'exp_summary': self.get_exp_summary(),
+                'eval_summary': self.get_eval_summary()
+            }
         }
     
     @staticmethod
@@ -317,12 +321,7 @@ class SpatialGym(gym.Env):
             # Split messages and assign to turn logs
             env_turn_logs = SpatialGym._assign_raw_messages(message, env.turn_logs)
             
-            env_data = {
-                "message": message,
-                "env_info": env._get_env_info(),
-                "env_turn_logs": [turn_log.to_dict() for turn_log in env_turn_logs],
-                "env_summary": env.get_env_summary()
-            }
+            env_data = {**env.get_env_summary(), "env_turn_logs": env_turn_logs}
             config_groups[config_name].append(env_data)
         
         # Initialize result structure
