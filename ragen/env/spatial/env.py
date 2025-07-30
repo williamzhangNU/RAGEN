@@ -24,6 +24,7 @@ from ragen.env.spatial.prompts import (
     SHORT_EVALUATION_PROMPT
 )
 from ragen.env.spatial.utils.action_utils import action_results_to_text
+from ragen.env.spatial.utils.text_utils import extract_think_and_answer
 
 @dataclass
 class EnvTurnLog:
@@ -31,6 +32,7 @@ class EnvTurnLog:
     turn_number: int
     user_message: str = ""  # Environment observation
     assistant_raw_message: str = ""  # Raw assistant input
+    assistant_think_message: str = ""  # Think part of assistant message
     assistant_parsed_message: str = ""  # Parsed assistant action
     is_exploration_phase: bool = False
     exploration_log: Optional["ExplorationTurnLog"] = None
@@ -43,6 +45,7 @@ class EnvTurnLog:
             "turn_number": self.turn_number,
             "user_message": self.user_message,
             "assistant_raw_message": self.assistant_raw_message,
+            "assistant_think_message": self.assistant_think_message,
             "assistant_parsed_message": self.assistant_parsed_message,
             "is_exploration_phase": self.is_exploration_phase,
             "exploration_log": self.exploration_log.to_dict() if self.exploration_log else {},
@@ -144,7 +147,7 @@ class SpatialGym(gym.Env):
         # Initialize managers
         if self.config.exp_type in ['active', 'active_overview']:
             self.exploration_manager = ExplorationManager(self.initial_room)
-        self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random)
+        self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room)
 
         # Generate initial observation
         obs = self._generate_initial_observation()
@@ -221,7 +224,7 @@ class SpatialGym(gym.Env):
         
         # Log turn at start with current state
         current_obs = self.render_cache if hasattr(self, 'render_cache') else ""
-        current_room = self.exploration_manager.exploration_room.copy() if self.exploration_manager else self.initial_room.copy()
+        
         
         # Execute action
         if self.is_exploration_phase:
@@ -231,12 +234,19 @@ class SpatialGym(gym.Env):
             obs, reward, done, step_info = self._step_evaluation(action)
             eval_log = self.evaluation_manager.turn_logs[-1] if self.evaluation_manager.turn_logs else None
         
+        # Get room state from turn logs
+        room_state = None
+        if exp_log and exp_log.room_state:
+            room_state = exp_log.room_state
+        elif eval_log and eval_log.room_state:
+            room_state = eval_log.room_state
+        
         turn_log = EnvTurnLog(
             turn_number=self.current_turn_number,
             user_message=current_obs,
             assistant_parsed_message=action,
             is_exploration_phase=self.is_exploration_phase,
-            room_state=current_room,
+            room_state=room_state,
             exploration_log=exp_log,
             evaluation_log=eval_log,
             info={"reward": reward, "is_done": done, **step_info}
@@ -276,7 +286,7 @@ class SpatialGym(gym.Env):
         return {
             'env_info': self._get_env_info(),
             'env_turn_logs': [turn_log.to_dict() for turn_log in self.turn_logs],
-            'env_summary': {
+            'summary': {
                 'total_turns': len(self.turn_logs),
                 'exp_summary': self.get_exp_summary(),
                 'eval_summary': self.get_eval_summary()
@@ -319,9 +329,9 @@ class SpatialGym(gym.Env):
             config_name = env.config.name
             
             # Split messages and assign to turn logs
-            env_turn_logs = SpatialGym._assign_raw_messages(message, env.turn_logs)
+            SpatialGym._assign_raw_messages(message, env.turn_logs)
             
-            env_data = {**env.get_env_summary(), "env_turn_logs": env_turn_logs}
+            env_data = {**env.get_env_summary(), "message": message}
             config_groups[config_name].append(env_data)
         
         # Initialize result structure
@@ -339,8 +349,8 @@ class SpatialGym(gym.Env):
             result["config_groups"][config_name] = {"env_data": env_data_list}
             
             # Extract metrics for this group
-            exp_summaries = [d['env_summary']['exp_summary'] for d in env_data_list]
-            eval_summaries = [d['env_summary']['eval_summary'] for d in env_data_list]
+            exp_summaries = [d['summary']['exp_summary'] for d in env_data_list]
+            eval_summaries = [d['summary']['eval_summary'] for d in env_data_list]
             
             # Calculate group performance using manager methods
             result["exp_summary"]["group_performance"][config_name] = ExplorationManager.aggregate_group_performance(exp_summaries)
@@ -384,13 +394,11 @@ class SpatialGym(gym.Env):
             raise ValueError(f"Mismatch: {len(assistant_messages)} assistant messages vs {len(turn_logs)} turns")
         
         # Assign raw messages to turn logs
-        updated_logs = []
         for turn_log, raw_msg in zip(turn_logs, assistant_messages):
-            updated_log = copy.deepcopy(turn_log)
-            updated_log.assistant_raw_message = raw_msg
-            updated_logs.append(updated_log)
+            think_content, answer_content = extract_think_and_answer(raw_msg)
+            turn_log.assistant_raw_message = raw_msg
+            turn_log.assistant_think_message = think_content
         
-        return updated_logs
 
 
 

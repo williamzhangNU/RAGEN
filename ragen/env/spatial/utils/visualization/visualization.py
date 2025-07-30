@@ -9,9 +9,6 @@ from typing import List, Dict, Optional
 
 from .html_templates import HTML_TEMPLATE, CSS_STYLES, JAVASCRIPT_CODE
 
-from ragen.env.spatial.Base.tos_base.core.room import Room
-from ragen.env.spatial.Base.tos_base.utils.room_utils import set_initial_pos_as_origin
-
 
 
 class VisualizationHelper:
@@ -46,45 +43,6 @@ class VisualizationHelper:
         html += "</div>"
         return html
     
-    @staticmethod
-    def extract_think_and_answer(text: str) -> tuple[str, str]:
-        """Extract think and answer content from text using regex patterns"""
-        think_pattern = r'<think>(.*?)</think>'
-        answer_pattern = r'<answer>(.*?)</answer>'
-        
-        think_match = re.search(think_pattern, text, re.DOTALL)
-        answer_match = re.search(answer_pattern, text, re.DOTALL)
-        
-        think_content = think_match.group(1).strip() if think_match else text
-        answer_content = answer_match.group(1).strip() if answer_match else text
-        
-        return think_content, answer_content
-
-
-
-
-
-class RoomPlotter:
-    """Handles room visualization"""
-
-    @staticmethod
-    def plot_room(room_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
-        """Plot room from state and return image filename"""
-        # Create image folder structure
-        img_folder = os.path.join(out_dir, "images", config_name, f"sample_{sample_idx+1}")
-        os.makedirs(img_folder, exist_ok=True)
-        
-        # Transform room to have initial_pos as origin
-        room = Room.from_dict(room_dict)
-        transformed_room = set_initial_pos_as_origin(room)
-        
-        img_name = f"turn_{turn_idx+1}.png" if turn_idx > 0 else "initial_room.png"
-        img_path = os.path.join(img_folder, img_name)
-        transformed_room.plot(render_mode='img', save_path=img_path)
-        
-        # Return relative path from output directory
-        return os.path.join("images", config_name, f"sample_{sample_idx+1}", img_name)
-
 
 class HTMLGenerator:
     """Handles HTML generation for the visualization"""
@@ -206,12 +164,10 @@ class HTMLGenerator:
         f.write(f"<section class='sample-page' id='page{page_idx}'>\n")
         f.write(f"<h2>{escape(gname)} — Sample {sidx+1}</h2>\n")
 
-        # Plot initial room at top
-        if self.plot_rooms:
-            initial_room_dict = entry["env_info"]["initial_room"]
-            img_name = RoomPlotter.plot_room(initial_room_dict, self.out_dir, gname, page_idx-1, turn_idx=0)
-            if img_name:
-                f.write(f"<img src='{img_name}' class='room' alt='Initial room state'>\n")
+        # Display initial room image if available
+        if self.plot_rooms and entry.get("initial_room_image"):
+            img_name = entry["initial_room_image"]
+            f.write(f"<img src='{img_name}' class='room' alt='Initial room state'>\n")
 
         # Environment config
         cfg = entry["env_info"]["config"]
@@ -238,7 +194,7 @@ class HTMLGenerator:
                 f.write(f"<div class='block user expandable' onclick='expandObservation(\"{obs_id}\")'><strong>👤 Environment Observation <span class='expand-hint'>(click to expand)</span></strong><br>{u_short}...</div>\n")
                 f.write(f"<div id='{obs_id}' class='observation-full' style='display:none'>{u_full}</div>\n")
             
-            think_content, answer_content = VisualizationHelper.extract_think_and_answer(env_log['assistant_raw_message'])
+            think_content, answer_content = env_log['assistant_think_message'], env_log['assistant_parsed_message']
             # Display think content
             if think_content:
                 if len(think_content) > 300:  # Make expandable if long
@@ -282,10 +238,9 @@ class HTMLGenerator:
             
             # Right side: room visualization
             f.write("<div class='turn-right'>\n")
-            if self.plot_rooms and env_log['room_state']:
-                img_name = RoomPlotter.plot_room(env_log['room_state'], self.out_dir, gname, page_idx-1, t_idx)
-                if img_name:
-                    f.write(f"<img src='{img_name}' class='room-plot' alt='Room state at turn {t_idx+1}'>\n")
+            if self.plot_rooms and env_log.get('room_image'):
+                img_name = env_log['room_image']
+                f.write(f"<img src='{img_name}' class='room-plot' alt='Room state at turn {t_idx+1}'>\n")
             f.write("</div>\n")  # End turn-right
             
             f.write("</div>\n")  # End turn-split
