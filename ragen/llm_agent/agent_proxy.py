@@ -7,15 +7,17 @@ from typing import List, Dict
 import time
 import json
 import re
+from vllm import LLM, SamplingParams
+
+from verl import DataProto
+from omegaconf import ListConfig, DictConfig, OmegaConf
+from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
+from verl.single_controller.ray.base import RayWorkerGroup
+
 from ragen.env.spatial.env import SpatialGym
 from ragen.utilities.visualization import visualize_json
-from verl.verl import DataProto
-from omegaconf import ListConfig, DictConfig, OmegaConf
-from verl.verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
 from .es_manager import EnvStateManager
 from .ctx_manager import ContextManager
-#from vllm import LLM, SamplingParams
-from verl.verl.single_controller.ray.base import RayWorkerGroup
 from .base_llm import ConcurrentLLM
 
 class VllmWrapperWg: # Thi is a developing class for eval and test

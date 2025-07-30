@@ -2,18 +2,21 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial-0724/passive_3_objects/o4-mini/rot_dual.json
+output_path: results/spatial-0729/active_3_objects/gpt-4o-debug/results.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: gpt-4.1-mini
-  max_concurrency: 8
+  model_name: gpt-4o
+  max_concurrency: 64
 
 actor_rollout_ref:
   rollout:
     max_model_len: 10000
     gpu_memory_utilization: 0.8
+    val_kwargs: # for vllm
+      temperature: 0
+      top_p: 1
 
 agent_proxy:
   max_turn: 20 # should be same as max_actions_per_traj
@@ -22,11 +25,11 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 50 # 450
+    env_groups: 10 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
-      tags: ["PassiveRotDual"]
-      n_groups: [50]
+      tags: ["ActiveDir", "ActiveRot"]
+      n_groups: [5, 5]
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
