@@ -463,7 +463,7 @@ custom_envs:
     env_type: SpatialGym
     max_actions_per_traj: 20
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    max_tokens: 512 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "active_rot"
       exp_type: "active"

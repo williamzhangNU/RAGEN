@@ -4,10 +4,11 @@ from typing import List, Dict, Optional, Union, Any, Tuple
 import os
 import asyncio
 import time
-
-from anthropic import AsyncAnthropic
+import dotenv
+dotenv.load_dotenv()
+# from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
-from together import AsyncTogether
+# from together import AsyncTogether
 
 @dataclass
 class LLMResponse:
@@ -29,10 +30,14 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
         self.model_name = model_name
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        if os.environ.get("OPENAI_BASE_URL"):
+            self.base_url = os.environ.get("OPENAI_BASE_URL")
+        else:
+            self.base_url = "https://api.openai.com/v1"
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and not found in environment variables")
         
-        self.client = AsyncOpenAI(api_key=self.api_key)
+        self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
     
     async def generate(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
         if "o1-mini" in self.model_name:

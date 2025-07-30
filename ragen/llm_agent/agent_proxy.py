@@ -12,6 +12,12 @@ from vllm import LLM, SamplingParams
 from verl import DataProto
 from omegaconf import ListConfig, DictConfig, OmegaConf
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
+from .ctx_manager import ContextManager
+from .es_manager import EnvStateManager
+try:
+	from vllm import LLM, SamplingParams
+except ImportError:
+	print("vllm not installed, skip")
 from verl.single_controller.ray.base import RayWorkerGroup
 
 from ragen.env.spatial.env import SpatialGym
