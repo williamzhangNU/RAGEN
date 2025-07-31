@@ -2,12 +2,12 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_path: results/spatial-0730/passive_3_objects/gpt-4.1-mini/results.json
+output_path: results/spatial-0724/active_3_objects/test/rot_cognitive_map.json
 
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: gpt-4.1-mini
+  model_name:  gemini-2.5-pro
   max_concurrency: 64
 
 actor_rollout_ref:
@@ -25,19 +25,17 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 36 # 450
+    env_groups: 1 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       # tags: ["PassiveRotDual"]
       # n_groups: [1]
-      tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
-      n_groups: [4, 4, 4, 4, 4, 4, 4, 4, 4]
-      # tags: ["PassiveRot", "PassiveRotDual"]
-      # n_groups: [5, 5]
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
-      # tags: ["PassiveTopDownRot", "PassiveTopDownRotDual", "PassiveTopDownCircularRot", "PassiveTopDownPoV", "PassiveTopDownDir", "PassiveTopDownE2A", "PassiveTopDownLoc", "PassiveTopDownFalseBeliefRotation", "PassiveTopDownFalseBeliefMovement"]
-      # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
-      # tags: ["ActiveRot"]
-      # n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
+      # tags: ["PassiveTopDownRot", "PassiveTopDownCounterRot", "PassiveTopDownRotDual", "PassiveTopDownCircularRot", "PassiveTopDownPoV", "PassiveTopDownAllPairs", "PassiveTopDownE2A", "PassiveTopDownLoc", "PassiveTopDownFalseBelief", "PassiveTopDownFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50]
+      tags: ["ActiveRot"]
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
 
