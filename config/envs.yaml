@@ -264,6 +264,8 @@ custom_envs:
 
   
   
+  
+  
   PassiveTopDownRot:
     env_type: SpatialGym
     max_actions_per_traj: 1
@@ -448,13 +450,32 @@ custom_envs:
     env_type: SpatialGym
     max_actions_per_traj: 20
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
-    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    max_tokens: 512 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "active_rot"
       exp_type: "active"
       n_objects: 3
       max_exp_steps: 10 # 10
       generation_type: "rot"
+      eval_tasks:
+        - task_type: "rot"
+          task_kwargs:
+            turn_direction: "clockwise"
+            if_turn: false
+            if_move: false
+
+  ActiveTopDownRot:
+    env_type: SpatialGym
+    max_actions_per_traj: 20
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "active_topdown_rot"
+      exp_type: "active"
+      n_objects: 3
+      max_exp_steps: 10 # 10
+      generation_type: "rot"
+      with_topdown: true
       eval_tasks:
         - task_type: "rot"
           task_kwargs:

@@ -1,7 +1,9 @@
 ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
-Your goal: Learn ALL spatial relationships between EACH pair of objects in the room.
+Your goal: Learn ALL spatial relationships between EACH pair of objects in the room, then STOP exploring immediately.
+
+**STOPPING CONDITION**: You must terminate exploration the instant you can determine the relative position (left/right, front/back) of every object relative to every other object. Do not continue exploring once this condition is met.
 
 ## Direction Format:
 Spatial relationships are described using (<horizontal>, <vertical>) format:
@@ -18,23 +20,30 @@ Suppose you are facing north, then:
 - **left**: west (90° counterclockwise)
 
 ## Critical Requirements:
-1. **Complete Coverage**: 
+1. **Complete Coverage**:
    - Explore until you know where every object is relative to every other object. Only stop when you have all spatial relationships.
    - Only know relationships between object and yourself is NOT enough.
 2. **Be Efficient** (Avoid redundant observations):
    - Focus on areas where you expect to eliminate some unknown relationships
-   - If you know all objects are in one general direction but lack specific details, focus your exploration there 
+   - If you know all objects are in one general direction but lack specific details, focus your exploration there
       - (e.g., if all objects are to your left but you don't know which are in front vs. back, explore the left side systematically)
-3. **Stop When Done**: End exploration as soon as you have all spatial relationships
+3. **STOP IMMEDIATELY When Done**:
+   - **TERMINATE exploration the moment you have determined all pairwise spatial relationships between objects**
+   - Before each action, explicitly check: "Do I already know the relative position of every object pair?"
+   - If YES, **STOP exploring immediately** - do not take unnecessary additional actions
+   - **Prioritize stopping over additional exploration** once all relationships are known
 
 ## Tips:
 - If you do not see one object in field of view, it also provides spatial information that the object is behind you (field of view is 180 degrees)
+- **Before each action, mentally review**: Can I determine all object-to-object relationships from what I've observed? If yes, STOP immediately
+- **Efficiency over completeness**: Once you can deduce all pairwise relationships (even through logical inference), terminate exploration
+- **Use logical deduction**: If you know A is left of B, and B is left of C, then A is left of C - you don't need to verify this directly
 
 
 ## Important Notes:
 - Focus on **directional relationships** between objects, not exact distances
 
-After exploration, you return to starting position to answer questions.
+After exploration, you will answer questions.
 
 ## Room Layout
 {room_info}
@@ -69,9 +78,53 @@ Suppose you are facing north, then:
 {exp_history}
 """
 
+
+COGNITION_MAP_INSTRUCTION = """\
+## Cognitive Map Creation
+
+**YOU MUST ALWAYS OUTPUT A JSON COGNITIVE MAP IN YOUR REASONING SECTION BEFORE ANSWERING ANY QUESTION.**
+
+### Coordinate System:
+- Use a 5x5 grid with YOU at the center position [0,0]
+- X-axis (horizontal): -2 (far left) to +2 (far right)
+- Y-axis (vertical): -2 (far back) to +2 (far front)
+- Grid directions:
+  * +Y = forward/north (towards you when facing north)
+  * -Y = backward/south (behind you when facing north)
+  * +X = right/east (to your right when facing north)
+  * -X = left/west (to your left when facing north)
+
+### Step-by-Step Process:
+1. **Identify all objects** mentioned in the observations
+2. **Determine each object's position** relative to your starting point [0,0]
+3. **Assign coordinates** based on their spatial relationships
+4. **Include object orientation** if mentioned (north/south/east/west)
+5. **OUTPUT THE JSON MAP** - This step is NOT optional
+
+### REQUIRED JSON OUTPUT FORMAT:
+**You MUST include this exact JSON structure in your reasoning:**
+```json
+{{
+  "object_name_1": {{"position": [x, y], "facing": "direction"}},
+  "object_name_2": {{"position": [x, y], "facing": "direction"}}
+}}
+```
+
+### Example (MUST follow this format):
+If a table is front right of you and a chair is in front of you:
+```json
+{{
+  "table": {{"position": [1, 1], "facing": "north"}},
+  "chair": {{"position": [0, 1], "facing": "north"}}
+}}
+```
+
+**CRITICAL**: Your response will be considered incomplete without the JSON cognitive map. Always include it in your reasoning before providing your final answer.
+"""
+
 EVALUATION_INSTRUCTION = """\
-You return to your starting position and orientation.
-{eval_question}
+You return to your starting position and facing north.
+"""+ COGNITION_MAP_INSTRUCTION + """{eval_question}
 """
 
 SHORT_EXPLORATION_PROMPT = """\
