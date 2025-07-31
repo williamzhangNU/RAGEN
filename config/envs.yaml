@@ -163,7 +163,6 @@ custom_envs:
             turn_direction: "clockwise"
 
   PassiveDir:
-  PassiveDir:
     env_type: SpatialGym
     max_actions_per_traj: 1
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
@@ -175,8 +174,6 @@ custom_envs:
       generation_type: "rand"
       n_objects: 3
       eval_tasks:
-        - task_type: "dir"
-          task_kwargs: {}
         - task_type: "dir"
           task_kwargs: {}
 
@@ -195,13 +192,11 @@ custom_envs:
           task_kwargs: {}
 
   PassiveFalseBeliefRotation:
-  PassiveFalseBeliefRotation:
     env_type: SpatialGym
     max_actions_per_traj: 1
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
-      name: "passive_false_belief_rotation"
       name: "passive_false_belief_rotation"
       exp_type: "passive"
       generation_type: "rand"
@@ -283,15 +278,11 @@ custom_envs:
       with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
-      generation_type: "rot"
       n_objects: 3
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
-          task_kwargs:
             turn_direction: "clockwise"
-            if_turn: false
-            if_move: false
             if_turn: false
             if_move: false
 
@@ -305,11 +296,9 @@ custom_envs:
       with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
-      generation_type: "rot"
       n_objects: 3
       eval_tasks:
         - task_type: "rot"
-          task_kwargs:
           task_kwargs:
             turn_direction: "counterclockwise"
             if_move: false
