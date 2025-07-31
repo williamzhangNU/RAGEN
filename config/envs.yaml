@@ -169,7 +169,6 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_dir"
-      name: "passive_dir"
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -217,7 +216,6 @@ custom_envs:
       n_objects: 3
       eval_tasks:
         - task_type: "false_belief"
-          task_kwargs: {'action_type': 'movement'}
           task_kwargs: {'action_type': 'movement'}
 
   PassivePoV:
@@ -433,7 +431,7 @@ custom_envs:
 
 
 
-  ActiveAllPairs:
+  ActiveDir:
     env_type: SpatialGym
     max_actions_per_traj: 20
     env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
