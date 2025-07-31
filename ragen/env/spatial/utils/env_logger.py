@@ -1,0 +1,214 @@
+import os
+import json
+import re
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+from collections import defaultdict
+from omegaconf import DictConfig, ListConfig, OmegaConf
+
+from ragen.env.spatial.utils.visualization import visualize_json
+from ragen.env.spatial.Base.tos_base.core.room import Room
+from ragen.env.spatial.Base.tos_base.utils.room_utils import set_initial_pos_as_origin
+from ragen.env.spatial.Base.tos_base import ExplorationManager, EvaluationManager
+
+
+class SpatialEnvLogger:
+    """Logger for spatial environment data aggregation and visualization."""
+    
+    @staticmethod
+    def convert_omegaconf_to_python(obj):
+        """Recursively convert OmegaConf objects to standard Python types for JSON serialization."""
+        if isinstance(obj, (DictConfig, ListConfig)):
+            return OmegaConf.to_container(obj, resolve=True)
+        elif isinstance(obj, dict):
+            return {key: SpatialEnvLogger.convert_omegaconf_to_python(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [SpatialEnvLogger.convert_omegaconf_to_python(item) for item in obj]
+        else:
+            return obj
+
+    @staticmethod
+    def extract_think_and_answer(text: str) -> Tuple[str, str]:
+        """Extract think and answer content from text using regex patterns"""
+        think_pattern = r'<think>(.*?)</think>'
+        answer_pattern = r'<answer>(.*?)</answer>'
+        
+        think_match = re.search(think_pattern, text, re.DOTALL)
+        answer_match = re.search(answer_pattern, text, re.DOTALL)
+        
+        think_content = think_match.group(1).strip() if think_match else ""
+        answer_content = answer_match.group(1).strip() if answer_match else text
+        
+        return think_content, answer_content
+
+    @staticmethod
+    def plot_room(room_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
+        """Plot room from state and return image filename"""
+        img_folder = os.path.join(out_dir, "images", config_name, f"sample_{sample_idx+1}")
+        os.makedirs(img_folder, exist_ok=True)
+        
+        room = Room.from_dict(room_dict)
+        transformed_room = set_initial_pos_as_origin(room)
+        
+        img_name = f"turn_{turn_idx+1}.png" if turn_idx > 0 else "initial_room.png"
+        img_path = os.path.join(img_folder, img_name)
+        transformed_room.plot(render_mode='img', save_path=img_path)
+        
+        return os.path.join("images", config_name, f"sample_{sample_idx+1}", img_name)
+
+    @staticmethod
+    def validate_and_assign_messages(message: List[Dict], turn_logs: List[Dict]) -> bool:
+        """Validate message structure and assign raw assistant messages to turn logs."""
+        if not message:
+            return False
+        
+        # Remove system messages and check turn structure
+        filtered_msgs = [msg for msg in message if msg.get("role") != "system"]
+        
+        # Check alternating user/assistant pattern
+        for i in range(0, len(filtered_msgs), 2):
+            if i >= len(filtered_msgs) or filtered_msgs[i].get("role") != "user":
+                print(f"User message missing at index {i}")
+                return False
+            if i + 1 >= len(filtered_msgs) or filtered_msgs[i + 1].get("role") != "assistant":
+                print(f"Assistant message missing at index {i+1}")
+                return False
+        
+        # Assign raw assistant messages to turn logs
+        assistant_messages = [msg['content'] for msg in message if msg.get("role") == "assistant"]
+        
+        if len(assistant_messages) != len(turn_logs):
+            print(f"Mismatch: {len(assistant_messages)} assistant messages vs {len(turn_logs)} turns")
+            return False
+        
+        for turn_log, raw_msg in zip(turn_logs, assistant_messages):
+            think_content, answer_content = SpatialEnvLogger.extract_think_and_answer(raw_msg)
+            turn_log['assistant_raw_message'] = raw_msg
+            turn_log['assistant_think_message'] = think_content
+        
+        return True
+
+    @staticmethod
+    def aggregate_env_data(env_summaries: List[Dict], messages: List[List[Dict]], output_dir: str, save_images: bool = True, **kwargs) -> Dict:
+        """
+        Aggregate environment data and create visualization.
+        
+        Args:
+            env_summaries: List of environment summary dictionaries
+            messages: List of message conversations for each environment
+            output_dir: Output directory for saving results
+            **kwargs: Additional arguments including model_name
+        
+        Returns:
+            Aggregated data dictionary
+        """
+        # Group environments by config name
+        config_groups = defaultdict(list)
+        
+        for env_summary, message in zip(env_summaries, messages):
+            config_name = env_summary['env_info']['config']['name']
+            
+            # Validate and assign raw messages
+            turn_logs = [turn_log for turn_log in env_summary.get('env_turn_logs', [])]
+            if not SpatialEnvLogger.validate_and_assign_messages(message, turn_logs):
+                continue
+            
+            env_data = {**env_summary, "message": message}
+            config_groups[config_name].append(env_data)
+        
+        # Plot rooms and add image paths if requested
+        if save_images:
+            for config_name, group in config_groups.items():
+                for sample_idx, env_data in enumerate(group):
+                    # Plot initial room
+                    initial_room_dict = env_data["env_info"]["initial_room"]
+                    initial_img_path = SpatialEnvLogger.plot_room(initial_room_dict, output_dir, config_name, sample_idx, 0)
+                    env_data["initial_room_image"] = initial_img_path
+                    
+                    # Plot room for each turn
+                    for turn_log in env_data["env_turn_logs"]:
+                        if turn_log["room_state"]:
+                            turn_idx = turn_log["turn_number"]
+                            img_path = SpatialEnvLogger.plot_room(turn_log["room_state"], output_dir, config_name, sample_idx, turn_idx)
+                            turn_log["room_image"] = img_path
+
+        # Initialize result structure
+        result = {
+            "config_groups": dict(config_groups),
+            "exp_summary": {"overall_performance": {}, "group_performance": {}},
+            "eval_summary": {"overall_performance": {}, "group_performance": {}}
+        }
+        
+        # Calculate performance metrics
+        all_exp_data, all_eval_data = [], []
+        
+        for config_name, env_data_list in config_groups.items():
+            result["config_groups"][config_name] = {"env_data": env_data_list}
+            
+            exp_summaries = [d['summary']['exp_summary'] for d in env_data_list]
+            eval_summaries = [d['summary']['eval_summary'] for d in env_data_list]
+            
+            result["exp_summary"]["group_performance"][config_name] = ExplorationManager.aggregate_group_performance(exp_summaries)
+            result["eval_summary"]["group_performance"][config_name] = EvaluationManager.aggregate_group_performance(eval_summaries)
+            
+            all_exp_data.extend(exp_summaries)
+            all_eval_data.extend(eval_summaries)
+        
+        # Calculate overall performance
+        if all_exp_data:
+            result["exp_summary"]["overall_performance"] = ExplorationManager.aggregate_group_performance(all_exp_data)
+        if all_eval_data:
+            result["eval_summary"]["overall_performance"] = EvaluationManager.aggregate_group_performance(all_eval_data)
+        
+        return result
+
+    @staticmethod
+    def save_aggregated_data(aggregated_data: Dict, output_path: str, **kwargs):
+        """Save aggregated data to JSON and generate HTML dashboard."""
+        saved_data = {
+            'meta_info': {
+                'model_name': kwargs.get('model_name', 'unknown'),
+                'n_envs': sum(len(group['env_data']) for group in aggregated_data['config_groups'].values()),
+            },
+            **aggregated_data,
+        }
+
+        # Convert OmegaConf objects to standard Python types
+        saved_data = SpatialEnvLogger.convert_omegaconf_to_python(saved_data)
+        
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(saved_data, f, indent=2)
+
+        # Generate HTML dashboard
+        html_dir = os.path.dirname(output_path)
+        base = Path(output_path).stem
+        html_name = f"{base}_dashboard.html"
+        html_path = os.path.join(html_dir, html_name)
+        dashboard_path = visualize_json(output_path, html_path, True)
+        
+        print(f"Environment data logged to {output_path}")
+        print(f"Dashboard written to {dashboard_path}")
+        return output_path
+
+    @staticmethod
+    def log_each_env_info(envs, messages: List[Dict], env_ids: List[int], config, output_path: str, save_images: bool = True):
+        """Logs detailed information for each environment and overall performance metrics."""
+        # Get environment summaries
+        env_summaries = [envs[env_id].get_env_summary() for env_id in env_ids]
+        
+        # Get model name
+        model_name = config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name
+        
+        # Aggregate data using the logger
+        output_dir = os.path.dirname(output_path)
+        aggregated_data = SpatialEnvLogger.aggregate_env_data(
+            env_summaries=env_summaries,
+            messages=messages,
+            output_dir=output_dir,
+            save_images=save_images,
+            model_name=model_name
+        )
+        
+        # Save aggregated data
+        return SpatialEnvLogger.save_aggregated_data(aggregated_data, output_path, model_name=model_name)

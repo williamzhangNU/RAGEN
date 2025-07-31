@@ -6,9 +6,9 @@ import asyncio
 import time
 import dotenv
 dotenv.load_dotenv()
-# from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic
 from openai import AsyncOpenAI
-# from together import AsyncTogether
+from together import AsyncTogether
 
 @dataclass
 class LLMResponse:
@@ -30,12 +30,37 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
         self.model_name = model_name
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        if os.environ.get("OPENAI_BASE_URL"):
-            self.base_url = os.environ.get("OPENAI_BASE_URL")
-        else:
-            self.base_url = "https://api.openai.com/v1"
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and not found in environment variables")
+        
+        self.client = AsyncOpenAI(api_key=self.api_key)
+    
+    async def generate(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
+        if "o1-mini" in self.model_name:
+            if messages[0]["role"] == "system":
+                messages = messages[1:]
+            
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            **kwargs
+        )
+        if response.choices[0].finish_reason in ['length', 'content_filter']:
+            raise ValueError("Content filtered or length exceeded")
+        return LLMResponse(
+            content=response.choices[0].message.content,
+            model_name=response.model
+        )
+    
+class OpenRouterProvider(LLMProvider):
+    """OpenAI API provider implementation"""
+    
+    def __init__(self, model_name: str = "openai/gpt-4o", api_key: Optional[str] = None):
+        self.model_name = model_name
+        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
+        self.base_url = "https://openrouter.ai/api/v1"
+        if not self.api_key:
+            raise ValueError("OpenRouter API key not provided and not found in environment variables")
         
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
     
@@ -172,6 +197,8 @@ class ConcurrentLLM:
                 self.provider = AnthropicProvider(model_name or "claude-3-7-sonnet-20250219", api_key)
             elif provider.lower() == "together":
                 self.provider = TogetherProvider(model_name or "meta-llama/Llama-3-70b-chat-hf", api_key)
+            elif provider.lower() == "openrouter":
+                self.provider = OpenRouterProvider(model_name or "gpt-4o", api_key)
             else:
                 raise ValueError(f"Unknown provider: {provider}")
         

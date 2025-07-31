@@ -214,8 +214,16 @@ class HTMLGenerator:
             # Display evaluation information if available
             if not env_log['is_exploration_phase'] and env_log['evaluation_log']:
                 eval_log = env_log['evaluation_log']
-                eval_info = f"Correct: {eval_log['is_correct']}"
-                f.write(f"<div class='block evaluation'><strong>✅ Evaluation</strong><br>{eval_info}</div>\n")
+                f.write("<div class='block evaluation'><strong>✅ Evaluation</strong>")
+                
+                details = {
+                    **eval_log["evaluation_data"],
+                    **eval_log.get("evaluation_info", {}),
+                    "Correct": eval_log.get("is_correct")
+                }
+                
+                f.write(VisualizationHelper.dict_to_html(details))
+                f.write("</div>\n")
 
             # Display turn metrics from env log
             metrics = {}
@@ -246,9 +254,9 @@ class HTMLGenerator:
             f.write("</div>\n")  # End turn-split
 
         # Final metrics
-        env_summary = entry.get("env_summary", {})
+        summary = entry.get("summary", {})
         f.write("<div class='metrics'><strong>📊 Sample Final Metrics</strong>")
-        f.write(VisualizationHelper.dict_to_html(env_summary))
+        f.write(VisualizationHelper.dict_to_html(summary))
         f.write("</div>\n")
 
         f.write("</section>\n")

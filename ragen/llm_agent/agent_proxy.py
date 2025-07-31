@@ -199,8 +199,8 @@ def main(config):
 
 
 	# for spatial env
-	from ragen.env.spatial.utils.save_results import log_each_env_info
-	log_each_env_info(
+	from ragen.env.spatial.utils.env_logger import SpatialEnvLogger
+	SpatialEnvLogger.log_each_env_info(
 		envs={env['env_id']: env['env'] for env in proxy.val_es_manager.envs},
 		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
 		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),

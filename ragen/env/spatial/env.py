@@ -24,7 +24,6 @@ from ragen.env.spatial.prompts import (
     SHORT_EVALUATION_PROMPT
 )
 from ragen.env.spatial.utils.action_utils import action_results_to_text
-from ragen.env.spatial.utils.text_utils import extract_think_and_answer
 
 @dataclass
 class EnvTurnLog:
@@ -293,81 +292,7 @@ class SpatialGym(gym.Env):
             }
         }
     
-    @staticmethod
-    def aggregate_env_data(
-        envs: Dict[int, "SpatialGym"], 
-        messages: List[str], 
-        env_ids: List[int]
-    ) -> Dict:
-        """
-        Group environments by config name and calculate aggregate metrics.
-        
-        Returns:
-            Dict with structure:
-            {
-                'config_groups': {
-                    'config_name': {
-                        'env_data': [list of env data for this config]
-                    }
-                },
-                'exp_summary': {
-                    'overall_performance': {...},
-                    'group_performance': {'config_name': {...}}
-                },
-                'eval_summary': {
-                    'overall_performance': {...},
-                    'group_performance': {'config_name': {...}}
-                }
-            }
-        """
-        from collections import defaultdict
-        
-        # Group environments by config name
-        config_groups = defaultdict(list)
-        for message, env_id in zip(messages, env_ids):
-            env = envs[env_id]
-            config_name = env.config.name
-            
-            # Split messages and assign to turn logs
-            SpatialGym._assign_raw_messages(message, env.turn_logs)
-            
-            env_data = {**env.get_env_summary(), "message": message}
-            config_groups[config_name].append(env_data)
-        
-        # Initialize result structure
-        result = {
-            "config_groups": {},
-            "exp_summary": {"overall_performance": {}, "group_performance": {}},
-            "eval_summary": {"overall_performance": {}, "group_performance": {}}
-        }
-        
-        # Collect all metrics for overall calculation
-        all_exp_data, all_eval_data = [], []
-        
-        for config_name, env_data_list in config_groups.items():
-            # Store environment data
-            result["config_groups"][config_name] = {"env_data": env_data_list}
-            
-            # Extract metrics for this group
-            exp_summaries = [d['summary']['exp_summary'] for d in env_data_list]
-            eval_summaries = [d['summary']['eval_summary'] for d in env_data_list]
-            
-            # Calculate group performance using manager methods
-            result["exp_summary"]["group_performance"][config_name] = ExplorationManager.aggregate_group_performance(exp_summaries)
-            result["eval_summary"]["group_performance"][config_name] = EvaluationManager.aggregate_group_performance(eval_summaries)
-            
-            # Collect for overall calculation
-            all_exp_data.extend(exp_summaries)
-            all_eval_data.extend(eval_summaries)
-        
-        # Calculate overall performance using manager methods
-        if all_exp_data:
-            result["exp_summary"]["overall_performance"] = ExplorationManager.aggregate_group_performance(all_exp_data)
-        
-        if all_eval_data:
-            result["eval_summary"]["overall_performance"] = EvaluationManager.aggregate_group_performance(all_eval_data)
-        
-        return result
+
     
 
 
@@ -380,22 +305,7 @@ class SpatialGym(gym.Env):
             "final_room": self.final_room.to_dict() if self.final_room else None,
         }
 
-    @staticmethod
-    def _assign_raw_messages(message: List[Dict], turn_logs: List[EnvTurnLog]) -> List[EnvTurnLog]:
-        """Assign raw assistant messages to turn logs."""
-        # Extract assistant messages from conversation
-        assistant_messages = [msg['content'] for msg in message if msg.get("role") == "assistant"]
-        
-        # Check if number of assistant messages matches turn logs
-        if len(assistant_messages) != len(turn_logs):
-            raise ValueError(f"Mismatch: {len(assistant_messages)} assistant messages vs {len(turn_logs)} turns")
-        
-        # Assign raw messages to turn logs
-        for turn_log, raw_msg in zip(turn_logs, assistant_messages):
-            think_content, answer_content = extract_think_and_answer(raw_msg)
-            turn_log.assistant_raw_message = raw_msg
-            turn_log.assistant_think_message = think_content
-        
+
 
 
 
@@ -506,10 +416,10 @@ if __name__ == "__main__":
 
         
         # Get metrics
-        exp_metrics = env.get_exp_efficiency()
-        eval_metrics = env.get_eval_performance()
-        print(f"Exploration efficiency: {exp_metrics}")
-        print(f"Evaluation performance: {eval_metrics}")
+        exp_metrics = env.get_exp_summary()
+        eval_metrics = env.get_eval_summary()
+        print(f"Exploration summary: {exp_metrics}")
+        print(f"Evaluation summary: {eval_metrics}")
         print()
     
     def test_passive_exploration():
@@ -541,8 +451,8 @@ if __name__ == "__main__":
         print(f"Answer - Reward: {reward}, Done: {done}")
         
         # Get metrics
-        eval_metrics = env.get_eval_performance()
-        print(f"Evaluation performance: {eval_metrics}")
+        eval_metrics = env.get_eval_summary()
+        print(f"Evaluation summary: {eval_metrics}")
         print()
     
     def test_basic_functionality():
@@ -575,7 +485,7 @@ if __name__ == "__main__":
         print(f"Render works: {rendered == obs}")
         
         # Test env info
-        env_info = env.get_env_info()
+        env_info = env._get_env_info()
         print(f"Environment info available: {'initial_room' in env_info}")
         print()
 

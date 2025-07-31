@@ -122,9 +122,14 @@ If a table is front right of you and a chair is in front of you:
 **CRITICAL**: Your response will be considered incomplete without the JSON cognitive map. Always include it in your reasoning before providing your final answer.
 """
 
+# EVALUATION_INSTRUCTION = """\
+# You return to your starting position and facing north.
+# """+ COGNITION_MAP_INSTRUCTION + """{eval_question}
+# """
+
 EVALUATION_INSTRUCTION = """\
 You return to your starting position and facing north.
-"""+ COGNITION_MAP_INSTRUCTION + """{eval_question}
+{eval_question}
 """
 
 SHORT_EXPLORATION_PROMPT = """\
