@@ -384,10 +384,7 @@ class SpatialGym(gym.Env):
     def _assign_raw_messages(message: List[Dict], turn_logs: List[EnvTurnLog]) -> List[EnvTurnLog]:
         """Assign raw assistant messages to turn logs."""
         # Extract assistant messages from conversation
-        assistant_messages = []
-        for msg in message:
-            if msg.get("role") == "assistant":
-                assistant_messages.append(msg.get("content", ""))
+        assistant_messages = [msg['content'] for msg in message if msg.get("role") == "assistant"]
         
         # Check if number of assistant messages matches turn logs
         if len(assistant_messages) != len(turn_logs):
