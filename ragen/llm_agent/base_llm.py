@@ -6,9 +6,13 @@ import asyncio
 import time
 import dotenv
 dotenv.load_dotenv()
-from anthropic import AsyncAnthropic
+
 from openai import AsyncOpenAI
-from together import AsyncTogether
+try:
+    from anthropic import AsyncAnthropic
+    from together import AsyncTogether
+except ImportError:
+    pass
 
 @dataclass
 class LLMResponse:
@@ -30,37 +34,9 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
         self.model_name = model_name
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
+        self.base_url = os.environ.get("OPENAI_BASE_URL","https://api.openai.com/v1")
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and not found in environment variables")
-        
-        self.client = AsyncOpenAI(api_key=self.api_key)
-    
-    async def generate(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
-        if "o1-mini" in self.model_name:
-            if messages[0]["role"] == "system":
-                messages = messages[1:]
-            
-        response = await self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            **kwargs
-        )
-        if response.choices[0].finish_reason in ['length', 'content_filter']:
-            raise ValueError("Content filtered or length exceeded")
-        return LLMResponse(
-            content=response.choices[0].message.content,
-            model_name=response.model
-        )
-    
-class OpenRouterProvider(LLMProvider):
-    """OpenAI API provider implementation"""
-    
-    def __init__(self, model_name: str = "openai/gpt-4o", api_key: Optional[str] = None):
-        self.model_name = model_name
-        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
-        self.base_url = "https://openrouter.ai/api/v1"
-        if not self.api_key:
-            raise ValueError("OpenRouter API key not provided and not found in environment variables")
         
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
     
@@ -172,6 +148,36 @@ class TogetherProvider(LLMProvider):
             model_name=response.model
         )
 
+class GoogleProvider(LLMProvider):
+    """Google Gemini API provider implementation using OpenAI compatibility"""
+
+    def __init__(self, model_name: str = "gemini-2.0-flash", api_key: Optional[str] = None):
+        self.model_name = model_name
+        self.api_key = api_key or os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if not self.api_key:
+            raise ValueError("Google API key not provided and not found in environment variables (GOOGLE_API_KEY or GEMINI_API_KEY)")
+
+        # Use Google's OpenAI-compatible endpoint
+        self.client = AsyncOpenAI(
+            api_key=self.api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        )
+
+    async def generate(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
+        # Google Gemini API supports OpenAI message format directly
+        # No conversion needed since it's OpenAI-compatible
+        response = await self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            **kwargs
+        )
+        if response.choices[0].finish_reason in ['length', 'content_filter']:
+            raise ValueError("Content filtered or length exceeded")
+        return LLMResponse(
+            content=response.choices[0].message.content,
+            model_name=response.model
+        )
+
 class ConcurrentLLM:
     """Unified concurrent interface for multiple LLM providers"""
     
@@ -181,7 +187,7 @@ class ConcurrentLLM:
         Initialize the concurrent LLM client.
         
         Args:
-            provider: Either a provider instance or a string ('openai', 'anthropic', 'together')
+            provider: Either a provider instance or a string ('openai', 'anthropic', 'together', 'google')
             model_name: Model name (if provider is a string)
             api_key: API key (if provider is a string)
             max_concurrency: Maximum number of concurrent requests
@@ -197,8 +203,8 @@ class ConcurrentLLM:
                 self.provider = AnthropicProvider(model_name or "claude-3-7-sonnet-20250219", api_key)
             elif provider.lower() == "together":
                 self.provider = TogetherProvider(model_name or "meta-llama/Llama-3-70b-chat-hf", api_key)
-            elif provider.lower() == "openrouter":
-                self.provider = OpenRouterProvider(model_name or "gpt-4o", api_key)
+            elif provider.lower() == "google":
+                self.provider = GoogleProvider(model_name or "gemini-2.0-flash", api_key)
             else:
                 raise ValueError(f"Unknown provider: {provider}")
         

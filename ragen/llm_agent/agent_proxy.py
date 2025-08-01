@@ -7,8 +7,6 @@ from typing import List, Dict
 import time
 import json
 import re
-from vllm import LLM, SamplingParams
-
 from verl import DataProto
 from omegaconf import ListConfig, DictConfig, OmegaConf
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto

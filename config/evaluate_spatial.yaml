@@ -7,7 +7,7 @@ output_dir: results/spatial-0731/passive_3_objects/gpt-4.1-mini/
 eval_model_type: api # api or vllm
 model_path: Qwen/Qwen2.5-3B-Instruct
 api_model_info:
-  model_name: gpt-4.1-mini
+  model_name:  gemini-2.5-pro
   max_concurrency: 64
 
 actor_rollout_ref:
@@ -34,8 +34,8 @@ es_manager:
       n_groups: [5, 5]
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50]
-      # tags: ["PassiveTopDownRot", "PassiveTopDownRotDual", "PassiveTopDownCircularRot", "PassiveTopDownPoV", "PassiveTopDownDir", "PassiveTopDownE2A", "PassiveTopDownLoc", "PassiveTopDownFalseBeliefRotation", "PassiveTopDownFalseBeliefMovement"]
-      # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
-      # tags: ["ActiveRot"]
-      # n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
+      # tags: ["PassiveTopDownRot", "PassiveTopDownCounterRot", "PassiveTopDownRotDual", "PassiveTopDownCircularRot", "PassiveTopDownPoV", "PassiveTopDownAllPairs", "PassiveTopDownE2A", "PassiveTopDownLoc", "PassiveTopDownFalseBelief", "PassiveTopDownFalseBeliefMovement"]
+      # n_groups: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50]
+      tags: ["ActiveRot"]
+      n_groups: [1] # TODO: If not set, all env names divide nums equally. Under the same group, the env config and env seed (prompt) are equal in each generation
 
