@@ -31,10 +31,11 @@ class SpatialGymConfig:
     n_objects: int = 3
     candidate_objects: List[str] = field(default_factory=lambda: CANDIDATE_OBJECTS)
     generation_type: str = "rand"
-    with_topdown: bool = False  # Whether to include topdown view in room description
     
     # Exploration configuration
     exp_type: str = 'passive'
+    prompt_with_topdown: bool = False  # Whether to include topdown view in room description
+    prompt_with_cogmap: bool = False
     field_of_view: int = 180
     max_exp_steps: int = 100
     
@@ -131,5 +132,7 @@ class SpatialGymConfig:
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
+            'prompt_with_topdown': self.prompt_with_topdown,
+            'prompt_with_cogmap': self.prompt_with_cogmap,
             # 'candidate_objects': self.candidate_objects,
         }

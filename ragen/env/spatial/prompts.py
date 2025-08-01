@@ -1,4 +1,13 @@
-ACTIVE_INSTRUCTION = """\
+import numpy as np
+from ragen.env.spatial.Base.tos_base import ActionSequence
+from ragen.env.spatial.utils.generate_history import AutoExplore
+from ragen.env.spatial.Base.tos_base import Room
+
+
+class Prompter:
+    """A class to generate prompts for the SpatialGym environment."""
+
+    _ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
 Your goal: Learn ALL spatial relationships between EACH pair of objects in the room, then STOP exploring immediately.
@@ -51,7 +60,7 @@ After exploration, you will answer questions.
 {exp_instructions}
 """
 
-PASSIVE_INSTRUCTION = """\
+    _PASSIVE_INSTRUCTION = """\
 # Spatial Understanding Task
 
 You will be given a room layout and a tour around the room. 
@@ -78,8 +87,7 @@ Suppose you are facing north, then:
 {exp_history}
 """
 
-
-COGNITION_MAP_INSTRUCTION = """\
+    _COGNITION_MAP_INSTRUCTION = """\
 ## Cognitive Map Creation
 
 **YOU MUST ALWAYS OUTPUT A JSON COGNITIVE MAP IN YOUR REASONING SECTION BEFORE ANSWERING ANY QUESTION.**
@@ -122,20 +130,43 @@ If a table is front right of you and a chair is in front of you:
 **CRITICAL**: Your response will be considered incomplete without the JSON cognitive map. Always include it in your reasoning before providing your final answer.
 """
 
-# EVALUATION_INSTRUCTION = """\
-# You return to your starting position and facing north.
-# """+ COGNITION_MAP_INSTRUCTION + """{eval_question}
-# """
-
-EVALUATION_INSTRUCTION = """\
+    _EVALUATION_INSTRUCTION = """\
 You return to your starting position and facing north.
 {eval_question}
 """
 
-SHORT_EXPLORATION_PROMPT = """\
-Please respond with valid actions to explore the room.
-"""
+    SHORT_EXPLORATION_PROMPT = "Please respond with valid actions to explore the room."
+    SHORT_EVALUATION_PROMPT = "Please respond with a valid answer to the question."
 
-SHORT_EVALUATION_PROMPT = """\
-Please respond with a valid answer to the question.
-"""
+    def __init__(self, prompt_with_cogmap: bool, prompt_with_topdown: bool, exp_type: str):
+        self.prompt_with_cogmap = prompt_with_cogmap
+        self.prompt_with_topdown = prompt_with_topdown
+        self.exp_type = exp_type
+
+    def get_initial_observation_prompt(self, room: Room, np_random: np.random.RandomState, **kwargs) -> str:
+        """
+        Generates the initial observation prompt based on the exploration type.
+        """
+        room_desc = room.get_room_description(with_topdown=self.prompt_with_topdown)
+        if self.exp_type == 'active':
+            exp_instructions = f"## Action Instructions\n{ActionSequence.get_usage_instructions()}\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
+            
+            return self._ACTIVE_INSTRUCTION.format(
+              room_info=room_desc,
+              exp_instructions=exp_instructions
+            )
+        else:
+            exp_history = f"## Exploration History\n{AutoExplore(room, np_random).gen_exp_history()}" if not self.prompt_with_topdown else ""
+            obs = self._PASSIVE_INSTRUCTION.format(
+              room_info=room_desc,
+              exp_history=exp_history
+            )
+            return obs
+
+    def get_evaluation_prompt(self, eval_question: str) -> str:
+        """
+        Generates the evaluation prompt, optionally including the cognitive map instructions.
+        """
+        if self.prompt_with_cogmap:
+            return f"{self._COGNITION_MAP_INSTRUCTION}\n{self._EVALUATION_INSTRUCTION.format(eval_question=eval_question)}"
+        return self._EVALUATION_INSTRUCTION.format(eval_question=eval_question)

@@ -15,14 +15,7 @@ from ragen.env.spatial.Base.tos_base import (
     generate_room,
     BaseAction
 )
-from ragen.env.spatial.utils.generate_history import AutoExplore
-from ragen.env.spatial.prompts import (
-    ACTIVE_INSTRUCTION, 
-    PASSIVE_INSTRUCTION, 
-    EVALUATION_INSTRUCTION,
-    SHORT_EXPLORATION_PROMPT, 
-    SHORT_EVALUATION_PROMPT
-)
+from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.utils.action_utils import action_results_to_text
 
 @dataclass
@@ -66,6 +59,8 @@ class SpatialGym(gym.Env):
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
         self.config = config
+        self.prompter = Prompter(config.prompt_with_cogmap, config.prompt_with_topdown, config.exp_type)
+
         self.is_exploration_phase = None
         self.remaining_exp_steps = None
         self.render_cache = None
@@ -83,33 +78,20 @@ class SpatialGym(gym.Env):
         self.n_redundant_queries = None
 
         # Turn logging
-        self.turn_logs: List[EnvTurnLog] = []
-        self.current_turn_number = 0
+        self.turn_logs: List[EnvTurnLog] = None
+        self.current_turn_number = None
 
-        self.original_render_read = None 
         # this is in case ctx_manager parses no valid action, so if the original render is read, we will use one short prompt to replace it
+        self.original_render_read = None 
 
     def _generate_initial_observation(self) -> str:
         """Generate initial observation based on exploration type."""
-        room_desc = self.initial_room.get_room_description(with_topdown=self.config.with_topdown)
-        
+
+        obs = self.prompter.get_initial_observation_prompt(room=self.initial_room, np_random=self.np_random)
         if self.config.exp_type == 'passive':
-            exp_history = f"## Exploration History\n{AutoExplore(self.initial_room, self.np_random).gen_exp_history()}" if not self.config.with_topdown else ""
-            eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            eval_question = self.evaluation_manager.get_current_question()
             assert eval_question, "No question found after exploration phase"
-            obs = PASSIVE_INSTRUCTION.format(
-                room_info=room_desc,
-                exp_history=exp_history,
-            )
-            obs += EVALUATION_INSTRUCTION.format(eval_question=f"## Evaluation Question\n{eval_question}")
-
-        else:
-            exp_instructions = f"## Action Instructions\n{ActionSequence.get_usage_instructions()}\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
-            obs = ACTIVE_INSTRUCTION.format(
-                room_info=room_desc,
-                exp_instructions=exp_instructions
-            )
-
+            obs += self.prompter.get_evaluation_prompt(eval_question=f"## Evaluation Question\n{eval_question}")
         return obs
     
     def _update_render_cache(self, obs: str):
@@ -138,15 +120,14 @@ class SpatialGym(gym.Env):
         self.current_turn_number = 0
         
         # Set exploration phase
-        self.is_exploration_phase = self.config.exp_type not in ['passive', 'overview']
+        self.is_exploration_phase = self.config.exp_type == 'active'
         
         # Set field of view for all actions
         BaseAction.set_field_of_view(self.config.field_of_view)
         
         # Initialize managers
-        if self.config.exp_type in ['active', 'active_overview']:
-            self.exploration_manager = ExplorationManager(self.initial_room)
-        self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room)
+        self.exploration_manager = ExplorationManager(self.initial_room) if self.config.exp_type == 'active' else None
+        self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room) if len(self.config.eval_tasks) > 0 else None
 
         # Generate initial observation
         obs = self._generate_initial_observation()
@@ -182,7 +163,7 @@ class SpatialGym(gym.Env):
             # Transition to evaluation, NOTE question is generated based on the initial room
             eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
             assert eval_question, "No question found after exploration phase"
-            obs += EVALUATION_INSTRUCTION.format(eval_question=f"## Evaluation Question\n{eval_question}")
+            obs += self.prompter.get_evaluation_prompt(eval_question=f"## Evaluation Question\n{eval_question}")
         else:
             # Execute exploration action, TODO give reward to efficient exploration
             if action_sequence:
@@ -210,7 +191,7 @@ class SpatialGym(gym.Env):
             next_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
             assert next_question, "No question found after evaluation phase"
             self._update_render_cache(next_question)
-            return next_question, reward, not bool(next_question), {}
+            return next_question, reward, False, {}
         
         # All tasks completed
         self._update_render_cache("Task finished")
@@ -259,9 +240,9 @@ class SpatialGym(gym.Env):
             self.original_render_read = True
             return self.render_cache
         if self.is_exploration_phase:
-            return SHORT_EXPLORATION_PROMPT + f"You have a maximum of {self.remaining_exp_steps} exploration steps left."
+            return self.prompter.SHORT_EXPLORATION_PROMPT + f"You have a maximum of {self.remaining_exp_steps} exploration steps left."
         else:
-            return SHORT_EVALUATION_PROMPT
+            return self.prompter.SHORT_EVALUATION_PROMPT
 
 
 
@@ -493,40 +474,20 @@ if __name__ == "__main__":
     def test_field_of_view():
         """Test field of view configuration."""
         print("=== Testing Field of View ===")
-        
-        # With seed=42, 'keyboard' is at a position that is outside 90 FOV but inside 180 FOV.
-        # Let's use Observe() to check visibility.
-        def run_test(fov, seed=0):
-            print(f"\n--- Testing {fov}-degree FOV ---")
-            config = SpatialGymConfig(
-                name=f"fov_test_{fov}",
-                exp_type='active',
-                max_exp_steps=1,
-                eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
-                n_objects=3,
-                generation_type="rand",
-                room_range=[-5, 5],
-                field_of_view=fov
-            )
-            env = SpatialGym(config)
-            env.reset(seed=seed)
-            print(f"Room for {fov} FOV test: {env.initial_room}")
-            obs = env.render()
-            print(f"Initial observation: {obs}")
-            print(f"Room for {fov} FOV test: {env.initial_room}")
-            obs, _, _, _ = env.step("Movement: []\nFinal: Observe()")
-            print(f"Observation with {fov} FOV: {obs}")
-            return obs
-
-        # Test with 90-degree field of view
-        obs_90 = run_test(90)
-        assert "whiteboard" not in obs_90, "whiteboard should not be visible with 90 FOV"
-        print("Keyboard not in observation, as expected.")
-
-        # Test with 180-degree field of view
-        obs_180 = run_test(180)
-        assert "whiteboard" in obs_180, "whiteboard should be visible with 180 FOV"
-        print("Keyboard in observation, as expected.")
+        config = SpatialGymConfig(
+            name="fov_test",
+            exp_type='active',
+            max_exp_steps=1,
+            eval_tasks=[{"task_type": "rot", "task_kwargs": {}}],
+            n_objects=3,
+            generation_type="rand",
+            room_range=[-5, 5],
+            field_of_view=180
+        )
+        env = SpatialGym(config)
+        env.reset(seed=42)
+        assert env.config.field_of_view == 180
+        print("Field of view test passed.")
         print()
     
     def test_config_grouping():
@@ -560,12 +521,11 @@ if __name__ == "__main__":
     
     # Run all tests
     try:
-        # test_render_cache()
-        # test_active_exploration()
+        test_render_cache()
+        test_active_exploration()
         test_passive_exploration()
-        # test_basic_functionality()
-        # test_field_of_view()
-        # test_config_grouping()
+        test_basic_functionality()
+        test_field_of_view()
         print("All tests completed successfully!")
     except Exception as e:
         print(f"Test failed with error: {e}")

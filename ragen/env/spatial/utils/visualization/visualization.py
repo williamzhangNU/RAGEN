@@ -47,10 +47,10 @@ class VisualizationHelper:
 class HTMLGenerator:
     """Handles HTML generation for the visualization"""
     
-    def __init__(self, data: Dict, output_html: str, plot_rooms: bool = True):
+    def __init__(self, data: Dict, output_html: str, show_images: bool = True):
         self.data = data
         self.output_html = output_html
-        self.plot_rooms = plot_rooms
+        self.show_images = show_images
         self.out_dir = os.path.dirname(output_html)
         self.base = Path(output_html).stem
         
@@ -165,7 +165,7 @@ class HTMLGenerator:
         f.write(f"<h2>{escape(gname)} — Sample {sidx+1}</h2>\n")
 
         # Display initial room image if available
-        if self.plot_rooms and entry.get("initial_room_image"):
+        if self.show_images and entry.get("initial_room_image"):
             img_name = entry["initial_room_image"]
             f.write(f"<img src='{img_name}' class='room' alt='Initial room state'>\n")
 
@@ -246,7 +246,7 @@ class HTMLGenerator:
             
             # Right side: room visualization
             f.write("<div class='turn-right'>\n")
-            if self.plot_rooms and env_log.get('room_image'):
+            if self.show_images and env_log.get('room_image'):
                 img_name = env_log['room_image']
                 f.write(f"<img src='{img_name}' class='room-plot' alt='Room state at turn {t_idx+1}'>\n")
             f.write("</div>\n")  # End turn-right
@@ -287,10 +287,10 @@ class HTMLGenerator:
 class Visualization:
     """Main visualization class for JSON data"""
     
-    def __init__(self, json_path: str, output_html: str, plot_rooms: bool = True):
+    def __init__(self, json_path: str, output_html: str, show_images: bool = True):
         self.json_path = json_path
         self.output_html = output_html
-        self.plot_rooms = plot_rooms
+        self.show_images = show_images
 
     def load_data(self) -> Dict:
         """Load JSON data from file"""
@@ -300,12 +300,12 @@ class Visualization:
     def visualize(self) -> str:
         """Main method to generate visualization"""
         data = self.load_data()
-        generator = HTMLGenerator(data, self.output_html, self.plot_rooms)
+        generator = HTMLGenerator(data, self.output_html, self.show_images)
         return generator.generate_html()
 
 
-def visualize_json(json_path: str, output_html: str, plot_rooms: bool = True) -> str:
-    viz = Visualization(json_path, output_html, plot_rooms)
+def visualize_json(json_path: str, output_html: str, show_images: bool = True) -> str:
+    viz = Visualization(json_path, output_html, show_images)
     return viz.visualize()
 
 

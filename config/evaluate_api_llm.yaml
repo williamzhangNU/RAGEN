@@ -11,9 +11,9 @@ model_info:
     generation_kwargs:
       temperature: 0
       max_tokens: 8192
-  Qwen3-235B-A22B-Instruct-2507-tput:
+  Qwen3-235B-A22B-Thinking-2507:
     provider_name: together
-    model_name: Qwen/Qwen3-235B-A22B-Instruct-2507-tput
+    model_name: Qwen/Qwen3-235B-A22B-Thinking-2507
     generation_kwargs:
       temperature: 0
       max_tokens: 8192

@@ -200,15 +200,15 @@ def main(config):
 
 	# for spatial env
 	from ragen.env.spatial.utils.env_logger import SpatialEnvLogger
+
+	id_2_env = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
+	envs = [id_2_env[env_id] for env_id in rollouts.non_tensor_batch['env_ids'].tolist()]
 	SpatialEnvLogger.log_each_env_info(
-		envs={env['env_id']: env['env'] for env in proxy.val_es_manager.envs},
+		env_summaries=[env.get_env_summary() for env in envs ],
 		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
-		env_ids=rollouts.non_tensor_batch['env_ids'].tolist(),
-		config=config,
-		output_path=config.output_path
+		output_dir=config.output_dir,
+		model_name= config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name
 	)
-	
-	# format conversations for readable output
 	
 
 if __name__ == "__main__":

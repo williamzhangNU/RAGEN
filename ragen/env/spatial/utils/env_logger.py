@@ -16,19 +16,19 @@ class SpatialEnvLogger:
     """Logger for spatial environment data aggregation and visualization."""
     
     @staticmethod
-    def convert_omegaconf_to_python(obj):
+    def _convert_omegaconf_to_python(obj):
         """Recursively convert OmegaConf objects to standard Python types for JSON serialization."""
         if isinstance(obj, (DictConfig, ListConfig)):
             return OmegaConf.to_container(obj, resolve=True)
         elif isinstance(obj, dict):
-            return {key: SpatialEnvLogger.convert_omegaconf_to_python(value) for key, value in obj.items()}
+            return {key: SpatialEnvLogger._convert_omegaconf_to_python(value) for key, value in obj.items()}
         elif isinstance(obj, list):
-            return [SpatialEnvLogger.convert_omegaconf_to_python(item) for item in obj]
+            return [SpatialEnvLogger._convert_omegaconf_to_python(item) for item in obj]
         else:
             return obj
 
     @staticmethod
-    def extract_think_and_answer(text: str) -> Tuple[str, str]:
+    def _extract_think_and_answer(text: str) -> Tuple[str, str]:
         """Extract think and answer content from text using regex patterns"""
         think_pattern = r'<think>(.*?)</think>'
         answer_pattern = r'<answer>(.*?)</answer>'
@@ -42,7 +42,7 @@ class SpatialEnvLogger:
         return think_content, answer_content
 
     @staticmethod
-    def plot_room(room_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
+    def _plot_room(room_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
         """Plot room from state and return image filename"""
         img_folder = os.path.join(out_dir, "images", config_name, f"sample_{sample_idx+1}")
         os.makedirs(img_folder, exist_ok=True)
@@ -50,14 +50,14 @@ class SpatialEnvLogger:
         room = Room.from_dict(room_dict)
         transformed_room = set_initial_pos_as_origin(room)
         
-        img_name = f"turn_{turn_idx+1}.png" if turn_idx > 0 else "initial_room.png"
+        img_name = f"room_turn_{turn_idx+1}.png" if turn_idx > 0 else "room_initial.png"
         img_path = os.path.join(img_folder, img_name)
         transformed_room.plot(render_mode='img', save_path=img_path)
         
         return os.path.join("images", config_name, f"sample_{sample_idx+1}", img_name)
 
     @staticmethod
-    def validate_and_assign_messages(message: List[Dict], turn_logs: List[Dict]) -> bool:
+    def _validate_and_assign_messages(message: List[Dict], turn_logs: List[Dict]) -> bool:
         """Validate message structure and assign raw assistant messages to turn logs."""
         if not message:
             return False
@@ -82,14 +82,14 @@ class SpatialEnvLogger:
             return False
         
         for turn_log, raw_msg in zip(turn_logs, assistant_messages):
-            think_content, answer_content = SpatialEnvLogger.extract_think_and_answer(raw_msg)
+            think_content, _ = SpatialEnvLogger._extract_think_and_answer(raw_msg)
             turn_log['assistant_raw_message'] = raw_msg
             turn_log['assistant_think_message'] = think_content
         
         return True
 
     @staticmethod
-    def aggregate_env_data(env_summaries: List[Dict], messages: List[List[Dict]], output_dir: str, save_images: bool = True, **kwargs) -> Dict:
+    def _aggregate_env_data(env_summaries: List[Dict], messages: List[List[Dict]], output_dir: str, save_images: bool = True, **kwargs) -> Dict:
         """
         Aggregate environment data and create visualization.
         
@@ -110,7 +110,7 @@ class SpatialEnvLogger:
             
             # Validate and assign raw messages
             turn_logs = [turn_log for turn_log in env_summary.get('env_turn_logs', [])]
-            if not SpatialEnvLogger.validate_and_assign_messages(message, turn_logs):
+            if not SpatialEnvLogger._validate_and_assign_messages(message, turn_logs):
                 continue
             
             env_data = {**env_summary, "message": message}
@@ -122,14 +122,14 @@ class SpatialEnvLogger:
                 for sample_idx, env_data in enumerate(group):
                     # Plot initial room
                     initial_room_dict = env_data["env_info"]["initial_room"]
-                    initial_img_path = SpatialEnvLogger.plot_room(initial_room_dict, output_dir, config_name, sample_idx, 0)
+                    initial_img_path = SpatialEnvLogger._plot_room(initial_room_dict, output_dir, config_name, sample_idx, 0)
                     env_data["initial_room_image"] = initial_img_path
                     
                     # Plot room for each turn
                     for turn_log in env_data["env_turn_logs"]:
                         if turn_log["room_state"]:
                             turn_idx = turn_log["turn_number"]
-                            img_path = SpatialEnvLogger.plot_room(turn_log["room_state"], output_dir, config_name, sample_idx, turn_idx)
+                            img_path = SpatialEnvLogger._plot_room(turn_log["room_state"], output_dir, config_name, sample_idx, turn_idx)
                             turn_log["room_image"] = img_path
 
         # Initialize result structure
@@ -163,7 +163,7 @@ class SpatialEnvLogger:
         return result
 
     @staticmethod
-    def save_aggregated_data(aggregated_data: Dict, output_path: str, **kwargs):
+    def _save_data(aggregated_data: Dict, output_dir: str, **kwargs):
         """Save aggregated data to JSON and generate HTML dashboard."""
         saved_data = {
             'meta_info': {
@@ -174,41 +174,33 @@ class SpatialEnvLogger:
         }
 
         # Convert OmegaConf objects to standard Python types
-        saved_data = SpatialEnvLogger.convert_omegaconf_to_python(saved_data)
+        saved_data = SpatialEnvLogger._convert_omegaconf_to_python(saved_data)
         
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        with open(output_path, "w") as f:
+        os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+        with open(os.path.join(output_dir, "env_data.json"), "w") as f:
             json.dump(saved_data, f, indent=2)
 
         # Generate HTML dashboard
-        html_dir = os.path.dirname(output_path)
-        base = Path(output_path).stem
-        html_name = f"{base}_dashboard.html"
-        html_path = os.path.join(html_dir, html_name)
-        dashboard_path = visualize_json(output_path, html_path, True)
+        html_path = os.path.join(output_dir, "env_data.html")
+        dashboard_path = visualize_json(os.path.join(output_dir, "env_data.json"), html_path, True)
         
-        print(f"Environment data logged to {output_path}")
+        print(f"Environment data logged to {output_dir}")
         print(f"Dashboard written to {dashboard_path}")
-        return output_path
+        return output_dir
+
+
 
     @staticmethod
-    def log_each_env_info(envs, messages: List[Dict], env_ids: List[int], config, output_path: str, save_images: bool = True):
+    def log_each_env_info(env_summaries: List[Dict], messages: List[Dict], output_dir: str, save_images: bool = True, **kwargs):
         """Logs detailed information for each environment and overall performance metrics."""
-        # Get environment summaries
-        env_summaries = [envs[env_id].get_env_summary() for env_id in env_ids]
-        
-        # Get model name
-        model_name = config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name
-        
+
         # Aggregate data using the logger
-        output_dir = os.path.dirname(output_path)
-        aggregated_data = SpatialEnvLogger.aggregate_env_data(
+        aggregated_data = SpatialEnvLogger._aggregate_env_data(
             env_summaries=env_summaries,
             messages=messages,
             output_dir=output_dir,
             save_images=save_images,
-            model_name=model_name
         )
         
         # Save aggregated data
-        return SpatialEnvLogger.save_aggregated_data(aggregated_data, output_path, model_name=model_name)
+        return SpatialEnvLogger._save_data(aggregated_data, output_dir, **kwargs)

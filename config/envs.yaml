@@ -141,6 +141,7 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
+      prompt_with_topdown: true
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
