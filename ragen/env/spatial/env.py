@@ -53,6 +53,12 @@ class SpatialGym(gym.Env):
     
     This environment uses an EvaluationManager to handle all evaluation tasks,
     separating evaluation logic from the main environment logic.
+
+    Reward design:
+    1. -0.5 for action format error
+    2. -0.1 for each exp step
+    3. (coverage - redundancy) * 10 for exploration phase
+    4. 10 for correct evaluation answer, otherwise 0
     """
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
@@ -133,12 +139,16 @@ class SpatialGym(gym.Env):
         self._update_render_cache(obs)
         return obs, {}
     
+    
+    def _calculate_exp_reward(self):
+        exp_summary = self.exploration_manager.get_exp_summary()
+        coverage = exp_summary['coverage']
+        redundancy = exp_summary['redundancy']
+        return int((coverage - redundancy) * 10)
+    
     def _step_exploration(self, action: str):
         """
         Handle exploration phase step.
-        TODO:
-        1. Add reward for invalid action
-        2. Add reward for Terminate: based on exploration summary
         """
         obs = ""
         reward = -0.1 # per step penalty
@@ -157,6 +167,7 @@ class SpatialGym(gym.Env):
             self.is_exploration_phase = False
             obs += "Exploration phase ended\n"
             self.final_room = self.exploration_manager.finish_exploration()
+            reward += self._calculate_exp_reward()
             
             # Transition to evaluation, NOTE question is generated based on the initial room
             eval_question = self.evaluation_manager.get_current_question()
@@ -182,7 +193,7 @@ class SpatialGym(gym.Env):
 
         # Evaluate answer
         correct, info = self.evaluation_manager.evaluate_answer(action)
-        reward = 1 if correct else 0
+        reward = 10 if correct else 0
         
         # Check for next task
         if self.evaluation_manager.next_task():
