@@ -59,7 +59,7 @@ class SpatialGym(gym.Env):
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
         self.config = config
-        self.prompter = Prompter(config.prompt_with_cogmap, config.prompt_with_topdown, config.exp_type)
+        self.prompter = Prompter(config)
 
         self.is_exploration_phase = None
         self.remaining_exp_steps = None
