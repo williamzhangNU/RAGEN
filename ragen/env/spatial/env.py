@@ -161,7 +161,7 @@ class SpatialGym(gym.Env):
             self.final_room = self.exploration_manager.finish_exploration()
             
             # Transition to evaluation, NOTE question is generated based on the initial room
-            eval_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            eval_question = self.evaluation_manager.get_current_question()
             assert eval_question, "No question found after exploration phase"
             obs += self.prompter.get_evaluation_prompt(eval_question=f"## Evaluation Question\n{eval_question}")
         else:
@@ -188,7 +188,7 @@ class SpatialGym(gym.Env):
         
         # Check for next task
         if self.evaluation_manager.next_task():
-            next_question = self.evaluation_manager.get_current_question(self.initial_room.copy())
+            next_question = self.evaluation_manager.get_current_question()
             assert next_question, "No question found after evaluation phase"
             self._update_render_cache(next_question)
             return next_question, reward, False, {}
