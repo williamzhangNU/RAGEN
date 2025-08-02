@@ -237,27 +237,18 @@ class ContextManager:
             ]
 
             for idx, content in enumerate(env_output["history"]):
-                
-                # NOTE for spatial env
-                # messages[-1]["content"] += f"\nTurn {idx + 1}:\n"
-
+                messages[-1]["content"] += f"\nTurn {idx + 1}:\n"
                 if "state" in content:
                     FORMAT_PROMPT = "<think> [Your thoughts] </think> <answer> [your answer] </answer>" if self.config.agent_proxy.enable_think else "<answer> [your answer] </answer>"
                     LENGTH_PROMPT = f"Max response length: {self.env_config_lookup[env_output['env_id']]['max_tokens']} words (tokens)."
-                    
-                    # for spatial env
                     # messages[-1]["content"] += f"State:\n{content['state']}\nYou have {content['actions_left']} actions left. Always output: {FORMAT_PROMPT} with no extra text. Strictly follow this format. {LENGTH_PROMPT}\n"
-                    messages[-1]["content"] += f"{content['state']}\nAlways output: {FORMAT_PROMPT} with no extra text. Strictly follow this format.\n"
-                
+                    # NOTE Spatial Env
+                    messages[-1]["content"] += f"State:\n{content['state']}\nAlways output: {FORMAT_PROMPT} with no extra text. Strictly follow this format. {LENGTH_PROMPT}\n"
                 if "llm_response" in content:
                     messages.append({"role": "assistant", "content": content["llm_response"]})
                 if "reward" in content and not (prepare_for_update and idx == len(env_output["history"]) - 1):
                     # when prepare for update, we do not add the reward from the n+1 turn to the trajectory
-
-                    # for spatial env
-                    messages.append({"role": "user", "content": f""})
-                    # messages.append({"role": "user", "content": f"Reward:\n{content['reward']}\n"})
-
+                    messages.append({"role": "user", "content": f"Reward:\n{content['reward']}\n"})
                     
 
             # NOTE: this assertion is important for loss mask computation        
