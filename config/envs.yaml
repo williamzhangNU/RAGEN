@@ -141,7 +141,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
-      prompt_with_topdown: true
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
@@ -158,6 +159,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "circular_rot"
           task_kwargs:
@@ -173,6 +176,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "dir"
           task_kwargs: {}
@@ -187,6 +192,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "loc"
           task_kwargs: {}
@@ -201,6 +208,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "false_belief"
           task_kwargs: {'action_type': 'rotation'}
@@ -215,6 +224,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "false_belief"
           task_kwargs: {'action_type': 'movement'}
@@ -229,6 +240,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "pov"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "pov"
           task_kwargs: {}
@@ -243,6 +256,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "rot_dual"
           task_kwargs: {}
@@ -257,6 +272,8 @@ custom_envs:
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "e2a"
           task_kwargs: 

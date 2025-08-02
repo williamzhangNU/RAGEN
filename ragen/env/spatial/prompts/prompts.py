@@ -1,13 +1,6 @@
-import numpy as np
-from ragen.env.spatial.Base.tos_base import ActionSequence
-from ragen.env.spatial.utils.generate_history import AutoExplore
-from ragen.env.spatial.Base.tos_base import Room
 
 
-class Prompter:
-    """A class to generate prompts for the SpatialGym environment."""
-
-    _ACTIVE_INSTRUCTION = """\
+ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
 Your goal: Learn ALL spatial relationships between EACH pair of objects in the room, then STOP exploring immediately.
@@ -41,6 +34,9 @@ Suppose you are facing north, then:
    - Before each action, explicitly check: "Do I already know the relative position of every object pair?"
    - If YES, **STOP exploring immediately** - do not take unnecessary additional actions
    - **Prioritize stopping over additional exploration** once all relationships are known
+4. **Self-awareness**:
+   - You MUST always remember your current position and orientation.
+   - You MUST always remember your initial position and orientation and its relationship with other objects.
 
 ## Tips:
 - If you do not see one object in field of view, it also provides spatial information that the object is behind you (field of view is 180 degrees)
@@ -52,15 +48,53 @@ Suppose you are facing north, then:
 ## Important Notes:
 - Focus on **directional relationships** between objects, not exact distances
 
-After exploration, you will answer questions.
+## Room Layout
+{room_info}
+
+{exp_instructions}
+
+After exploration, NOTE you will return to your starting position and facing north.
+"""
+
+ACTIVE_INSTRUCTION_SHORTER = """\
+# Spatial Exploration Task
+
+## Goal
+Determine the left/right & front/back relationship for **EACH** pair of objects in the room. Stop the moment all pairwise relations are known.
+
+## Facing & Directions
+- Allowed facings: north | south | east | west.
+- When facing north: forward = north, back = south, right = east, left = west.
+
+## Relation Format
+`(<horizontal>, <vertical>)`
+- horizontal: left | right | same
+- vertical: front | back | same
+- "same" means objects are aligned in that dimension (e.g., (right, same): aligned horizontally)
+
+## Exploration Rules
+- **Complete Coverage**: Continue only while any object-to-object relation is unknown.
+- **Efficiency**: Pick actions that eliminate the most unknowns; skip views that add no new pairwise info.
+    - If you know all objects are in one general direction but lack specific details, focus your exploration there
+    - E.g., if all objects are at your left but don't know front or back, you should observe left
+- **Field of View**: An object outside your 180° FOV is behind you. Use this fact to deduce relations.
+- **Immediate Termination**: Before each move ask: "Do I now know every pairwise relation?" 
+    - If yes, output results and end—never take extra steps.
+- **Self-Tracking**: Always track your current & initial pose.
+
+## Rules
+- Transitivity (e.g., A left of B and B left of C ⇒ A left of C) to deduce relations without further movement.
+- Ignore distances; only directional relations matter.
 
 ## Room Layout
 {room_info}
 
 {exp_instructions}
+
+After exploration, NOTE you will return to your starting position and facing north.
 """
 
-    _PASSIVE_INSTRUCTION = """\
+PASSIVE_INSTRUCTION = """\
 # Spatial Understanding Task
 
 You will be given a room layout and a tour around the room. 
@@ -87,7 +121,7 @@ Suppose you are facing north, then:
 {exp_history}
 """
 
-    _COGNITION_MAP_INSTRUCTION = """\
+COGNITION_MAP_INSTRUCTION = """\
 ## Cognitive Map Creation
 
 **YOU MUST ALWAYS OUTPUT A JSON COGNITIVE MAP IN YOUR REASONING SECTION BEFORE ANSWERING ANY QUESTION.**
@@ -130,41 +164,6 @@ If a table is front right of you and a chair is in front of you:
 **CRITICAL**: Your response will be considered incomplete without the JSON cognitive map. Always include it in your reasoning before providing your final answer.
 """
 
-    _EVALUATION_INSTRUCTION = """\
-You return to your starting position and facing north.
-{eval_question}
-"""
-
-    SHORT_EXPLORATION_PROMPT = "Please respond with valid actions to explore the room."
-    SHORT_EVALUATION_PROMPT = "Please respond with a valid answer to the question."
-
-    def __init__(self, config):
-        self.config = config
-
-    def get_initial_observation_prompt(self, room: Room, np_random: np.random.RandomState, **kwargs) -> str:
-        """
-        Generates the initial observation prompt based on the exploration type.
-        """
-        room_desc = room.get_room_description(with_topdown=self.config.prompt_with_topdown)
-        if self.config.exp_type == 'active':
-            exp_instructions = f"## Action Instructions\n{ActionSequence.get_usage_instructions()}\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
-            
-            return self._ACTIVE_INSTRUCTION.format(
-              room_info=room_desc,
-              exp_instructions=exp_instructions
-            )
-        else:
-            exp_history = f"## Exploration History\n{AutoExplore(room, np_random).gen_exp_history()}" if not self.config.prompt_with_topdown else ""
-            obs = self._PASSIVE_INSTRUCTION.format(
-              room_info=room_desc,
-              exp_history=exp_history
-            )
-            return obs
-
-    def get_evaluation_prompt(self, eval_question: str) -> str:
-        """
-        Generates the evaluation prompt, optionally including the cognitive map instructions.
-        """
-        if self.config.prompt_with_cogmap:
-            return f"{self._COGNITION_MAP_INSTRUCTION}\n{self._EVALUATION_INSTRUCTION.format(eval_question=eval_question)}"
-        return self._EVALUATION_INSTRUCTION.format(eval_question=eval_question)
+EVALUATION_INSTRUCTION = "NOTE: Now you return to your starting position and facing north.\n{eval_question}"
+SHORT_EXPLORATION_PROMPT = "Please respond with valid actions to explore the room."
+SHORT_EVALUATION_PROMPT = "Please respond with a valid answer to the question."

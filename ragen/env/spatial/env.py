@@ -1,8 +1,6 @@
 import gymnasium as gym
-import re
-from typing import Optional, List, Dict, Union, Any
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
-import copy
 
 from ragen.env.spatial.config import SpatialGymConfig
 from ragen.env.spatial.Base.tos_base import (
