@@ -291,7 +291,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_rot"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
@@ -309,7 +309,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_counter_rot"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
@@ -327,7 +327,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_circular_rot"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
@@ -343,7 +343,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_dir"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -358,7 +358,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_loc"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -373,7 +373,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_false_belief_rotation"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -388,7 +388,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_false_belief_movement"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -403,7 +403,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_pov"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "pov"
       n_objects: 3
@@ -418,7 +418,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_rot_dual"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rot"
       n_objects: 3
@@ -433,7 +433,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "passive_topdown_e2a"
-      with_topdown: true
+      prompt_with_topdown: true
       exp_type: "passive"
       generation_type: "rand"
       n_objects: 3
@@ -493,7 +493,7 @@ custom_envs:
       n_objects: 3
       max_exp_steps: 10 # 10
       generation_type: "rot"
-      with_topdown: true
+      prompt_with_topdown: true
       eval_tasks:
         - task_type: "rot"
           task_kwargs:
