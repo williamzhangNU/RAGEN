@@ -322,8 +322,10 @@ body {
 .turn-right {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 15px;
+    padding: 10px;
 }
 
 .room-plot {
@@ -454,6 +456,12 @@ body {
     background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
     border-left-color: #9c27b0;
     color: #6a1b9a;
+}
+
+.block.cogmap {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-left-color: #2196f3;
+    color: #0d47a1;
 }
 
 .metrics {

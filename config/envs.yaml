@@ -177,7 +177,7 @@ custom_envs:
       generation_type: "rand"
       n_objects: 3
       prompt_with_topdown: false
-      prompt_with_cogmap: false
+      prompt_with_cogmap: true
       eval_tasks:
         - task_type: "dir"
           task_kwargs: {}
@@ -456,6 +456,7 @@ custom_envs:
     max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
     env_config: # keys should be a subset of SokobanConfig
       name: "active_dir"
+      prompt_with_cogmap: true
       exp_type: "active"
       generation_type: "rand"
       max_exp_steps: 10

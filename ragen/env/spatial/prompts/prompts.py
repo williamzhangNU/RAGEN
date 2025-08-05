@@ -121,48 +121,8 @@ Suppose you are facing north, then:
 {exp_history}
 """
 
-COGNITION_MAP_INSTRUCTION = """\
-## Cognitive Map Creation
-
-**YOU MUST ALWAYS OUTPUT A JSON COGNITIVE MAP IN YOUR REASONING SECTION BEFORE ANSWERING ANY QUESTION.**
-
-### Coordinate System:
-- Use a 5x5 grid with YOU at the center position [0,0]
-- X-axis (horizontal): -2 (far left) to +2 (far right)
-- Y-axis (vertical): -2 (far back) to +2 (far front)
-- Grid directions:
-  * +Y = forward/north (towards you when facing north)
-  * -Y = backward/south (behind you when facing north)
-  * +X = right/east (to your right when facing north)
-  * -X = left/west (to your left when facing north)
-
-### Step-by-Step Process:
-1. **Identify all objects** mentioned in the observations
-2. **Determine each object's position** relative to your starting point [0,0]
-3. **Assign coordinates** based on their spatial relationships
-4. **Include object orientation** if mentioned (north/south/east/west)
-5. **OUTPUT THE JSON MAP** - This step is NOT optional
-
-### REQUIRED JSON OUTPUT FORMAT:
-**You MUST include this exact JSON structure in your reasoning:**
-```json
-{{
-  "object_name_1": {{"position": [x, y], "facing": "direction"}},
-  "object_name_2": {{"position": [x, y], "facing": "direction"}}
-}}
-```
-
-### Example (MUST follow this format):
-If a table is front right of you and a chair is in front of you:
-```json
-{{
-  "table": {{"position": [1, 1], "facing": "north"}},
-  "chair": {{"position": [0, 1], "facing": "north"}}
-}}
-```
-
-**CRITICAL**: Your response will be considered incomplete without the JSON cognitive map. Always include it in your reasoning before providing your final answer.
-"""
+# NOTE: COGNITION_MAP_INSTRUCTION has been moved to CognitiveMap class for flexible formatting
+# The dynamic instruction is now provided by CognitiveMap.get_json_format_instruction()
 
 EVALUATION_INSTRUCTION = "NOTE: Now you return to your starting position and facing north.\n{eval_question}"
 SHORT_EXPLORATION_PROMPT = "Please respond with valid actions to explore the room."

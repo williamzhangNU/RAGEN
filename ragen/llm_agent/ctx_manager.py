@@ -331,6 +331,10 @@ class ContextManager:
         env_inputs = []
         for env_id, response in zip(env_ids, responses):
             llm_response, actions = self._parse_response(response)
+
+            # for spatial env
+            actions = [llm_response]
+            
             env_inputs.append({
                 "env_id": env_id,
                 "llm_raw_response": response,

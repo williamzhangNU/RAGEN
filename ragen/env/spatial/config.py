@@ -34,14 +34,17 @@ class SpatialGymConfig:
     
     # Exploration configuration
     exp_type: str = 'passive'
-    prompt_with_topdown: bool = False  # Whether to include topdown view in room description
-    prompt_with_cogmap: bool = False
     field_of_view: int = 180
     max_exp_steps: int = 100
     
     # Evaluation configuration
     eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
+    # prompt configuration
+    prompt_with_topdown: bool = False  # Whether to include topdown view in room description
+    prompt_with_cogmap: bool = False
+
+
     # Rendering configuration
     render_mode: str = "text"
 
@@ -109,6 +112,8 @@ class SpatialGymConfig:
         """Validate render_mode parameter."""
         if self.render_mode != 'text':
             raise ValueError("Only 'text' rendering mode is currently supported")
+    
+
 
 
     def get_room_config(self) -> Dict[str, Any]:
