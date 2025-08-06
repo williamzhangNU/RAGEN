@@ -41,7 +41,7 @@ class VllmWrapperWg: # Thi is a developing class for eval and test
 			disable_log_stats=ro_config.disable_log_stats,
 			max_num_batched_tokens=ro_config.max_num_batched_tokens,
 			enable_chunked_prefill=ro_config.enable_chunked_prefill,
-			enable_prefix_caching=True,
+			enable_prefix_caching=False,
 		)
 		print("LLM initialized")
 		self.sampling_params = SamplingParams(

@@ -2,16 +2,16 @@ defaults:
   - base
   - evaluate_api_llm
 
-output_dir: results/spatial-0804/gpt-4.1/active-dir
+output_dir: results/spatial-0805/gpt-4.1-mini/passive-dir
 
 eval_model_type: api # api or vllm
 # api model
 api_model_info:
-  model_name:  gpt-4.1
+  model_name:  gpt-4.1-mini
   max_concurrency: 128
 
 # vllm model
-model_path: Qwen/Qwen2.5-3B-Instruct
+model_path: openai/gpt-oss-20b # not succeed on 4090 yet # Qwen/Qwen2.5-3B-Instruct
 actor_rollout_ref:
   rollout:
     max_model_len: 10000
@@ -33,8 +33,8 @@ es_manager:
     env_configs:
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
-      # tags: ["PassiveDir"]
-      # n_groups: [25]
-      tags: ["ActiveDir"]
+      tags: ["PassiveDir"]
       n_groups: [25]
+      # tags: ["ActiveDirCogmap"]
+      # n_groups: [25]
 

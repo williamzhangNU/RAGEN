@@ -177,7 +177,7 @@ custom_envs:
       generation_type: "rand"
       n_objects: 3
       prompt_with_topdown: false
-      prompt_with_cogmap: true
+      prompt_with_cogmap: false
       eval_tasks:
         - task_type: "dir"
           task_kwargs: {}
@@ -283,7 +283,7 @@ custom_envs:
   
   
   
-  
+
   PassiveTopDownRot:
     env_type: SpatialGym
     max_actions_per_traj: 1
@@ -447,6 +447,23 @@ custom_envs:
 
 
 
+  PassiveDirCogmap:
+    env_type: SpatialGym
+    max_actions_per_traj: 1
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "passive_dir_cogmap"
+      exp_type: "passive"
+      generation_type: "rand"
+      n_objects: 3
+      prompt_with_topdown: false
+      prompt_with_cogmap: false
+      eval_tasks:
+        - task_type: "dir"
+          task_kwargs: {}
+
+
 
 
   ActiveDir:
@@ -502,3 +519,23 @@ custom_envs:
             if_turn: false
             if_move: false
 
+
+
+
+
+  ActiveDirCogmap:
+    env_type: SpatialGym
+    max_actions_per_traj: 20
+    env_instruction: "You are solving a spatial question." # serve as the prefix of the initial (user) instruction
+    max_tokens: 256 # used to curate llm prompt "max words", not used for rollout
+    env_config: # keys should be a subset of SokobanConfig
+      name: "active_dir_cogmap"
+      prompt_with_topdown: false
+      prompt_with_cogmap: true
+      exp_type: "active"
+      generation_type: "rand"
+      max_exp_steps: 10
+      n_objects: 3
+      eval_tasks:
+        - task_type: "dir"
+          task_kwargs: {}
