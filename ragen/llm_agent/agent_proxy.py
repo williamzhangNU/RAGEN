@@ -171,12 +171,13 @@ def main(config):
 	"""
 	Usage: python -m ragen.llm_agent.agent_proxy --config-name evaluate_spatial
 	"""
-	tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
 	if config.eval_model_type == "vllm":
+		tokenizer = AutoTokenizer.from_pretrained(config.actor_rollout_ref.model.path)
 		os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 		os.environ["CUDA_VISIBLE_DEVICES"] = str(config.system.CUDA_VISIBLE_DEVICES)
 		actor_wg = VllmWrapperWg(config, tokenizer)
 	elif config.eval_model_type == "api":
+		tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct") # not used, just serve as a placeholder
 		actor_wg = ApiCallingWrapperWg(config, tokenizer)
 	else:
 		raise ValueError(f"Unsupported eval model type: {config.eval_model_type}")

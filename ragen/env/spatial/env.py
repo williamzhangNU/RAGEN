@@ -118,7 +118,7 @@ class SpatialGym(gym.Env):
         # Initialize managers
         self.exploration_manager = ExplorationManager(self.initial_room) if self.config.exp_type == 'active' else None
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room) if len(self.config.eval_tasks) > 0 else None
-        self.cognitive_map_manager = CognitiveMapManager() if self.config.prompt_with_cogmap else None
+        self.cognitive_map_manager = CognitiveMapManager() if self.config.prompt_config["cogmap"] else None
 
         # Generate initial observation
         obs = self._generate_initial_observation()
@@ -189,12 +189,12 @@ class SpatialGym(gym.Env):
         # Log turn at start with current state
         current_obs = self.render_cache if hasattr(self, 'render_cache') else ""
         
+        # step the environment
         if action and think_content:
             # Evaluate cognitive map if enabled and we have assistant response
             if self.cognitive_map_manager:
                 self.cognitive_map_manager.evaluate_cognitive_map(think_content, room_state_last_turn)
                 cogmap_log = self.cognitive_map_manager.turn_logs[-1]
-
             if self.is_exploration_phase:
                 obs, reward, done, step_info, exp_log = self._step_exploration(action)
             else:
@@ -204,7 +204,11 @@ class SpatialGym(gym.Env):
             obs = "Invalid input format.\n"
             done, step_info = False, {}
 
-        obs += self.prompter.COGMAP_REQUIRED_INSTRUCTION if self.config.prompt_with_cogmap else ""
+        # post-process the observation
+        if self.is_exploration_phase:
+            obs += self.prompter.COGMAP_EXP_REQUIRED_INSTRUCTION if self.config.prompt_config["cogmap"] else ""
+        else:
+            obs += self.prompter.COGMAP_EVAL_REQUIRED_INSTRUCTION if self.config.prompt_config["cogmap"] else ""
         self.render_cache = obs
 
         # Get room state from turn logs

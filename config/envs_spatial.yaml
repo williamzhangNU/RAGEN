@@ -1,0 +1,171 @@
+_common: &common
+  env_type: SpatialGym
+  max_actions_per_traj: 1
+  env_instruction: "You are solving a spatial question."
+  max_tokens: 256
+
+# prompt
+_prompt_standard: &prompt_standard
+  prompt_config:
+    topdown: false
+    cogmap: false
+    type: standard
+
+_prompt_cogmap: &prompt_cogmap
+  prompt_config:
+    topdown: false
+    cogmap: true
+    type: standard
+
+_prompt_topdown: &prompt_topdown
+  prompt_config:
+    topdown: true
+    cogmap: false
+    type: standard
+
+# exp_type
+_passive: &passive
+  exp_type: passive
+  n_objects: 5
+
+_active: &active
+  exp_type: active
+  n_objects: 3
+  max_exp_steps: 10
+
+
+custom_envs:
+  PassiveDir:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_dir"
+      generation_type: rand
+      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
+
+  PassiveRot:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_rot"
+      generation_type: rot
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  PassiveLoc:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_loc"
+      generation_type: rand
+      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  PassiveFalseBeliefRotation:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_false_belief_rotation"
+      generation_type: rand
+      eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'rotation'}}]
+  
+  PassiveFalseBeliefMovement:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_false_belief_movement"
+      generation_type: rand
+      eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'movement'}}]
+
+  PassiveDirCogmap:
+    <<: *common
+    env_config:
+      <<: *prompt_cogmap
+      <<: *passive
+      name: "passive_dir_cogmap"
+      generation_type: rand
+      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
+
+  PassiveRotCogmap:
+    <<: *common
+    env_config:
+      <<: *prompt_cogmap
+      <<: *passive
+      name: "passive_rot_cogmap"
+      generation_type: rot
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  PassiveLocCogmap:
+    <<: *common
+    env_config:
+      <<: *prompt_cogmap
+      <<: *passive
+      name: "passive_loc_cogmap"
+      generation_type: rand
+      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+
+  ActiveDir:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_dir"
+      generation_type: rand
+      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
+
+  ActiveRot:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_rot"
+      generation_type: rot
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  ActiveLoc:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_loc"
+      generation_type: rand
+      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  ActiveDirCogmap:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_cogmap
+      <<: *active
+      name: "active_dir_cogmap"
+      generation_type: rand
+      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
+
+  ActiveRotCogmap:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_cogmap
+      <<: *active
+      name: "active_rot_cogmap"
+      generation_type: rot
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  ActiveLocCogmap:
+    <<: *common
+    max_actions_per_traj: 15
+    env_config:
+      <<: *prompt_cogmap
+      <<: *active
+      name: "active_loc_cogmap"
+      generation_type: rand
+      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  

@@ -34,7 +34,7 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, model_name: str = "gpt-4o", api_key: Optional[str] = None):
         self.model_name = model_name
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        self.base_url = os.environ.get("OPENAI_BASE_URL","https://api.openai.com/v1")
+        self.base_url = os.environ.get("OPENAI_BASE_URL","https://api.openai.com/v1") if 'gpt-oss' not in model_name else "http://localhost:8000/v1"
         if not self.api_key:
             raise ValueError("OpenAI API key not provided and not found in environment variables")
         

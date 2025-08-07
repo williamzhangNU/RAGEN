@@ -1,0 +1,369 @@
+INFO 08-06 21:54:07 [__init__.py:239] Automatically detected platform cuda.
+/home/pingyue/miniconda3/envs/ragen/lib/python3.12/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'evaluate_spatial': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+API-based LLM (openai - openai/gpt-oss-20b) initialized
+[2025-08-06 21:54:25,478][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:34,299][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:35,364][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:40,484][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:40,485][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:41,407][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:41,451][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:43,461][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:43,523][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:45,220][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:48,621][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:50,773][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:53,090][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:53,093][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:53,485][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:54:59,020][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:01,016][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:08,009][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:08,053][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:17,331][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:17,528][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:55:39,195][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:13,808][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:16,214][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:17,810][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:29,121][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[2025-08-06 21:56:29,208][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[2025-08-06 21:56:29,213][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[2025-08-06 21:56:29,254][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:29,256][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 5 failed messages, retry_count: 1
+[2025-08-06 21:56:34,260][openai._base_client][INFO] - Retrying request to /chat/completions in 0.382782 seconds
+[2025-08-06 21:56:51,099][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:56:58,656][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:57:16,647][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:58:06,464][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[2025-08-06 21:58:06,548][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 2 failed messages, retry_count: 2
+[2025-08-06 21:58:11,555][openai._base_client][INFO] - Retrying request to /chat/completions in 0.420113 seconds
+[2025-08-06 21:59:34,563][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 21:59:34,909][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 2 failed messages, retry_count: 3
+[2025-08-06 21:59:39,957][openai._base_client][INFO] - Retrying request to /chat/completions in 0.465421 seconds
+[2025-08-06 21:59:58,278][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[2025-08-06 22:00:51,913][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 4
+[2025-08-06 22:00:56,961][openai._base_client][INFO] - Retrying request to /chat/completions in 0.422485 seconds
+[2025-08-06 22:02:06,649][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 5
+[2025-08-06 22:02:11,695][openai._base_client][INFO] - Retrying request to /chat/completions in 0.429923 seconds
+[2025-08-06 22:03:21,314][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 6
+[2025-08-06 22:03:26,362][openai._base_client][INFO] - Retrying request to /chat/completions in 0.415636 seconds
+[2025-08-06 22:04:36,295][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 7
+[2025-08-06 22:04:41,343][openai._base_client][INFO] - Retrying request to /chat/completions in 0.396129 seconds
+[2025-08-06 22:05:51,525][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 8
+[2025-08-06 22:05:56,571][openai._base_client][INFO] - Retrying request to /chat/completions in 0.402181 seconds
+[2025-08-06 22:07:06,144][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 9
+[2025-08-06 22:07:11,190][openai._base_client][INFO] - Retrying request to /chat/completions in 0.462626 seconds
+[2025-08-06 22:08:20,714][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 10
+[2025-08-06 22:08:25,760][openai._base_client][INFO] - Retrying request to /chat/completions in 0.451644 seconds
+[2025-08-06 22:09:35,567][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 11
+[2025-08-06 22:09:40,612][openai._base_client][INFO] - Retrying request to /chat/completions in 0.484593 seconds
+[2025-08-06 22:10:50,433][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 12
+[2025-08-06 22:10:55,481][openai._base_client][INFO] - Retrying request to /chat/completions in 0.495404 seconds
+[2025-08-06 22:12:05,093][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 13
+[2025-08-06 22:12:10,141][openai._base_client][INFO] - Retrying request to /chat/completions in 0.481895 seconds
+[2025-08-06 22:13:20,185][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 14
+[2025-08-06 22:13:25,233][openai._base_client][INFO] - Retrying request to /chat/completions in 0.435726 seconds
+[2025-08-06 22:14:35,860][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 15
+[2025-08-06 22:14:41,843][openai._base_client][INFO] - Retrying request to /chat/completions in 0.463204 seconds
+[2025-08-06 22:15:52,766][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 16
+[2025-08-06 22:15:59,038][openai._base_client][INFO] - Retrying request to /chat/completions in 0.481776 seconds
+[2025-08-06 22:17:09,182][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 17
+[2025-08-06 22:17:14,389][openai._base_client][INFO] - Retrying request to /chat/completions in 0.413767 seconds
+[2025-08-06 22:18:23,986][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 18
+[2025-08-06 22:18:29,119][openai._base_client][INFO] - Retrying request to /chat/completions in 0.474631 seconds
+[2025-08-06 22:19:38,839][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 19
+[2025-08-06 22:19:43,931][openai._base_client][INFO] - Retrying request to /chat/completions in 0.379084 seconds
+[2025-08-06 22:20:53,507][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 20
+[2025-08-06 22:20:58,598][openai._base_client][INFO] - Retrying request to /chat/completions in 0.464486 seconds
+[2025-08-06 22:22:08,264][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 21
+[2025-08-06 22:22:13,355][openai._base_client][INFO] - Retrying request to /chat/completions in 0.445011 seconds
+[2025-08-06 22:23:22,937][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 22
+[2025-08-06 22:23:28,029][openai._base_client][INFO] - Retrying request to /chat/completions in 0.435199 seconds
+[2025-08-06 22:24:37,798][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 23
+[2025-08-06 22:24:42,888][openai._base_client][INFO] - Retrying request to /chat/completions in 0.466487 seconds
+[2025-08-06 22:25:52,504][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 24
+[2025-08-06 22:25:57,590][openai._base_client][INFO] - Retrying request to /chat/completions in 0.438601 seconds
+[2025-08-06 22:27:07,196][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 25
+[2025-08-06 22:27:12,283][openai._base_client][INFO] - Retrying request to /chat/completions in 0.498407 seconds
+[2025-08-06 22:28:21,973][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 26
+[2025-08-06 22:28:27,108][openai._base_client][INFO] - Retrying request to /chat/completions in 0.441456 seconds
+[2025-08-06 22:29:36,654][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 27
+[2025-08-06 22:29:41,743][openai._base_client][INFO] - Retrying request to /chat/completions in 0.497267 seconds
+[2025-08-06 22:30:51,403][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 28
+[2025-08-06 22:30:56,490][openai._base_client][INFO] - Retrying request to /chat/completions in 0.499398 seconds
+[2025-08-06 22:32:06,251][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 29
+[2025-08-06 22:32:11,298][openai._base_client][INFO] - Retrying request to /chat/completions in 0.464715 seconds
+[2025-08-06 22:33:21,125][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 30
+[2025-08-06 22:33:26,173][openai._base_client][INFO] - Retrying request to /chat/completions in 0.473864 seconds
+[2025-08-06 22:34:35,847][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 31
+[2025-08-06 22:34:40,893][openai._base_client][INFO] - Retrying request to /chat/completions in 0.378954 seconds
+[2025-08-06 22:35:50,463][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 32
+[2025-08-06 22:35:55,509][openai._base_client][INFO] - Retrying request to /chat/completions in 0.466147 seconds
+[2025-08-06 22:37:05,144][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 33
+[2025-08-06 22:37:10,190][openai._base_client][INFO] - Retrying request to /chat/completions in 0.480237 seconds
+[2025-08-06 22:38:19,899][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 34
+[2025-08-06 22:38:24,945][openai._base_client][INFO] - Retrying request to /chat/completions in 0.439886 seconds
+[2025-08-06 22:39:34,435][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 35
+[2025-08-06 22:39:39,482][openai._base_client][INFO] - Retrying request to /chat/completions in 0.474437 seconds
+[2025-08-06 22:40:49,070][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 36
+[2025-08-06 22:40:54,116][openai._base_client][INFO] - Retrying request to /chat/completions in 0.390068 seconds
+[2025-08-06 22:42:03,694][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 37
+[2025-08-06 22:42:08,740][openai._base_client][INFO] - Retrying request to /chat/completions in 0.428794 seconds
+[2025-08-06 22:43:18,433][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 38
+[2025-08-06 22:43:23,478][openai._base_client][INFO] - Retrying request to /chat/completions in 0.380899 seconds
+[2025-08-06 22:44:33,098][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 39
+[2025-08-06 22:44:38,146][openai._base_client][INFO] - Retrying request to /chat/completions in 0.465895 seconds
+[2025-08-06 22:45:47,910][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 40
+[2025-08-06 22:45:52,958][openai._base_client][INFO] - Retrying request to /chat/completions in 0.455393 seconds
+[2025-08-06 22:47:02,808][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 41
+[2025-08-06 22:47:07,854][openai._base_client][INFO] - Retrying request to /chat/completions in 0.397877 seconds
+[2025-08-06 22:48:17,318][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 42
+[2025-08-06 22:48:22,367][openai._base_client][INFO] - Retrying request to /chat/completions in 0.401217 seconds
+[2025-08-06 22:49:31,983][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 43
+[2025-08-06 22:49:37,031][openai._base_client][INFO] - Retrying request to /chat/completions in 0.471828 seconds
+[2025-08-06 22:50:46,977][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 44
+[2025-08-06 22:50:52,026][openai._base_client][INFO] - Retrying request to /chat/completions in 0.435077 seconds
+[2025-08-06 22:52:01,852][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 45
+[2025-08-06 22:52:06,900][openai._base_client][INFO] - Retrying request to /chat/completions in 0.433086 seconds
+[2025-08-06 22:53:16,795][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 46
+[2025-08-06 22:53:21,843][openai._base_client][INFO] - Retrying request to /chat/completions in 0.477006 seconds
+[2025-08-06 22:54:31,852][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 47
+[2025-08-06 22:54:36,900][openai._base_client][INFO] - Retrying request to /chat/completions in 0.438548 seconds
+[2025-08-06 22:55:46,811][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 48
+[2025-08-06 22:55:51,859][openai._base_client][INFO] - Retrying request to /chat/completions in 0.496707 seconds
+[2025-08-06 22:57:01,854][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 49
+[2025-08-06 22:57:06,902][openai._base_client][INFO] - Retrying request to /chat/completions in 0.492732 seconds
+[2025-08-06 22:58:16,636][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 50
+[2025-08-06 22:58:21,684][openai._base_client][INFO] - Retrying request to /chat/completions in 0.429198 seconds
+[2025-08-06 22:59:31,598][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 51
+[2025-08-06 22:59:36,646][openai._base_client][INFO] - Retrying request to /chat/completions in 0.468751 seconds
+[2025-08-06 23:00:46,685][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 52
+[2025-08-06 23:00:51,730][openai._base_client][INFO] - Retrying request to /chat/completions in 0.378465 seconds
+[2025-08-06 23:02:01,469][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 53
+[2025-08-06 23:02:06,517][openai._base_client][INFO] - Retrying request to /chat/completions in 0.496005 seconds
+[2025-08-06 23:03:16,496][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 54
+[2025-08-06 23:03:21,545][openai._base_client][INFO] - Retrying request to /chat/completions in 0.440529 seconds
+[2025-08-06 23:04:31,325][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 55
+[2025-08-06 23:04:36,373][openai._base_client][INFO] - Retrying request to /chat/completions in 0.453061 seconds
+[2025-08-06 23:05:46,153][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 56
+[2025-08-06 23:05:51,199][openai._base_client][INFO] - Retrying request to /chat/completions in 0.419455 seconds
+[2025-08-06 23:07:01,085][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 57
+[2025-08-06 23:07:06,133][openai._base_client][INFO] - Retrying request to /chat/completions in 0.408302 seconds
+[2025-08-06 23:08:16,172][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 58
+[2025-08-06 23:08:21,219][openai._base_client][INFO] - Retrying request to /chat/completions in 0.391591 seconds
+[2025-08-06 23:09:30,899][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 59
+[2025-08-06 23:09:35,948][openai._base_client][INFO] - Retrying request to /chat/completions in 0.482858 seconds
+[2025-08-06 23:10:45,730][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 60
+[2025-08-06 23:10:50,775][openai._base_client][INFO] - Retrying request to /chat/completions in 0.488365 seconds
+[2025-08-06 23:12:00,755][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 61
+[2025-08-06 23:12:05,802][openai._base_client][INFO] - Retrying request to /chat/completions in 0.413471 seconds
+[2025-08-06 23:13:15,531][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 62
+[2025-08-06 23:13:20,577][openai._base_client][INFO] - Retrying request to /chat/completions in 0.483143 seconds
+[2025-08-06 23:14:30,368][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 63
+[2025-08-06 23:14:35,416][openai._base_client][INFO] - Retrying request to /chat/completions in 0.482196 seconds
+[2025-08-06 23:15:45,277][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 64
+[2025-08-06 23:15:50,323][openai._base_client][INFO] - Retrying request to /chat/completions in 0.445997 seconds
+[2025-08-06 23:17:00,250][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 65
+[2025-08-06 23:17:05,296][openai._base_client][INFO] - Retrying request to /chat/completions in 0.398022 seconds
+[2025-08-06 23:18:15,217][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 66
+[2025-08-06 23:18:20,265][openai._base_client][INFO] - Retrying request to /chat/completions in 0.445797 seconds
+[2025-08-06 23:19:30,214][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 67
+[2025-08-06 23:19:35,262][openai._base_client][INFO] - Retrying request to /chat/completions in 0.468338 seconds
+[2025-08-06 23:20:45,255][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 68
+[2025-08-06 23:20:50,303][openai._base_client][INFO] - Retrying request to /chat/completions in 0.478505 seconds
+[2025-08-06 23:22:00,203][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 69
+[2025-08-06 23:22:05,251][openai._base_client][INFO] - Retrying request to /chat/completions in 0.409761 seconds
+[2025-08-06 23:23:15,028][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 70
+[2025-08-06 23:23:20,074][openai._base_client][INFO] - Retrying request to /chat/completions in 0.491490 seconds
+[2025-08-06 23:24:29,808][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 71
+[2025-08-06 23:24:34,856][openai._base_client][INFO] - Retrying request to /chat/completions in 0.443661 seconds
+[2025-08-06 23:25:45,145][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 72
+[2025-08-06 23:25:50,191][openai._base_client][INFO] - Retrying request to /chat/completions in 0.488475 seconds
+[2025-08-06 23:27:01,311][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 73
+[2025-08-06 23:27:06,356][openai._base_client][INFO] - Retrying request to /chat/completions in 0.383006 seconds
+[2025-08-06 23:28:16,743][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 74
+[2025-08-06 23:28:21,816][openai._base_client][INFO] - Retrying request to /chat/completions in 0.390849 seconds
+[2025-08-06 23:29:31,664][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 75
+[2025-08-06 23:29:36,710][openai._base_client][INFO] - Retrying request to /chat/completions in 0.403977 seconds
+[2025-08-06 23:30:46,495][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 76
+[2025-08-06 23:30:51,541][openai._base_client][INFO] - Retrying request to /chat/completions in 0.450169 seconds
+[2025-08-06 23:32:01,386][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 77
+[2025-08-06 23:32:06,432][openai._base_client][INFO] - Retrying request to /chat/completions in 0.457576 seconds
+[2025-08-06 23:33:16,144][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 78
+[2025-08-06 23:33:21,189][openai._base_client][INFO] - Retrying request to /chat/completions in 0.446081 seconds
+[2025-08-06 23:34:30,928][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 79
+[2025-08-06 23:34:35,974][openai._base_client][INFO] - Retrying request to /chat/completions in 0.391773 seconds
+[2025-08-06 23:35:45,718][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 80
+[2025-08-06 23:35:50,764][openai._base_client][INFO] - Retrying request to /chat/completions in 0.492897 seconds
+[2025-08-06 23:37:00,399][httpx][INFO] - HTTP Request: POST http://localhost:8000/v1/chat/completions "HTTP/1.1 200 OK"
+[DEBUG] error: Content filtered or length exceeded
+[DEBUG] 1 failed messages, retry_count: 81
+[2025-08-06 23:37:05,446][openai._base_client][INFO] - Retrying request to /chat/completions in 0.408251 seconds

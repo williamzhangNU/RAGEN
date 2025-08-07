@@ -41,8 +41,7 @@ class SpatialGymConfig:
     eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
     # prompt configuration
-    prompt_with_topdown: bool = False  # Whether to include topdown view in room description
-    prompt_with_cogmap: bool = False
+    prompt_config: dict = field(default_factory=lambda: {"topdown": False, "cogmap": False, "type": "shorter"})
 
 
     # Rendering configuration
@@ -137,7 +136,6 @@ class SpatialGymConfig:
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
-            'prompt_with_topdown': self.prompt_with_topdown,
-            'prompt_with_cogmap': self.prompt_with_cogmap,
+            'prompt_config': self.prompt_config,
             # 'candidate_objects': self.candidate_objects,
         }

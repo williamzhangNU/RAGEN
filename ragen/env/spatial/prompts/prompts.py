@@ -11,10 +11,10 @@ Your goal: Learn ALL spatial relationships between EACH pair of objects in the r
 Spatial relationships are described using (<horizontal>, <vertical>) format:
 - **horizontal**: left, right, same
 - **vertical**: front, back, same
-- "same" means objects are aligned in that dimension (e.g., same horizontal line)
+- "same" means objects are aligned in that dimension (e.g., (right, same): aligned horizontally)
 
 ## Face direction
-There are EXACTLY four facing directions: north, south, east, west. No other directions exist.
+There are EXACTLY four facing directions: forward, backward, right, left. No other directions exist.
 Suppose you are facing north, then:
 - **forward**: north (same direction as you)
 - **backward**: south (opposite direction as you)
@@ -46,11 +46,15 @@ Suppose you are facing north, then:
 
 
 ## Important Notes:
-- Focus on **directional relationships** between objects, not exact distances
+- Transitivity (e.g., A left of B and B left of C ⇒ A left of C) to deduce relations without further movement.
+- Focus solely on directional relationships, they are all you need to determine. Ignore distances.
 
 ## Room Layout
 {room_info}
 
+{cogmap_instruction}
+
+## Action Instructions
 {exp_instructions}
 
 After exploration, NOTE you will return to your starting position and facing north.
@@ -63,7 +67,7 @@ ACTIVE_INSTRUCTION_SHORTER = """\
 Determine the left/right & front/back relationship for **EACH** pair of objects in the room. Stop the moment all pairwise relations are known.
 
 ## Facing & Directions
-- Allowed facings: north | south | east | west.
+- Allowed facings: forward, backward, right, left.
 - When facing north: forward = north, back = south, right = east, left = west.
 
 ## Relation Format
@@ -84,15 +88,57 @@ Determine the left/right & front/back relationship for **EACH** pair of objects 
 
 ## Rules
 - Transitivity (e.g., A left of B and B left of C ⇒ A left of C) to deduce relations without further movement.
-- Ignore distances; only directional relations matter.
+- Focus solely on directional relationships, they are all you need to determine. Ignore distances.
 
 ## Room Layout
 {room_info}
 
+{cogmap_instruction}
+
+## Action Instructions
 {exp_instructions}
 
 After exploration, NOTE you will return to your starting position and facing north.
 """
+
+ACTIVE_INSTRUCTION_SHORTEST = """\
+# Spatial Exploration Task
+
+## Goal
+Determine the left/right & front/back relationship for **EACH** pair of objects in the room. Stop the moment all pairwise relations are known.
+
+## Facing & Directions
+- Allowed facings: forward, backward, right, left.
+- When facing north: forward = north, back = south, right = east, left = west.
+
+## Relation Format
+`(<horizontal>, <vertical>)`
+- horizontal: left | right | same
+- vertical: front | back | same
+- "same" means objects are aligned in that dimension (e.g., (right, same): aligned horizontally)
+
+## Exploration Rules
+- Cover **ALL** pairs.
+- Choose max-info observations; avoid redundancy.
+- FOV 180° — anything behind is unseen.
+- Terminate once every pair is known.
+- Track both your start & current pose.
+
+## Rules
+- Transitivity: left + left --> left.
+- Focus solely on directional relationships, they are all you need to determine. Ignore distances.
+
+## Room Layout
+{room_info}
+
+{cogmap_instruction}
+
+## Action Instructions
+{exp_instructions}
+
+After exploration, NOTE you will return to your starting position and facing north.
+"""
+
 
 PASSIVE_INSTRUCTION = """\
 # Spatial Understanding Task
@@ -101,22 +147,20 @@ You will be given a room layout and a tour around the room.
 NOTE: After the tour, you will return to your starting position and orientation.
 Then you need to answer the question based on the tour.
 
-## Direction Format:
-Spatial relationships are described using (<horizontal>, <vertical>) format:
-- **horizontal**: left, right, same
-- **vertical**: front, back, same
-- "same" means objects are aligned in that dimension (e.g., same horizontal line)
+## Facing & Directions
+- Allowed facings: forward, backward, right, left.
+- When facing north: forward = north, back = south, right = east, left = west.
 
-## Face direction
-There are EXACTLY four facing directions: north, south, east, west. No other directions exist.
-Suppose you are facing north, then:
-- **forward**: north (same direction as you)
-- **backward**: south (opposite direction as you)
-- **right**: east (90° clockwise)
-- **left**: west (90° counterclockwise)
+## Relation Format
+`(<horizontal>, <vertical>)`
+- horizontal: left | right | same
+- vertical: front | back | same
+- "same" means objects are aligned in that dimension (e.g., (right, same): aligned horizontally)
 
 ## Room Layout
 {room_info}
+
+{cogmap_instruction}
 
 {exp_history}
 """
