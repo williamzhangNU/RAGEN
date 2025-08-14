@@ -73,6 +73,18 @@ model_info:
     generation_kwargs:
       temperature: 1
       max_completion_tokens: 16384
+  gpt-5-nano:
+    provider_name: openai
+    model_name: gpt-5-nano
+    generation_kwargs:
+      temperature: 1
+      max_completion_tokens: 16384
+  gpt-5-mini:
+    provider_name: openai
+    model_name: gpt-5-mini
+    generation_kwargs:
+      temperature: 1
+      max_completion_tokens: 16384
   o3-mini:
     provider_name: openai
     model_name: o3-mini

@@ -12,12 +12,10 @@ class SpatialGymConfig:
     
     Parameters:
         name: Identifier for this configuration
-        room_range: Range for room dimensions
+        room_size: Size for room dimensions
         n_objects: Number of objects in the room
         candidate_objects: List of objects that can be placed in the room
-        generation_type: Type of room generation ('rand', 'rot', 'a2e', 'pov')
         exp_type: Exploration type ('passive', 'active')
-        perspective: Perspective of exploration ('ego' or 'allo')
         field_of_view: Field of view in degrees (90 or 180)
         eval_tasks: List of evaluation tasks with their configurations
         max_exp_steps: Maximum exploration steps for active exploration
@@ -27,14 +25,16 @@ class SpatialGymConfig:
     name: str = "default"
     
     # Room configuration
-    room_range: List[int] = field(default_factory=lambda: [-10, 10])
+    room_size: List[int] = field(default_factory=lambda: [10, 10])
     n_objects: int = 3
     candidate_objects: List[str] = field(default_factory=lambda: CANDIDATE_OBJECTS)
-    generation_type: str = "rand"
+    level: int = 0
+    main: int = 6
     
     # Exploration configuration
     exp_type: str = 'passive'
-    field_of_view: int = 180
+    field_of_view: int = 90
+    observation_mode: str = "full"
     max_exp_steps: int = 100
     
     # Evaluation configuration
@@ -49,27 +49,22 @@ class SpatialGymConfig:
 
     def __post_init__(self):
         """Validate configuration parameters."""
-        self._validate_generation_type()
+        assert self.room_size[0] > 0 and self.room_size[1] > 0, "room_size must be positive"
         self._validate_exp_type()
         self._validate_field_of_view()
         self._validate_eval_tasks()
         self._validate_render_mode()
 
-    def _validate_generation_type(self):
-        """Validate generation_type parameter."""
-        valid_types = ["rand", "rot", "pov"]
-        if self.generation_type not in valid_types:
-            raise ValueError(f"generation_type must be one of {valid_types}")
 
     def _validate_exp_type(self):
         """Validate exp_type parameter."""
-        valid_exp_types = ["passive", "active", "overview", "active_overview"]
+        valid_exp_types = ["passive", "active"]
         if self.exp_type not in valid_exp_types:
             raise ValueError(f"exp_type must be one of {valid_exp_types}")
 
     def _validate_field_of_view(self):
         """Validate field_of_view parameter."""
-        assert self.field_of_view == 180, "field_of_view must be 180 degrees"
+        assert self.field_of_view == 90, "field_of_view must be 90 degrees"
 
     def _validate_eval_tasks(self):
         """Validate eval_tasks parameter."""
@@ -118,9 +113,10 @@ class SpatialGymConfig:
     def get_room_config(self) -> Dict[str, Any]:
         """Get configuration for room generation."""
         return {
-            'room_range': self.room_range,
-            'generation_type': self.generation_type,
+            'room_size': self.room_size,
             'n_objects': self.n_objects,
+            'level': self.level,
+            'main': self.main,
             # 'candidate_objects': self.candidate_objects,
         }
     
@@ -128,8 +124,7 @@ class SpatialGymConfig:
         """Convert configuration to dictionary."""
         return {
             'name': self.name,
-            'room_range': self.room_range,
-            'generation_type': self.generation_type,
+            'room_size': self.room_size,
             'n_objects': self.n_objects,    
             'exp_type': self.exp_type,
             'field_of_view': self.field_of_view,

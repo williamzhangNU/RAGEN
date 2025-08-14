@@ -1,16 +1,14 @@
 import numpy as np
 from typing import Optional
 from ragen.env.spatial.Base.tos_base import ActionSequence, EvaluationManager, CognitiveMapManager
-from ragen.env.spatial.utils.generate_history import AutoExplore
-from ragen.env.spatial.Base.tos_base import Room
+from ragen.env.spatial.Base.tos_base import Room, Agent
+from ragen.env.spatial.Base.tos_base.utils.room_utils import get_room_description
 from ragen.env.spatial.Base.tos_base.managers.cognitive_map_manager import COGMAP_EXP_REQUIRED_INSTRUCTION, COGMAP_EVAL_REQUIRED_INSTRUCTION
 from .prompts import *
 
 class Prompter:
     """A class to generate prompts for the SpatialGym environment."""
-    ACTIVE_INSTRUCTION = ACTIVE_INSTRUCTION_SHORTER
-    ACTIVE_INSTRUCTION_SHORTER = ACTIVE_INSTRUCTION_SHORTER
-    ACTIVE_INSTRUCTION_SHORTEST = ACTIVE_INSTRUCTION_SHORTEST
+    ACTIVE_INSTRUCTION = ACTIVE_INSTRUCTION
     PASSIVE_INSTRUCTION = PASSIVE_INSTRUCTION
     EVALUATION_INSTRUCTION = EVALUATION_INSTRUCTION
     SHORT_EXPLORATION_PROMPT = SHORT_EXPLORATION_PROMPT
@@ -25,6 +23,7 @@ class Prompter:
     def get_initial_observation_prompt(
             self, 
             room: Room, 
+            agent: Agent,
             eval_manager: Optional[EvaluationManager] = None,
             cogmap_manager: Optional[CognitiveMapManager] = None,
             **kwargs
@@ -32,17 +31,12 @@ class Prompter:
         """
         Generates the complete observation prompt including exploration, evaluation, and cognitive map instructions.
         """
-        room_desc = room.get_room_description(with_topdown=self.config.prompt_config["topdown"])
+        room_desc = get_room_description(room, agent, with_topdown=self.config.prompt_config["topdown"])
         cogmap_instruction = cogmap_manager.get_cognitive_map_instruction() if cogmap_manager else ""
         # Build main prompt based on exploration type
         if self.config.exp_type == 'active':
             exp_instructions = ActionSequence.get_usage_instructions() + f"\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
-            if self.config.prompt_config["type"] == "shorter":
-                active_instruction = self.ACTIVE_INSTRUCTION_SHORTER
-            elif self.config.prompt_config["type"] == "shortest":
-                active_instruction = self.ACTIVE_INSTRUCTION_SHORTEST
-            else:
-                active_instruction = self.ACTIVE_INSTRUCTION
+            active_instruction = self.ACTIVE_INSTRUCTION
             prompt = active_instruction.format(
                 room_info=room_desc,
                 cogmap_instruction=cogmap_instruction,
@@ -50,7 +44,7 @@ class Prompter:
             )
             prompt += f"\n{self.COGMAP_EXP_REQUIRED_INSTRUCTION}" if cogmap_manager else ""
         else:
-            exp_history = f"## Exploration History\n{AutoExplore(room, self.np_random).gen_exp_history()}" if not self.config.prompt_config["topdown"] else ""
+            exp_history = f"## Exploration History\n{kwargs.get('exp_history', '')}" if not self.config.prompt_config["topdown"] else ""
             prompt = self.PASSIVE_INSTRUCTION.format(
                 room_info=room_desc,
                 cogmap_instruction=cogmap_instruction,

@@ -7,7 +7,9 @@ from collections import defaultdict
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from ragen.env.spatial.utils.visualization import visualize_json
-from ragen.env.spatial.Base.tos_base.utils.room_utils import set_initial_pos_as_origin
+import numpy as np
+from ragen.env.spatial.Base.tos_base.core.object import Agent
+from ragen.env.spatial.Base.tos_base.utils.room_utils import RoomPlotter
 from ragen.env.spatial.Base.tos_base import ExplorationManager, EvaluationManager, CognitiveMapManager, Room
 
 class SpatialEnvLogger:
@@ -26,17 +28,14 @@ class SpatialEnvLogger:
             return obj
 
     @staticmethod
-    def _plot_room(room_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
+    def _plot_room(room_dict: Dict, agent_dict: Dict, out_dir: str, config_name: str, sample_idx: int, turn_idx: int) -> Optional[str]:
         """Plot room from state and return image filename"""
         img_folder = os.path.join(out_dir, "images", config_name, f"sample_{sample_idx+1}")
         os.makedirs(img_folder, exist_ok=True)
         
-        room = Room.from_dict(room_dict)
-        transformed_room = set_initial_pos_as_origin(room)
-        
         img_name = f"room_turn_{turn_idx+1}.png" if turn_idx > 0 else "room_initial.png"
         img_path = os.path.join(img_folder, img_name)
-        transformed_room.plot(render_mode='img', save_path=img_path)
+        RoomPlotter.plot(Room.from_dict(room_dict), Agent.from_dict(agent_dict), mode='img', save_path=img_path)
         
         return os.path.join("images", config_name, f"sample_{sample_idx+1}", img_name)
 
@@ -100,15 +99,14 @@ class SpatialEnvLogger:
             for config_name, group in config_groups.items():
                 for sample_idx, env_data in enumerate(group):
                     # Plot initial room
-                    initial_room_dict = env_data["env_info"]["initial_room"]
-                    initial_img_path = SpatialEnvLogger._plot_room(initial_room_dict, output_dir, config_name, sample_idx, 0)
+                    initial_img_path = SpatialEnvLogger._plot_room(env_data["env_info"]["initial_room"], env_data["env_info"]["initial_agent"], output_dir, config_name, sample_idx, 0)
                     env_data["initial_room_image"] = initial_img_path
                     
                     # Plot room for each turn
                     for turn_log in env_data["env_turn_logs"]:
                         if turn_log["room_state"]:
                             turn_idx = turn_log["turn_number"]
-                            img_path = SpatialEnvLogger._plot_room(turn_log["room_state"], output_dir, config_name, sample_idx, turn_idx)
+                            img_path = SpatialEnvLogger._plot_room(turn_log["room_state"], turn_log["agent_state"], output_dir, config_name, sample_idx, turn_idx)
                             turn_log["room_image"] = img_path
 
         # Initialize result structure

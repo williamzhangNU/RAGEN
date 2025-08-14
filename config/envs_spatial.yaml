@@ -26,13 +26,18 @@ _prompt_topdown: &prompt_topdown
 # exp_type
 _passive: &passive
   exp_type: passive
-  n_objects: 5
+  n_objects: 8
+  level: 3
+  main: 5
+  room_size: [20, 20]
 
 _active: &active
   exp_type: active
   n_objects: 3
   max_exp_steps: 10
-
+  room_size: [10, 10]
+  level: 0
+  main: 6
 
 custom_envs:
   PassiveDir:
@@ -41,7 +46,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_dir"
-      generation_type: rand
       eval_tasks: [{task_type: "dir", task_kwargs: {}}]
 
   PassiveRot:
@@ -50,7 +54,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_rot"
-      generation_type: rot
       eval_tasks: [{task_type: "rot", task_kwargs: {}}]
 
   PassiveLoc:
@@ -59,8 +62,15 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_loc"
-      generation_type: rand
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  PassiveE2A:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_e2a"
+      eval_tasks: [{task_type: "e2a", task_kwargs: {}}]
 
   PassiveFalseBeliefRotation:
     <<: *common
@@ -68,7 +78,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_false_belief_rotation"
-      generation_type: rand
       eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'rotation'}}]
   
   PassiveFalseBeliefMovement:
@@ -77,7 +86,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_false_belief_movement"
-      generation_type: rand
       eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'movement'}}]
 
   PassiveDirCogmap:
@@ -86,7 +94,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *passive
       name: "passive_dir_cogmap"
-      generation_type: rand
       eval_tasks: [{task_type: "dir", task_kwargs: {}}]
 
   PassiveRotCogmap:
@@ -95,7 +102,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *passive
       name: "passive_rot_cogmap"
-      generation_type: rot
       eval_tasks: [{task_type: "rot", task_kwargs: {}}]
 
   PassiveLocCogmap:
@@ -104,7 +110,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *passive
       name: "passive_loc_cogmap"
-      generation_type: rand
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
 
@@ -115,7 +120,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *active
       name: "active_dir"
-      generation_type: rand
       eval_tasks: [{task_type: "dir", task_kwargs: {}}]
 
   ActiveRot:
@@ -125,7 +129,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *active
       name: "active_rot"
-      generation_type: rot
       eval_tasks: [{task_type: "rot", task_kwargs: {}}]
 
   ActiveLoc:
@@ -135,7 +138,6 @@ custom_envs:
       <<: *prompt_standard
       <<: *active
       name: "active_loc"
-      generation_type: rand
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
   ActiveDirCogmap:
@@ -145,7 +147,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *active
       name: "active_dir_cogmap"
-      generation_type: rand
       eval_tasks: [{task_type: "dir", task_kwargs: {}}]
 
   ActiveRotCogmap:
@@ -155,7 +156,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *active
       name: "active_rot_cogmap"
-      generation_type: rot
       eval_tasks: [{task_type: "rot", task_kwargs: {}}]
 
   ActiveLocCogmap:
@@ -165,7 +165,6 @@ custom_envs:
       <<: *prompt_cogmap
       <<: *active
       name: "active_loc_cogmap"
-      generation_type: rand
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
   
