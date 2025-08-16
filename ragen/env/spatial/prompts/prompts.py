@@ -48,6 +48,9 @@ You will be given a multi-room layout and a tour (you return to start). Then ans
 
 {cogmap_instruction}
 
+## Action Instructions
+{action_instructions}
+
 {exp_history}
 """
 

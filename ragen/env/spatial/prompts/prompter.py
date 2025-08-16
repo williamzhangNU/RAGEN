@@ -48,6 +48,7 @@ class Prompter:
             prompt = self.PASSIVE_INSTRUCTION.format(
                 room_info=room_desc,
                 cogmap_instruction=cogmap_instruction,
+                action_instructions=ActionSequence.get_usage_instructions(),
                 exp_history=exp_history
             )
             prompt += f"\n{self.get_evaluation_prompt(eval_manager)}"

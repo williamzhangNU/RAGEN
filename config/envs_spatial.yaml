@@ -33,11 +33,11 @@ _passive: &passive
 
 _active: &active
   exp_type: active
-  n_objects: 3
-  max_exp_steps: 10
-  room_size: [10, 10]
-  level: 0
-  main: 6
+  n_objects: 5
+  max_exp_steps: 20
+  room_size: [20, 20]
+  level: 1
+  main: 10
 
 custom_envs:
   PassiveDir:
@@ -54,7 +54,7 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_rot"
-      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+      eval_tasks: [{task_type: "rot", task_kwargs: {'if_move': False}}]
 
   PassiveLoc:
     <<: *common
@@ -71,6 +71,14 @@ custom_envs:
       <<: *passive
       name: "passive_e2a"
       eval_tasks: [{task_type: "e2a", task_kwargs: {}}]
+
+  PassivePoV:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_pov"
+      eval_tasks: [{task_type: "pov", task_kwargs: {}}]
 
   PassiveFalseBeliefRotation:
     <<: *common
@@ -115,7 +123,7 @@ custom_envs:
 
   ActiveDir:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_standard
       <<: *active
@@ -124,7 +132,7 @@ custom_envs:
 
   ActiveRot:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_standard
       <<: *active
@@ -133,7 +141,7 @@ custom_envs:
 
   ActiveLoc:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_standard
       <<: *active
@@ -142,7 +150,7 @@ custom_envs:
 
   ActiveDirCogmap:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_cogmap
       <<: *active
@@ -151,7 +159,7 @@ custom_envs:
 
   ActiveRotCogmap:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_cogmap
       <<: *active
@@ -160,7 +168,7 @@ custom_envs:
 
   ActiveLocCogmap:
     <<: *common
-    max_actions_per_traj: 15
+    max_actions_per_traj: 25
     env_config:
       <<: *prompt_cogmap
       <<: *active

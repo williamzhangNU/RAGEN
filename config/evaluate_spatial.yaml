@@ -3,7 +3,7 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/spatial-new/gpt-5-mini/passive-8-objects-4-room
+output_dir: results/spatial-new-debug-2/gpt-5-mini/active
 
 eval_model_type: api # api or vllm
 # api model
@@ -22,22 +22,22 @@ actor_rollout_ref:
       top_p: 1
 
 agent_proxy:
-  max_turn: 15 # should be same as max_actions_per_traj
+  max_turn: 25 # should be same as max_actions_per_traj
   action_sep: "||"
   max_actions_per_turn: 1 # how many actions can be output at most in a single turn
   enable_think: true
 
 es_manager:
   val:
-    env_groups: 75 # 450
+    env_groups: 10 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
-      tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
-      n_groups: [25, 25, 25]
-      # tags: ["PassiveDir"]
-      # n_groups: [25]
-      # tags: ["ActiveDir"]
-      # n_groups: [25]
+      # tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
+      # n_groups: [25, 25, 25]
+      # tags: ["PassiveDir", "PassiveRot"]
+      # n_groups: [10, 10]
+      tags: ["ActiveDir"]
+      n_groups: [10]
 
