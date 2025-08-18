@@ -171,7 +171,11 @@ class SpatialGym(gym.Env):
             exp_log = self.exploration_manager.turn_logs[-1]
 
         # End exploration phase
-        if self.remaining_exp_steps < 0 or (action_sequence and action_sequence.final_action.is_term()):
+        should_term = False
+        if action_sequence:
+            final_act = getattr(action_sequence, 'final_action', None)
+            should_term = bool(final_act and final_act.is_term())
+        if self.remaining_exp_steps < 0 or should_term:
             self.is_exploration_phase = False
             obs += "Exploration phase ended\n"
             # Transition to evaluation, NOTE question is generated based on the initial room

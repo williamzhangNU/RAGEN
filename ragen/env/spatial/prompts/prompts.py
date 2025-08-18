@@ -1,9 +1,17 @@
 
 
+# ACTIVE_INSTRUCTION = """\
+# # Spatial Exploration Task
+
+# Goal: Build a global understanding of the whole scene: resolve spatial relationships for EVERY object pair across ALL rooms. Stop immediately once complete.
+
 ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
-Goal: Build a global understanding of the whole scene: resolve spatial relationships for EVERY object pair across ALL rooms. Stop immediately once complete.
+You are a spatial reasoner operating in a 2D, text-only world. 
+Your objective is to **minimize total COST** while **maximizing global scene understanding**.
+Ensure directional relationships between objects are accurate and consistent. 
+For distance, angle, and rough 2D coordinates, only maintain approximate understanding 
 
 Facing: forward/backward/right/left. When facing north: forward=north, back=south, right=east, left=west.
 
