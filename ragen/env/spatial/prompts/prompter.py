@@ -4,6 +4,7 @@ from ragen.env.spatial.Base.tos_base import ActionSequence, EvaluationManager, C
 from ragen.env.spatial.Base.tos_base import Room, Agent
 from ragen.env.spatial.Base.tos_base.utils.room_utils import get_room_description
 from ragen.env.spatial.Base.tos_base.managers.cognitive_map_manager import COGMAP_EXP_REQUIRED_INSTRUCTION, COGMAP_EVAL_REQUIRED_INSTRUCTION
+from ragen.env.spatial.Base.tos_base.core.relationship import PairwiseRelationship, PairwiseRelationshipDiscrete
 from .prompts import *
 
 class Prompter:
@@ -35,7 +36,11 @@ class Prompter:
         cogmap_instruction = cogmap_manager.get_cognitive_map_instruction() if cogmap_manager else ""
         # Build main prompt based on exploration type
         if self.config.exp_type == 'active':
-            exp_instructions = ActionSequence.get_usage_instructions() + f"\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
+            exp_instructions = (
+                ActionSequence.get_usage_instructions()
+                + f"\n\n{PairwiseRelationshipDiscrete.prompt()}"
+                + f"\n\nYou have a maximum of {self.config.max_exp_steps} exploration steps."
+            )
             active_instruction = self.ACTIVE_INSTRUCTION
             prompt = active_instruction.format(
                 room_info=room_desc,
@@ -48,7 +53,8 @@ class Prompter:
             prompt = self.PASSIVE_INSTRUCTION.format(
                 room_info=room_desc,
                 cogmap_instruction=cogmap_instruction,
-                action_instructions=ActionSequence.get_usage_instructions(),
+                # action_instructions=ActionSequence.get_usage_instructions() + f"\n\n{PairwiseRelationship.prompt()}",
+                action_instructions=f"{PairwiseRelationshipDiscrete.prompt()}",
                 exp_history=exp_history
             )
             prompt += f"\n{self.get_evaluation_prompt(eval_manager)}"

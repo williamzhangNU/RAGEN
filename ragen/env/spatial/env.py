@@ -86,12 +86,20 @@ class SpatialGym(gym.Env):
         self.turn_logs: List[EnvTurnLog] = None
         self.current_turn_number = None
 
+    def _set_args(self):
+        # Set field of view for all actions
+        BaseAction.set_field_of_view(self.config.field_of_view)
+        
+        # Set observation mode: default to 'full' (dir+degree+distance), allow override via config
+        mode = getattr(self.config, 'observation_mode', 'full')
+        ObserveAction.MODE = 'full' if mode == 'full' else 'dir'
+
 
     def _generate_initial_observation(self) -> str:
         """Generate initial observation based on exploration type."""
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
-            strategy = getattr(self.config, 'passive_agent_strategy', 'oracle')
+            strategy = getattr(self.config, 'passive_agent_strategy', 'analyst')
             proxy = get_agent_proxy(strategy, self.initial_room, self.agent)
             proxy.run()
             exp_history = proxy.to_text()
@@ -129,11 +137,7 @@ class SpatialGym(gym.Env):
         # Set exploration phase
         self.is_exploration_phase = self.config.exp_type == 'active'
         
-        # Set field of view for all actions
-        BaseAction.set_field_of_view(self.config.field_of_view)
-        # Set observation mode: default to 'full' (dir+degree+distance), allow override via config
-        mode = getattr(self.config, 'observation_mode', 'full')
-        ObserveAction.MODE = 'full' if mode == 'full' else 'dir'
+        self._set_args()
         
         # Initialize managers
         # create decoupled agent with initial pose (0,0,N) and store init pose

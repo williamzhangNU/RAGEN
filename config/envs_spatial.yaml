@@ -26,10 +26,10 @@ _prompt_topdown: &prompt_topdown
 # exp_type
 _passive: &passive
   exp_type: passive
-  n_objects: 8
-  level: 3
-  main: 5
-  room_size: [20, 20]
+  n_objects: 5
+  level: 0
+  main: 10
+  room_size: [10, 10]
 
 _active: &active
   exp_type: active

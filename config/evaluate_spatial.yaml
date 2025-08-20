@@ -3,7 +3,7 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/spatial-new-debug-2/gpt-5-mini/active
+output_dir: results/spatial-approx/gpt-5-mini/passive-analyst
 
 eval_model_type: api # api or vllm
 # api model
@@ -29,15 +29,15 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 10 # 450
+    env_groups: 20 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       # tags: ["PassiveRot", "PassiveRotDual", "PassiveCircularRot", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBeliefRotation", "PassiveFalseBeliefMovement"]
       # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
       # tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
       # n_groups: [25, 25, 25]
-      # tags: ["PassiveDir", "PassiveRot"]
-      # n_groups: [10, 10]
-      tags: ["ActiveDir"]
-      n_groups: [10]
+      tags: ["PassiveRot"]
+      n_groups: [20]
+      # tags: ["ActiveDir"]
+      # n_groups: [10]
 

@@ -9,16 +9,17 @@ ACTIVE_INSTRUCTION = """\
 # Spatial Exploration Task
 
 You are a spatial reasoner operating in a 2D, text-only world. 
+Imagine yourself at N by M grid and each object is a point on the grid with integer coordinates (including yourself). 
+
+Goal:
 Your objective is to **minimize total COST** while **maximizing global scene understanding**.
 Ensure directional relationships between objects are accurate and consistent. 
-For distance, angle, and rough 2D coordinates, only maintain approximate understanding 
+For distance, angle, and rough 2D coordinates, only maintain approximate understanding.
 
-Facing: forward/backward/right/left. When facing north: forward=north, back=south, right=east, left=west.
-
-Observation: For visible objects you receive (direction, signed degree, distance).
-- direction uses <vertical>-<horizontal> with front|back|same and left|right|same and 
-- degree is clockwise from your facing; distance is Euclidean
-- You may ignore degree/distance for the stopping condition
+Observation:
+- Observation will include approximate direction and distance.
+- Oriented objects also include facing: "faces forward/backward/left/right". Gates report wall side: "gate at front/back/left/right wall". When facing north: forward=north, back=south, right=east, left=west.
+- Local relations may appear: e.g., "A is right of B and closer from agent's view".
 
 Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
 
@@ -45,11 +46,14 @@ PASSIVE_INSTRUCTION = """\
 
 You will be given a multi-room layout and a tour (you return to start). Then answer the question.
 
-## Facing
-- forward, backward, right, left. When facing north: forward=north, back=south, right=east, left=west.
+Observation:
+- Observation will include approximate direction and distance.
+- Oriented objects also include facing: "faces forward/backward/left/right". Gates report wall side: "gate at front/back/left/right wall". When facing north: forward=north, back=south, right=east, left=west.
+- Local relations may appear: e.g., "A is right of B and closer from agent's view".
 
-## Observation Format (in tour)
-(direction, degree, distance); direction uses <vertical>-<horizontal>.
+Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
+
+Rules: FOV is 90°
 
 ## Room Layout
 {room_info}
