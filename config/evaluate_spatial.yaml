@@ -3,12 +3,12 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/spatial-approx/gpt-5-mini/passive-analyst
+output_dir: results/spatial-approx/gpt-4.1-mini/passive
 
 eval_model_type: api # api or vllm
 # api model
 api_model_info:
-  model_name: gpt-5-mini # o4-mini
+  model_name: gpt-4.1-mini # o4-mini
   max_concurrency: 128
 
 # vllm model
@@ -36,7 +36,7 @@ es_manager:
       # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
       # tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
       # n_groups: [25, 25, 25]
-      tags: ["PassiveRot"]
+      tags: ["PassiveDir"]
       n_groups: [20]
       # tags: ["ActiveDir"]
       # n_groups: [10]

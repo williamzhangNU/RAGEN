@@ -99,7 +99,7 @@ class SpatialGym(gym.Env):
         """Generate initial observation based on exploration type."""
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
-            strategy = getattr(self.config, 'passive_agent_strategy', 'analyst')
+            strategy = getattr(self.config, 'passive_agent_strategy', 'oracle')
             proxy = get_agent_proxy(strategy, self.initial_room, self.agent)
             proxy.run()
             exp_history = proxy.to_text()

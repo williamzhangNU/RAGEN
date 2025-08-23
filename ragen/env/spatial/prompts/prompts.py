@@ -12,9 +12,10 @@ You are a spatial reasoner operating in a 2D, text-only world.
 Imagine yourself at N by M grid and each object is a point on the grid with integer coordinates (including yourself). 
 
 Goal:
-Your objective is to **minimize total COST** while **maximizing global scene understanding**.
-Ensure directional relationships between objects are accurate and consistent. 
-For distance, angle, and rough 2D coordinates, only maintain approximate understanding.
+Your objective is to **minimize total COST** while gaining knowledge of spatial relationships between each pair of objects.
+For each relation, you should determine which allocentric bin it corresponds to. The required spatial relationship only needs to fall into the same bin category, not be precisely accurate.
+
+{allo_bins}
 
 Observation:
 - Observation will include approximate direction and distance.
@@ -45,6 +46,9 @@ PASSIVE_INSTRUCTION = """\
 # Spatial Understanding Task
 
 You will be given a multi-room layout and a tour (you return to start). Then answer the question.
+For spatial relationships, you need to determine which allocentric bin each corresponds to. The required spatial relationship only needs to fall into the same bin category, not be precisely accurate.
+
+{allo_bins}
 
 Observation:
 - Observation will include approximate direction and distance.
