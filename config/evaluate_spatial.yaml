@@ -3,7 +3,7 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/spatial-approx/gpt-4.1-mini/passive
+output_dir: results/spatial-approx/gpt-4.1-mini/passive-e2a
 
 eval_model_type: api # api or vllm
 # api model
@@ -36,7 +36,7 @@ es_manager:
       # n_groups: [25, 25, 25, 25, 25, 25, 25, 25, 25]
       # tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
       # n_groups: [25, 25, 25]
-      tags: ["PassiveDir"]
+      tags: ["PassiveE2A"]
       n_groups: [20]
       # tags: ["ActiveDir"]
       # n_groups: [10]

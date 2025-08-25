@@ -18,9 +18,7 @@ For each relation, you should determine which allocentric bin it corresponds to.
 {allo_bins}
 
 Observation:
-- Observation will include approximate direction and distance.
-- Oriented objects also include facing: "faces forward/backward/left/right". Gates report wall side: "gate at front/back/left/right wall". When facing north: forward=north, back=south, right=east, left=west.
-- Local relations may appear: e.g., "A is right of B and closer from agent's view".
+{observation_instructions}
 
 Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
 
@@ -51,9 +49,7 @@ For spatial relationships, you need to determine which allocentric bin each corr
 {allo_bins}
 
 Observation:
-- Observation will include approximate direction and distance.
-- Oriented objects also include facing: "faces forward/backward/left/right". Gates report wall side: "gate at front/back/left/right wall". When facing north: forward=north, back=south, right=east, left=west.
-- Local relations may appear: e.g., "A is right of B and closer from agent's view".
+{observation_instructions}
 
 Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
 
@@ -63,9 +59,6 @@ Rules: FOV is 90°
 {room_info}
 
 {cogmap_instruction}
-
-## Action Instructions
-{action_instructions}
 
 {exp_history}
 """

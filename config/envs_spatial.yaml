@@ -27,7 +27,7 @@ _prompt_topdown: &prompt_topdown
 _passive: &passive
   exp_type: passive
   n_objects: 5
-  level: 2
+  level: 1
   main: 8
   room_size: [15, 15]
 
@@ -62,7 +62,7 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_loc"
-      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+      eval_tasks: [{task_type: "loc", task_kwargs: {'only_main_room': False}}]
 
   PassiveE2A:
     <<: *common

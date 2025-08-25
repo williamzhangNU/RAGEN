@@ -99,7 +99,7 @@ class SpatialGym(gym.Env):
         """Generate initial observation based on exploration type."""
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
-            strategy = getattr(self.config, 'passive_agent_strategy', 'oracle')
+            strategy = getattr(self.config, 'passive_agent_strategy', 'analyst')
             proxy = get_agent_proxy(strategy, self.initial_room, self.agent)
             proxy.run()
             exp_history = proxy.to_text()
@@ -243,12 +243,10 @@ class SpatialGym(gym.Env):
         # Get room state from turn logs
         room_state = room_state_last_turn
         agent_state = agent_state_last_turn
-        if exp_log and exp_log.room_state:
-            room_state = exp_log.room_state
-            agent_state = exp_log.agent_state or agent_state
-        elif eval_log and eval_log.room_state:
-            room_state = eval_log.room_state
-            agent_state = eval_log.agent_state or agent_state
+        if self.is_exploration_phase:
+            room_state, agent_state = exp_log.room_state, exp_log.agent_state
+        else:
+            room_state, agent_state = self.evaluation_manager.get_last_room_state()
         
         turn_log = EnvTurnLog(
             turn_number=self.current_turn_number,
