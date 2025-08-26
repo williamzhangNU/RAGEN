@@ -26,9 +26,9 @@ _prompt_topdown: &prompt_topdown
 # exp_type
 _passive: &passive
   exp_type: passive
-  n_objects: 5
-  level: 1
-  main: 8
+  n_objects: 8
+  level: 2
+  main: 6
   room_size: [15, 15]
 
 _active: &active
@@ -54,7 +54,15 @@ custom_envs:
       <<: *prompt_standard
       <<: *passive
       name: "passive_rot"
-      eval_tasks: [{task_type: "rot", task_kwargs: {'if_move': False}}]
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  PassiveRotDual:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_rot_dual"
+      eval_tasks: [{task_type: "rot_dual", task_kwargs: {}}]
 
   PassiveLoc:
     <<: *common
@@ -80,21 +88,14 @@ custom_envs:
       name: "passive_pov"
       eval_tasks: [{task_type: "pov", task_kwargs: {}}]
 
-  PassiveFalseBeliefRotation:
+  PassiveFalseBelief:
     <<: *common
     env_config:
       <<: *prompt_standard
       <<: *passive
-      name: "passive_false_belief_rotation"
-      eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'rotation'}}]
+      name: "passive_false_belief"
+      eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
   
-  PassiveFalseBeliefMovement:
-    <<: *common
-    env_config:
-      <<: *prompt_standard
-      <<: *passive
-      name: "passive_false_belief_movement"
-      eval_tasks: [{task_type: "false_belief", task_kwargs: {'action_type': 'movement'}}]
 
   PassiveDirCogmap:
     <<: *common
