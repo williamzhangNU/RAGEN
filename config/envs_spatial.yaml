@@ -33,11 +33,11 @@ _passive: &passive
 
 _active: &active
   exp_type: active
-  n_objects: 5
+  n_objects: 8
   max_exp_steps: 20
   room_size: [12, 12]
   level: 1
-  main: 10
+  main: 6
 
 custom_envs:
   PassiveDir:

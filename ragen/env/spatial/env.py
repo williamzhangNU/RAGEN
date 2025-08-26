@@ -243,10 +243,9 @@ class SpatialGym(gym.Env):
         # Get room state from turn logs
         room_state = room_state_last_turn
         agent_state = agent_state_last_turn
-        if self.is_exploration_phase:
-            print(exp_log, reward, llm_response)
-            room_state, agent_state = (exp_log.room_state, exp_log.agent_state) if exp_log else (room_state, agent_state)
-        else:
+        if exp_log and exp_log.room_state and exp_log.agent_state:
+            room_state, agent_state = exp_log.room_state, exp_log.agent_state
+        elif not self.is_exploration_phase:
             room_state, agent_state = self.evaluation_manager.get_last_room_state()
         
         turn_log = EnvTurnLog(
