@@ -43,7 +43,7 @@ _active: &active
   exp_type: active
   n_objects: 8
   max_exp_steps: 20
-  room_size: [12, 12]
+  room_size: [15, 15]
   level: 1
   main: 6
 
