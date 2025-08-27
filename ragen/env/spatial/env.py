@@ -100,7 +100,7 @@ class SpatialGym(gym.Env):
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
             strategy = getattr(self.config, 'passive_agent_strategy', 'analyst')
-            proxy = get_agent_proxy(strategy, self.initial_room, self.agent)
+            proxy = get_agent_proxy(strategy, self.initial_room, self.agent, delegate='greedy_inquisitor' if strategy == 'analyst' else None)
             proxy.run()
             exp_history = proxy.to_text()
             # expose proxy manager so metrics are available via env.get_exp_summary()
