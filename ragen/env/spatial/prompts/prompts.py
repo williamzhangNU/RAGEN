@@ -20,7 +20,10 @@ For each relation, you should determine which allocentric bin it corresponds to.
 Observation:
 {observation_instructions}
 
-Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
+Multi-room: 
+- You can not see objects in other rooms.
+- You can not look through the gate when you are not at the gate.
+- Rooms are connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. When you stand at a door, you can see objects from both connected rooms (within FOV).
 
 Rules:
 - Achieve complete coverage with the fewest steps; continue only while any pair is unknown
@@ -51,7 +54,10 @@ For spatial relationships, you need to determine which allocentric bin each corr
 Observation:
 {observation_instructions}
 
-Multi-room: The scene may have multiple rectangular rooms connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. Stand at a door and use GoThroughDoor(name) to traverse.
+Multi-room: 
+- You can not see objects in other rooms.
+- You can not look through the gate when you are not at the gate.
+- Rooms are connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. When you stand at a door, you can see objects from both connected rooms (within FOV).
 
 Rules: FOV is 90°
 
@@ -66,6 +72,6 @@ Rules: FOV is 90°
 # NOTE: COGNITION_MAP_INSTRUCTION has been moved to CognitiveMap class for flexible formatting
 # The dynamic instruction is now provided by CognitiveMap.get_json_format_instruction()
 
-EVALUATION_INSTRUCTION = "NOTE: Now you return to your starting position and facing north.\n{eval_question}"
+EVALUATION_INSTRUCTION = "NOTE: Now you return to your starting position and face north.\n{eval_question}"
 SHORT_EXPLORATION_PROMPT = "Please respond with valid actions to explore the rooms."
 SHORT_EVALUATION_PROMPT = "Please respond with a valid answer to the question."
