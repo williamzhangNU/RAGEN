@@ -36,12 +36,16 @@ class SpatialGymConfig:
     field_of_view: int = 90
     observation_mode: str = "full"
     max_exp_steps: int = 100
+    proxy_agent_config: dict = field(default_factory=lambda: {"type": "analyst", "delegate": "oracle"})
     
     # Evaluation configuration
     eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
     # prompt configuration
     prompt_config: dict = field(default_factory=lambda: {"topdown": False, "cogmap": False, "type": "shorter"})
+
+    # cognitive map configuration
+    cogmap_config: dict = field(default_factory=lambda: {"cogmap_type": "standard", "pos_allow_scale": True, "scope": "all"})
 
 
     # Rendering configuration

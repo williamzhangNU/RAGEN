@@ -3,12 +3,12 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/gpt-4.1-mini/active
+output_dir: results/gpt-5-mini/passive-cogmap
 
 eval_model_type: api # api or vllm
 # api model
 api_model_info:
-  model_name: gpt-4.1-mini # o4-mini
+  model_name: gpt-5-mini # o4-mini
   max_concurrency: 128
 
 # vllm model
@@ -29,15 +29,15 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: 20 # 450
+    env_groups: 50 # 450
     group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
     env_configs:
       # tags: ["PassiveRot", "PassiveRotDual", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBelief"]
-      # n_groups: [25, 25, 25, 25, 25, 25, 25]
-      # tags: ["PassiveDir", "PassiveRot", "PassiveE2A"]
+      n_groups: [25, 25]
+      tags: ["PassiveDirCogmap", "PassiveRotCogmap"]
       # n_groups: [25, 25, 25]
       # tags: ["PassiveE2A"]
       # n_groups: [20]
-      tags: ["ActiveDir", "ActiveRot"]
-      n_groups: [10, 10]
+      # tags: ["ActiveDir", "ActiveRot"]
+      # n_groups: [10, 10]
 

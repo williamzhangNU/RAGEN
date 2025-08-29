@@ -22,6 +22,7 @@ from ragen.env.spatial.Base.tos_base.managers.agent_proxy import get_agent_proxy
 from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.utils.utils import extract_think_and_answer
+from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
 @dataclass
 class EnvTurnLog:
     """Log data for a single environment turn."""
@@ -34,6 +35,7 @@ class EnvTurnLog:
     exploration_log: Optional["ExplorationTurnLog"] = None
     evaluation_log: Optional["EvaluationTurnLog"] = None
     cogmap_log: Optional["CognitiveMapTurnLog"] = None
+    cogmap_final_log: Optional["CognitiveMapTurnLog"] = None
     room_state: Optional["Room"] = None
     agent_state: Optional["Agent"] = None
     info: Dict[str, Any] = field(default_factory=dict)
@@ -49,6 +51,7 @@ class EnvTurnLog:
             "exploration_log": self.exploration_log.to_dict() if self.exploration_log else {},
             "evaluation_log": self.evaluation_log.to_dict() if self.evaluation_log else {},
             "cogmap_log": self.cogmap_log.to_dict() if self.cogmap_log else {},
+            "cogmap_final_log": self.cogmap_final_log.to_dict() if self.cogmap_final_log else {},
             "room_state": self.room_state.to_dict() if self.room_state else {},
             "agent_state": self.agent_state.to_dict() if self.agent_state else {},
             "info": self.info
@@ -99,8 +102,7 @@ class SpatialGym(gym.Env):
         """Generate initial observation based on exploration type."""
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
-            strategy = getattr(self.config, 'passive_agent_strategy', 'analyst')
-            proxy = get_agent_proxy(strategy, self.initial_room, self.agent, delegate='greedy_inquisitor' if strategy == 'analyst' else None)
+            proxy = get_agent_proxy(self.config.proxy_agent_config["type"], self.initial_room, self.agent, delegate=self.config.proxy_agent_config["delegate"])
             proxy.run()
             exp_history = proxy.to_text()
             # expose proxy manager so metrics are available via env.get_exp_summary()
@@ -144,7 +146,7 @@ class SpatialGym(gym.Env):
         # always create exploration manager (also used to generate passive history)
         self.exploration_manager = ExplorationManager(self.initial_room, self.agent)
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
-        self.cognitive_map_manager = CognitiveMapManager() if self.config.prompt_config["cogmap"] else None
+        self.cognitive_map_manager = CognitiveMapManager(**self.config.cogmap_config) if self.config.prompt_config["cogmap"] else None
 
         # Generate initial observation
         obs = self._generate_initial_observation()
@@ -161,10 +163,15 @@ class SpatialGym(gym.Env):
         obs = ""
         reward = -0.1 # per step penalty
         self.remaining_exp_steps -= 1
+        # proceed and consume a step
+
         exp_log = None
 
         # Parse and validate action
         action_sequence = ActionSequence.parse(action)
+        # Pre-check remaining steps: if below zero, force-terminate via proxy sequence
+        if self.remaining_exp_steps < 0:
+            action_sequence = ActionSequence(motion_actions=[], final_action=ForcedTermAction())
         if not action_sequence:
             obs += "Invalid action\n"
             reward += -0.5 # format penalty
@@ -177,12 +184,9 @@ class SpatialGym(gym.Env):
         # End exploration phase
         should_term = False
         if action_sequence:
-            final_act = getattr(action_sequence, 'final_action', None)
-            should_term = bool(final_act and final_act.is_term())
-        if self.remaining_exp_steps < 0 or should_term:
+            should_term = bool(action_sequence.final_action and action_sequence.final_action.is_term())
+        if should_term:
             self.is_exploration_phase = False
-            obs += "Exploration phase ended\n"
-            # Transition to evaluation, NOTE question is generated based on the initial room
             obs += self.prompter.get_evaluation_prompt(self.evaluation_manager)
         else:
             obs += f"\nYou have a maximum of {self.remaining_exp_steps} exploration steps left."
@@ -210,28 +214,47 @@ class SpatialGym(gym.Env):
     def step(self, llm_response: str):
         """Process agent actions in the spatial gym environment."""
         self.current_turn_number += 1
-        exp_log, eval_log, cogmap_log = None, None, None
+        exp_log, eval_log, cogmap_log, cogmap_final_log = None, None, None, None
         think_content, action = extract_think_and_answer(llm_response)
-        room_state_last_turn = next((turn_log.room_state for turn_log in self.turn_logs[::-1] if turn_log.room_state), self.initial_room)
-        agent_state_last_turn = next((turn_log.agent_state for turn_log in self.turn_logs[::-1] if turn_log.agent_state), self.agent)
+        room_state = next((turn_log.room_state for turn_log in self.turn_logs[::-1] if turn_log.room_state), self.initial_room)
+        agent_state = next((turn_log.agent_state for turn_log in self.turn_logs[::-1] if turn_log.agent_state), self.agent)
         
         # Log turn at start with current state
         current_obs = self.render_cache
         
         # step the environment
         if action and think_content:
-            # Evaluate cognitive map if enabled and we have assistant response
-            if self.cognitive_map_manager:
-                self.cognitive_map_manager.evaluate_cognitive_map(think_content, room_state_last_turn, agent_state_last_turn)
-                cogmap_log = self.cognitive_map_manager.turn_logs[-1]
+            was_exploration = bool(self.is_exploration_phase)
             if self.is_exploration_phase:
                 obs, reward, done, step_info, exp_log = self._step_exploration(action)
             else:
                 obs, reward, done, step_info, eval_log = self._step_evaluation(action)
+            # Cognitive map evaluation (only when valid action+think)
+            if self.cognitive_map_manager:
+                room_state, agent_state = (exp_log.room_state, exp_log.agent_state) if self.is_exploration_phase else self.evaluation_manager.get_last_room_state()
+                def _eval_cogmap(use_all_items: bool):
+                    names = [o.name for o in room_state.all_objects] if use_all_items else list(self.exploration_manager.observed_items)
+                    self.cognitive_map_manager.evaluate_cognitive_map(think_content, room_state, agent_state, observed_items=names)
+                    return self.cognitive_map_manager.turn_logs[-1]
+
+                if was_exploration:
+                    cogmap_log = _eval_cogmap(False)
+                if not self.is_exploration_phase:
+                    cogmap_final_log = _eval_cogmap(True)
         else:
             reward = -0.5 # format penalty
             obs = "Invalid input format.\n"
             done, step_info = False, {}
+
+        # Determine room/agent state after step
+        if self.is_exploration_phase:
+            if exp_log and exp_log.room_state and exp_log.agent_state:
+                room_state = exp_log.room_state
+                agent_state = exp_log.agent_state
+        else:
+            if self.evaluation_manager:
+                room_state, agent_state = self.evaluation_manager.get_last_room_state()
+
 
         # post-process the observation
         if self.is_exploration_phase:
@@ -240,14 +263,6 @@ class SpatialGym(gym.Env):
             obs += self.prompter.COGMAP_EVAL_REQUIRED_INSTRUCTION if self.config.prompt_config["cogmap"] else ""
         self.render_cache = obs
 
-        # Get room state from turn logs
-        room_state = room_state_last_turn
-        agent_state = agent_state_last_turn
-        if exp_log and exp_log.room_state and exp_log.agent_state:
-            room_state, agent_state = exp_log.room_state, exp_log.agent_state
-        elif not self.is_exploration_phase:
-            room_state, agent_state = self.evaluation_manager.get_last_room_state()
-        
         turn_log = EnvTurnLog(
             turn_number=self.current_turn_number,
             user_message=current_obs,
@@ -260,6 +275,7 @@ class SpatialGym(gym.Env):
             exploration_log=exp_log,
             evaluation_log=eval_log,
             cogmap_log=cogmap_log,
+            cogmap_final_log=cogmap_final_log,
             info={"reward": reward, "is_done": done, **step_info}
         )
         self.turn_logs.append(turn_log)
