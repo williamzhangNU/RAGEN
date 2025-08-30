@@ -12,6 +12,7 @@ from ragen.env.spatial.Base.tos_base import (
     ExplorationTurnLog,
     CognitiveMapManager,
     CognitiveMapTurnLog,
+    HistoryManager,
     RoomGenerator,
     BaseAction,
     ObserveAction,
@@ -23,6 +24,7 @@ from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.utils.utils import extract_think_and_answer
 from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
+
 @dataclass
 class EnvTurnLog:
     """Log data for a single environment turn."""
@@ -115,6 +117,8 @@ class SpatialGym(gym.Env):
             exp_history=exp_history,
         )
     
+    def get_history(self):
+        return self.history_manager.get_responses() if self.history_manager else None
 
     def reset(self, seed: int = None):
         """Reset environment for a new episode."""
@@ -147,9 +151,15 @@ class SpatialGym(gym.Env):
         self.exploration_manager = ExplorationManager(self.initial_room, self.agent)
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
         self.cognitive_map_manager = CognitiveMapManager(**self.config.cogmap_config) if self.config.prompt_config["cogmap"] else None
-
-        # Generate initial observation
-        obs = self._generate_initial_observation()
+        self.history_manager = HistoryManager(seed, self.config) if self.config.exp_type == 'active' else None
+        if self.history_manager:
+            if self.history_manager.is_history_exist():
+                obs = self.history_manager.get_initial_observation()
+            else:
+                obs = self._generate_initial_observation()
+                self.history_manager.update_initial_observation(obs)
+        else:
+            obs = self._generate_initial_observation()
         self.render_cache = obs
         return obs, {}
     
@@ -228,7 +238,10 @@ class SpatialGym(gym.Env):
             step_fn = self._step_exploration if was_exploration else self._step_evaluation
             obs, reward, done, step_info, log = step_fn(action)  # log = exp_log or eval_log
             exp_log, eval_log = (log, None) if was_exploration else (None, log)
-
+            if was_exploration and self.history_manager and not self.history_manager.is_history_exist():
+                self.history_manager.update_response(llm_response)
+                if not self.is_exploration_phase:
+                    self.history_manager.save()
             # Cognitive map evaluation
             if self.cognitive_map_manager:
                 if was_exploration and exp_log:
@@ -304,7 +317,7 @@ class SpatialGym(gym.Env):
     def get_eval_summary(self):
         """Get evaluation performance metrics."""
         return self.evaluation_manager.get_eval_summary() if self.evaluation_manager else EvaluationManager.DEFAULT_EVAL_SUMMARY.copy()
-    
+
     def get_cogmap_summary(self):
         """Get cognitive map summary."""
         return self.cognitive_map_manager.get_cogmap_summary() if self.cognitive_map_manager else CognitiveMapManager.DEFAULT_COGMAP_SUMMARY.copy()
@@ -322,7 +335,6 @@ class SpatialGym(gym.Env):
                 'cogmap_summary': self.get_cogmap_summary()
             }
         }
-    
 
     def _get_env_info(self):
         """Get environment state information."""
@@ -331,19 +343,6 @@ class SpatialGym(gym.Env):
             "initial_room": self.initial_room.to_dict(),
             "initial_agent": self.initial_agent.to_dict(),
         }
-
-
-
-
-
-    
-    
-
-
-
-
-
-
 
 if __name__ == "__main__":
     # Simple test cases for SpatialGym environment

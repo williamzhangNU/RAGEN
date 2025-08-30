@@ -1,5 +1,8 @@
-task: ActiveRot
-num_envs: 20
+tags: 
+  - ActiveRot
+  # - ActiveDir
+
+num: 2
 
 
 defaults:
@@ -7,13 +10,15 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/spatial-approx/gpt-5-mini/${task}
+output_dir: results/gpt-5-mini/debug
 
 eval_model_type: api # api or vllm
 # api model
 api_model_info:
   model_name: gpt-5-mini # o4-mini
   max_concurrency: 128
+
+override: false  # whether to use active explore history, only valid when task is active task
 
 # vllm model
 model_path: Qwen/Qwen2.5-3B-Instruct
@@ -33,16 +38,10 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: ${num_envs} # 450
-    group_size: 1 # should be set to 1 because when val temperature is set to 0 and group size > 1, there will be repetitive prompts which leads to same trajectory.
+    env_groups: ${mul:${len:${tags}}, ${num}}
+    group_size: 1
     env_configs:
-      # tags: ["PassiveRot", "PassiveRotDual", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBelief"]
-      n_groups: [25, 25]
-      tags: ["PassiveDirCogmap", "PassiveRotCogmap"]
-      # n_groups: [25, 25, 25]
-      tags: ["${task}"]
-      n_groups: 
-        - ${num_envs}
-      # tags: ["ActiveDir"]
-      # n_groups: [10]
+        # tags: ["PassiveRot", "PassiveRotDual", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBelief"]
 
+      tags: ${tags}
+      n_groups: ${repeat:${num}, ${len:${tags}}}

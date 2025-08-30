@@ -1,3 +1,4 @@
+
 import random
 import numpy as np
 from contextlib import contextmanager
@@ -22,6 +23,8 @@ def register_resolvers():
         OmegaConf.register_new_resolver("mul", lambda x, y: x * y)
         OmegaConf.register_new_resolver("int_div", lambda x, y: int(float(x) / float(y)))
         OmegaConf.register_new_resolver("not", lambda x: not x)
+        OmegaConf.register_new_resolver("len", lambda x: len(x))
+        OmegaConf.register_new_resolver("repeat", lambda v, n: [v] * int(n))
     except:
         pass # already registered
 

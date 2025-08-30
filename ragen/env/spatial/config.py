@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
-from omegaconf import ListConfig, OmegaConf
+from omegaconf import ListConfig, OmegaConf, DictConfig
 
 from ragen.env.spatial.Base.tos_base import CANDIDATE_OBJECTS
 from ragen.env.spatial.Base.tos_base.evaluation.task_types import EvalTaskType
@@ -50,7 +50,7 @@ class SpatialGymConfig:
 
     # Rendering configuration
     render_mode: str = "text"
-
+    kwargs: Dict = None
     def __post_init__(self):
         """Validate configuration parameters."""
         assert self.room_size[0] > 0 and self.room_size[1] > 0, "room_size must be positive"
@@ -76,7 +76,10 @@ class SpatialGymConfig:
 
         if isinstance(self.eval_tasks, ListConfig):
             self.eval_tasks = OmegaConf.to_container(self.eval_tasks, resolve=True)
-        
+        if isinstance(self.room_size, ListConfig):
+            self.room_size = OmegaConf.to_container(self.room_size, resolve=True)
+        if isinstance(self.prompt_config, DictConfig):
+            self.prompt_config = OmegaConf.to_container(self.prompt_config, resolve=True)
         if not self.eval_tasks:
             raise ValueError("eval_tasks must be non-empty")
         
@@ -136,5 +139,6 @@ class SpatialGymConfig:
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
             'prompt_config': self.prompt_config,
+            'model': self.kwargs['model']
             # 'candidate_objects': self.candidate_objects,
         }

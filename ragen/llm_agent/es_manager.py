@@ -64,7 +64,14 @@ class EnvStateManager:
                 if cfg_template.env_config is None:
                     env_config = REGISTERED_ENV_CONFIGS[env_class]()
                 else:
-                    env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config)
+                    if env_class == 'SpatialGym':
+                        kwargs = {
+                            "model": self.sys_config.api_model_info['model_name'] if self.sys_config.eval_model_type=='api' else self.sys_config.model_path,
+                            "override": self.sys_config.override  
+                        }
+                        env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config, kwargs=kwargs)
+                    else:
+                        env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config)
                 env_obj = REGISTERED_ENVS[env_class](env_config)
                 entry = {'tag': tag, 'group_id': env_id // self.group_size, 'env_id': env_id, 
                         'env': env_obj, 'config': env_config, 'status': EnvStatus(), 'max_actions_per_traj': max_actions_per_traj}
@@ -82,7 +89,7 @@ class EnvStateManager:
             return sum(seeds, [])
 
         envs = self.envs
-        rollout_cache = [{"env_id": entry['env_id'], "history": [], "group_id": entry['group_id'], "tag": entry['tag'], "penalty": 0} for entry in envs]
+        self.rollout_cache = [{"env_id": entry['env_id'], "history": [], "group_id": entry['group_id'], "tag": entry['tag'], "penalty": 0} for entry in envs]
 
         # reset all environments
         if self.mode == "train":
@@ -95,12 +102,21 @@ class EnvStateManager:
             entry['status'] = EnvStatus(seed=seed)
 
         # update rollout cache
-        for cache, env in zip(rollout_cache, envs):
-            next_state = self._handle_mm_state(env['env'].render())
-            cache['history'] = self._update_cache_history(cache['history'], next_state=next_state, actions_left=env['max_actions_per_traj'], num_actions_info=None)
-            
-        self.rollout_cache = rollout_cache
-        return rollout_cache
+        for cache, env in zip(self.rollout_cache, envs):
+            next_state = env['env'].render()
+            self._update_cache_history(cache['history'], next_state=next_state, actions_left=env['max_actions_per_traj'], num_actions_info=None)
+            if hasattr(env['env'], 'get_history'):
+                history = env['env'].get_history()
+                if history:
+                    for response in history:
+                        self.step([{
+                            'env_id': cache['env_id'],
+                            'llm_response': response,
+                            'llm_raw_response': response,
+                            'actions': [response]
+                        }])
+
+        return self.rollout_cache
 
     def step(self, all_env_inputs: List[Dict]):
         """Step the environments.
@@ -134,13 +150,13 @@ class EnvStateManager:
             if turn_done:
                 status.terminated = True # TODO check terminated definition in gymnasium
                 status.truncated = not turn_info.get('success', False)
-            history = self._update_cache_history(history, next_state=obs, actions_left=actions_left, num_actions_info={
+            self._update_cache_history(history, next_state=obs, actions_left=actions_left, num_actions_info={
                 'actions': executed_actions, 'reward': acc_reward, 'info': turn_info,
                 'llm_response': env_input['llm_response'], 'llm_raw_response': env_input['llm_raw_response']
             })
             # filter out invalid actions
             # history = [content for content in history[:-1] if content['actions']] + [history[-1]]
-            return status, history
+            return status
 
         envs = self.envs
         env_outputs = []
@@ -157,13 +173,12 @@ class EnvStateManager:
             if len(valid_actions) != len(env_input['actions']) or not valid_actions:
                 self.rollout_cache[env_id]["penalty"] += self.sys_config.es_manager.format_penalty
                 
-            status, history = _log_env_state(entry['status'], self.rollout_cache[env_id]['history'], entry['env'].render(), entry['max_actions_per_traj'], executed_actions, valid_actions, acc_reward, turn_done, turn_info, env_input)
+            status = _log_env_state(entry['status'], self.rollout_cache[env_id]['history'], entry['env'].render(), entry['max_actions_per_traj'], executed_actions, valid_actions, acc_reward, turn_done, turn_info, env_input)
             entry['status'] = status
             if entry['status'].num_actions >= entry['max_actions_per_traj'] and not turn_done:
                 entry['status'].truncated = True
                 entry['status'].terminated = True
                 turn_done = True
-            self.rollout_cache[env_id]['history'] = history
             if not turn_done: # NOTE done environments are not sent for further llm generation (for efficiency)
                 env_outputs.append(self.rollout_cache[env_id])
 
@@ -216,7 +231,6 @@ class EnvStateManager:
             entry['images'] = next_state
         entry['actions_left'] = actions_left
         history.append(entry)
-        return history
 
     def _extract_map_valid_actions(self, entry: Dict, actions: List[str]):
         """extract valid actions from the action lookup table (if exists)"""
