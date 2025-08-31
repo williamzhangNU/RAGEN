@@ -1,9 +1,9 @@
 tags: 
   - ActiveRot
-  # - ActiveDir
 
-num: 2
+num: 1
 
+override: false  # whether to use active explore history, only valid when task is active task
 
 defaults:
   - base
@@ -17,8 +17,6 @@ eval_model_type: api # api or vllm
 api_model_info:
   model_name: gpt-5-mini # o4-mini
   max_concurrency: 128
-
-override: false  # whether to use active explore history, only valid when task is active task
 
 # vllm model
 model_path: Qwen/Qwen2.5-3B-Instruct
