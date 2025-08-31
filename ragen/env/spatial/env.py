@@ -182,10 +182,7 @@ class SpatialGym(gym.Env):
             exp_log = self.exploration_manager.turn_logs[-1]
 
         # End exploration phase
-        should_term = False
-        if action_sequence:
-            should_term = bool(action_sequence.final_action and action_sequence.final_action.is_term())
-        if should_term:
+        if action_sequence and bool(action_sequence.final_action and action_sequence.final_action.is_term()):
             self.is_exploration_phase = False
             obs += self.prompter.get_evaluation_prompt(self.evaluation_manager)
         else:
@@ -223,28 +220,36 @@ class SpatialGym(gym.Env):
         current_obs = self.render_cache
         
         # step the environment
-        if action and think_content:
+        if not (action and think_content):
+            reward, obs, done, step_info = -0.5, "Invalid input format.\n", False, {}
+        else:
             was_exploration = bool(self.is_exploration_phase)
-            if self.is_exploration_phase:
-                obs, reward, done, step_info, exp_log = self._step_exploration(action)
-            else:
-                obs, reward, done, step_info, eval_log = self._step_evaluation(action)
-            # Cognitive map evaluation (only when valid action+think)
+
+            step_fn = self._step_exploration if was_exploration else self._step_evaluation
+            obs, reward, done, step_info, log = step_fn(action)  # log = exp_log or eval_log
+            exp_log, eval_log = (log, None) if was_exploration else (None, log)
+
+            # Cognitive map evaluation
             if self.cognitive_map_manager:
-                room_state, agent_state = (exp_log.room_state, exp_log.agent_state) if self.is_exploration_phase else self.evaluation_manager.get_last_room_state()
-                def _eval_cogmap(use_all_items: bool):
-                    names = [o.name for o in room_state.all_objects] if use_all_items else list(self.exploration_manager.observed_items)
-                    self.cognitive_map_manager.evaluate_cognitive_map(think_content, room_state, agent_state, observed_items=names)
+                if was_exploration and exp_log:
+                    room_state, agent_state = exp_log.room_state, exp_log.agent_state
+                elif not self.is_exploration_phase:
+                    room_state, agent_state = self.evaluation_manager.get_last_room_state()
+
+                def eval_cogmap(all_items: bool = False):
+                    items = (
+                        [o.name for o in room_state.all_objects] if all_items
+                        else list(self.exploration_manager.observed_items)
+                    )
+                    self.cognitive_map_manager.evaluate_cognitive_map(
+                        think_content, room_state, agent_state, observed_items=items
+                    )
                     return self.cognitive_map_manager.turn_logs[-1]
 
                 if was_exploration:
-                    cogmap_log = _eval_cogmap(False)
-                if not self.is_exploration_phase:
-                    cogmap_final_log = _eval_cogmap(True)
-        else:
-            reward = -0.5 # format penalty
-            obs = "Invalid input format.\n"
-            done, step_info = False, {}
+                    cogmap_log = eval_cogmap(all_items=False)
+                if not self.is_exploration_phase:  # may have flipped during step
+                    cogmap_final_log = eval_cogmap(all_items=True)
 
         # Determine room/agent state after step
         if self.is_exploration_phase:
