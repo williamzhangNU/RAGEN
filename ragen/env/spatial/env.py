@@ -104,7 +104,13 @@ class SpatialGym(gym.Env):
         """Generate initial observation based on exploration type."""
         exp_history = ""
         if self.config.exp_type == 'passive' and not self.config.prompt_config["topdown"]:
-            proxy = get_agent_proxy(self.config.proxy_agent_config["type"], self.initial_room, self.agent, delegate=self.config.proxy_agent_config["delegate"])
+            proxy = get_agent_proxy(
+                self.config.proxy_agent_config["type"],
+                self.initial_room,
+                self.agent,
+                delegate=self.config.proxy_agent_config.get("delegate"),
+                observer_delegate=self.config.proxy_agent_config.get("observer_delegate"), # TODO change name
+            )
             proxy.run()
             exp_history = proxy.to_text()
             # expose proxy manager so metrics are available via env.get_exp_summary()

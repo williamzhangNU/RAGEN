@@ -36,7 +36,8 @@ _passive: &passive
   room_size: [15, 15]
   proxy_agent_config:
     type: analyst
-    delegate: oracle
+    delegate: observer_analyst
+    observer_delegate: strategist
 
 
 _active: &active
@@ -103,6 +104,22 @@ custom_envs:
       <<: *passive
       name: "passive_false_belief"
       eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
+
+  PassiveBwdNav:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_bwd_nav"
+      eval_tasks: [{task_type: "bwd_nav", task_kwargs: {}}]
+
+  PassiveFwdFov:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_fwd_fov"
+      eval_tasks: [{task_type: "fwd_fov", task_kwargs: {}}]
   
 
   PassiveDirCogmap:

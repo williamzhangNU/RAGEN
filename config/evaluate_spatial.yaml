@@ -15,7 +15,7 @@ output_dir: results/gpt-5-mini/debug
 eval_model_type: api # api or vllm
 # api model
 api_model_info:
-  model_name: gpt-5-mini # o4-mini
+  model_name: gpt-4.1-mini # o4-mini
   max_concurrency: 128
 
 # vllm model
