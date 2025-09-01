@@ -21,7 +21,6 @@ Observation:
 {observation_instructions}
 
 Multi-room: 
-- You can not see objects in other rooms.
 - You can not look through the gate when you are not at the gate.
 - Rooms are connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. When you stand at a door, you can see objects from both connected rooms (within FOV).
 
@@ -55,7 +54,6 @@ Observation:
 {observation_instructions}
 
 Multi-room: 
-- You can not see objects in other rooms.
 - You can not look through the gate when you are not at the gate.
 - Rooms are connected by gates/doors on vertical (N–S) or horizontal (E–W) walls. When you stand at a door, you can see objects from both connected rooms (within FOV).
 
