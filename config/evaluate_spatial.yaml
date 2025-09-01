@@ -1,7 +1,7 @@
 tags: 
   - ActiveRot
 
-num: 1
+num_per_task: 10
 
 override: false  # whether to use active explore history, only valid when task is active task
 
@@ -36,10 +36,10 @@ agent_proxy:
 
 es_manager:
   val:
-    env_groups: ${mul:${len:${tags}}, ${num}}
+    env_groups: ${mul:${len:${tags}}, ${num_per_task}}
     group_size: 1
     env_configs:
         # tags: ["PassiveRot", "PassiveRotDual", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBelief"]
 
       tags: ${tags}
-      n_groups: ${repeat:${num}, ${len:${tags}}}
+      n_groups: ${repeat:${num_per_task}, ${len:${tags}}}

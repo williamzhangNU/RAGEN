@@ -31,9 +31,9 @@ _prompt_topdown: &prompt_topdown
 _passive: &passive
   exp_type: passive
   n_objects: 8
-  level: 2
-  main: 6
-  room_size: [15, 15]
+  level: 2 # 0, 1, 2
+  main: 5 # 12, 7, 5
+  room_size: [20, 20]
   proxy_agent_config:
     type: analyst
     delegate: observer_analyst

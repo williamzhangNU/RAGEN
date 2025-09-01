@@ -14,7 +14,7 @@ def parse_args():
             "[override=true] [output_dir=...] [eval_model_type=...] [api_model_info.model_name=.../model_path=...]"
         )
     )
-    parser.add_argument("--num", type=int, default=1, help="num of each task. Default: 1")
+    parser.add_argument("--num_per_task", type=int, default=1, help="num of each task. Default: 1")
     parser.add_argument(
         "--task",
         dest="tasks",
@@ -62,7 +62,7 @@ def normalize_tasks(tasks):
 
 def run_for_task(
     task: str,
-    num: int,
+    num_per_task: int,
     cwd: str,
     override: bool,
     output_dir: str,
@@ -74,7 +74,7 @@ def run_for_task(
         "-m",
         "ragen.llm_agent.agent_proxy",
         f"tags=[{task}]",
-        f"num={num}",
+        f"num_per_task={num_per_task}",
     ]
     if override:
         cmd.append("override=true")
@@ -106,7 +106,7 @@ def main():
     for t in tasks:
         rc = run_for_task(
             t,
-            args.num,
+            args.num_per_task,
             cwd=root_dir,
             override=args.override,
             output_dir=args.output_dir,
