@@ -28,13 +28,14 @@ _prompt_topdown: &prompt_topdown
     type: standard
 
 # exp_type
+
 # _passive: &passive
 #   exp_type: passive
 #   n_objects: 8
 #   level: 2 # 0, 1, 2
 #   main: 5 # 12, 7, 5
 #   room_size: [20, 20]
-#   same_room_size: false
+#   same_room_size: true
 #   proxy_agent_config:
 #     type: analyst
 #     delegate: observer_analyst
@@ -42,31 +43,54 @@ _prompt_topdown: &prompt_topdown
 
 _passive: &passive
   exp_type: passive
+  objects_per_area: 0.15
+  level: 2 # 0, 1, 2
+  main: 5 # 12, 7, 5
   room_size: [20, 20]
-  level: 2
-  fix_room_size: [[8, 8], [6, 6], [4, 4]]
-  fix_object_n: [4, 3, 1]
+  same_room_size: true
   proxy_agent_config:
     type: analyst
     delegate: observer_analyst
     observer_delegate: strategist
 
+# _passive: &passive
+#   exp_type: passive
+#   room_size: [20, 20]
+#   level: 2
+#   fix_room_size: [[8, 8], [6, 6], [4, 4]]
+#   fix_object_n: [4, 3, 1]
+#   proxy_agent_config:
+#     type: analyst
+#     delegate: observer_analyst
+#     observer_delegate: strategist
+
 # _active: &active
 #   exp_type: active
 #   n_objects: 8
 #   max_exp_steps: 15
-#   room_size: [15, 15]
-#   level: 1
+#   room_size: [20, 20]
+#   level: 2
 #   main: 6
-#   same_room_size: false
+#   same_room_size: true
 
 _active: &active
   exp_type: active
+  objects_per_area: 0.15
   max_exp_steps: 15
-  room_size: [20, 20]
-  level: 2
-  fix_room_size: [[6, 6], [4, 5], [3, 4]]
-  fix_object_n: [3, 2, 1]
+  room_size: [15, 15]
+  level: 1
+  main: 6
+  same_room_size: true
+
+# _active: &active
+#   exp_type: active
+#   max_exp_steps: 15
+#   room_size: [20, 20]
+#   level: 2
+#   fix_room_size: [[6, 6], [4, 5], [3, 4]]
+#   fix_object_n: [3, 2, 1]
+
+
 
 custom_envs:
   PassiveDir:
@@ -248,23 +272,3 @@ custom_envs:
       name: "active_loc_cogmap"
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
-  # New environments using same_room_size (uniform room sizes)
-  ActiveRotUniform:
-    <<: *common
-    max_actions_per_traj: 20
-    env_config:
-      <<: *prompt_standard
-      <<: *active_uniform
-      name: "active_rot_uniform"
-      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
-      
-  ActiveDirUniform:
-    <<: *common
-    max_actions_per_traj: 20
-    env_config:
-      <<: *prompt_standard
-      <<: *active_uniform
-      name: "active_dir_uniform"
-      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
-
-  
