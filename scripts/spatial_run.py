@@ -20,7 +20,7 @@ def parse_args():
         dest="tasks",
         nargs="+",
         required=False,
-        default=None,
+        default=["ActiveRot"],
         help="Task tags. Space-separated, or a single comma-separated arg, e.g. --task ActiveRot,ActiveDir. Defaults to [ActiveRot] if omitted.",
     )
     parser.add_argument(
@@ -29,7 +29,7 @@ def parse_args():
         help="If set, will override the active exploration history",
     )
     parser.add_argument(
-        "--output_dir",
+        "--output-dir",
         type=str,
         default="results",
         help="For each task, set output_dir=<base>. Default base=results. If model_name contains slashes, the last segment is used for the directory name.",
@@ -51,9 +51,6 @@ def parse_args():
 
 
 def normalize_tasks(tasks):
-    # If --task not provided, use [ActiveRot]
-    if tasks is None:
-        return ["ActiveRot"]
     # Support both: --task A B and --task A,B
     if len(tasks) == 1 and ("," in tasks[0]):
         return [t.strip() for t in tasks[0].split(",") if t.strip()]

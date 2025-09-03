@@ -199,6 +199,8 @@ class SpatialGymConfig:
         return {
             'name': self.name,
             'room_size': self.room_size,
+            'level': self.level,
+            'main': self.main,
             'n_objects': self.n_objects,    
             'exp_type': self.exp_type,
             'field_of_view': self.field_of_view,
