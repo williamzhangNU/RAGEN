@@ -35,6 +35,12 @@ class SpatialGymConfig:
     fix_room_size: Optional[List[List[int]]] = None  # e.g., [[5,5], [6,6], [4,4]]
     fix_object_n: Optional[List[int]] = None         # e.g., [3, 4, 2]
     
+    # Room size uniformity parameter (works with main, mutually exclusive with fix_room_size)
+    same_room_size: bool = False                     # When True, all rooms use the same size as main room
+    
+    # Object density parameter
+    objects_per_area: Optional[float] = None         # Objects per unit area (overrides n_objects if provided)
+    
     # Exploration configuration
     exp_type: str = 'passive'
     field_of_view: int = 90
@@ -123,6 +129,10 @@ class SpatialGymConfig:
         """Validate room configuration parameters."""
         use_fixed_params = self.fix_room_size is not None or self.fix_object_n is not None
         
+        # Check mutual exclusivity: fix_room_size vs same_room_size
+        if use_fixed_params and self.same_room_size:
+            raise ValueError("fix_room_size and same_room_size are mutually exclusive. Use either fixed room sizes or uniform room sizes, not both.")
+        
         if use_fixed_params:
             # Validate fix_room_size and fix_object_n are both provided
             if self.fix_room_size is None or self.fix_object_n is None:
@@ -170,6 +180,22 @@ class SpatialGymConfig:
                     f"Warning: Only {total_objects} objects for rotation tasks. "
                     f"Consider having at least 5 objects to ensure sufficient angular separation (eps>30°)."
                 )
+        
+        # Validate same_room_size parameter
+        if self.same_room_size:
+            if self.level == 0:
+                import warnings
+                warnings.warn("same_room_size=True has no effect when level=0 (single room)")
+            
+            if self.main is None:
+                raise ValueError("main parameter must be provided when using same_room_size=True")
+        
+        # Validate objects_per_area parameter
+        if self.objects_per_area is not None:
+            if self.objects_per_area <= 0:
+                raise ValueError("objects_per_area must be positive")
+            if use_fixed_params:
+                raise ValueError("objects_per_area cannot be used with fix_room_size/fix_object_n")
             
 
     
@@ -191,11 +217,14 @@ class SpatialGymConfig:
                 'fix_object_n': self.fix_object_n,
                 'n_objects': sum(self.fix_object_n),  # Total objects (for compatibility)
                 'main': None,  # Not used when fix_room_size is provided
+                'same_room_size': False,  # Not used when fix_room_size is provided
             })
         else:
             config.update({
                 'n_objects': self.n_objects,
                 'main': self.main,
+                'same_room_size': self.same_room_size,
+                'objects_per_area': self.objects_per_area,
             })
         
         # Always pass eval_tasks for validation

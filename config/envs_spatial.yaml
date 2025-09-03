@@ -34,6 +34,7 @@ _prompt_topdown: &prompt_topdown
 #   level: 2 # 0, 1, 2
 #   main: 5 # 12, 7, 5
 #   room_size: [20, 20]
+#   same_room_size: false
 #   proxy_agent_config:
 #     type: analyst
 #     delegate: observer_analyst
@@ -57,6 +58,7 @@ _passive: &passive
 #   room_size: [15, 15]
 #   level: 1
 #   main: 6
+#   same_room_size: false
 
 _active: &active
   exp_type: active
@@ -245,5 +247,24 @@ custom_envs:
       <<: *active
       name: "active_loc_cogmap"
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  # New environments using same_room_size (uniform room sizes)
+  ActiveRotUniform:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active_uniform
+      name: "active_rot_uniform"
+      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+      
+  ActiveDirUniform:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active_uniform
+      name: "active_dir_uniform"
+      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
 
   
