@@ -153,6 +153,24 @@ class SpatialGymConfig:
                 if not isinstance(obj_count, int) or obj_count < 0:
                     raise ValueError(f"fix_object_n[{i}] must be a non-negative integer")
             
+            # Validate sufficient objects for rotation tasks
+            total_objects = sum(self.fix_object_n)
+            if total_objects < 3:
+                raise ValueError(f"Total objects ({total_objects}) must be at least 3 for rotation tasks")
+            
+            # Check if rotation tasks are present in eval_tasks
+            has_rotation_tasks = any(
+                task.get('task_type') in ['rot', 'rot_dual'] 
+                for task in self.eval_tasks
+            )
+            
+            if has_rotation_tasks and total_objects < 5:
+                import warnings
+                warnings.warn(
+                    f"Warning: Only {total_objects} objects for rotation tasks. "
+                    f"Consider having at least 5 objects to ensure sufficient angular separation (eps>30°)."
+                )
+            
 
     
 
@@ -179,6 +197,13 @@ class SpatialGymConfig:
                 'n_objects': self.n_objects,
                 'main': self.main,
             })
+        
+        # Always pass eval_tasks for validation
+        config.update({
+            'eval_tasks': self.eval_tasks,
+            'min_angle_eps': 30.0,  # Default minimum angle separation
+            'max_retries': 10,      # Maximum retry attempts
+        })
         
         return config
     
