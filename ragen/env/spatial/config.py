@@ -127,75 +127,61 @@ class SpatialGymConfig:
     
     def _validate_room_parameters(self):
         """Validate room configuration parameters."""
-        use_fixed_params = self.fix_room_size is not None or self.fix_object_n is not None
+        use_fixed = self.fix_room_size is not None or self.fix_object_n is not None
         
-        # Check mutual exclusivity: fix_room_size vs same_room_size
-        if use_fixed_params and self.same_room_size:
-            raise ValueError("fix_room_size and same_room_size are mutually exclusive. Use either fixed room sizes or uniform room sizes, not both.")
+        if use_fixed and self.same_room_size:
+            raise ValueError("fix_room_size and same_room_size are mutually exclusive")
+        if self.objects_per_area and use_fixed:
+            raise ValueError("objects_per_area cannot be used with fix_room_size/fix_object_n")
         
-        if use_fixed_params:
-            # Validate fix_room_size and fix_object_n are both provided
-            if self.fix_room_size is None or self.fix_object_n is None:
-                raise ValueError("fix_room_size and fix_object_n must be provided together")
-            
-            # Validate list lengths match level + 1
-            expected_rooms = self.level + 1
-            if len(self.fix_room_size) != expected_rooms:
-                raise ValueError(f"fix_room_size must have {expected_rooms} elements (level + 1), got {len(self.fix_room_size)}")
-            if len(self.fix_object_n) != expected_rooms:
-                raise ValueError(f"fix_object_n must have {expected_rooms} elements (level + 1), got {len(self.fix_object_n)}")
-            
-            # Convert ListConfig to regular lists if needed first
-            if isinstance(self.fix_room_size, ListConfig):
-                self.fix_room_size = OmegaConf.to_container(self.fix_room_size, resolve=True)
-            if isinstance(self.fix_object_n, ListConfig):
-                self.fix_object_n = OmegaConf.to_container(self.fix_object_n, resolve=True)
-            
-            # Validate each room size is valid
-            for i, room_size in enumerate(self.fix_room_size):
-                if not isinstance(room_size, (list, tuple)) or len(room_size) != 2:
-                    raise ValueError(f"fix_room_size[{i}] must be a list of 2 integers")
-                if room_size[0] <= 0 or room_size[1] <= 0:
-                    raise ValueError(f"fix_room_size[{i}] must contain positive values")
-            
-            # Validate object counts are non-negative
-            for i, obj_count in enumerate(self.fix_object_n):
-                if not isinstance(obj_count, int) or obj_count < 0:
-                    raise ValueError(f"fix_object_n[{i}] must be a non-negative integer")
-            
-            # Validate sufficient objects for rotation tasks
-            total_objects = sum(self.fix_object_n)
-            if total_objects < 3:
-                raise ValueError(f"Total objects ({total_objects}) must be at least 3 for rotation tasks")
-            
-            # Check if rotation tasks are present in eval_tasks
-            has_rotation_tasks = any(
-                task.get('task_type') in ['rot', 'rot_dual'] 
-                for task in self.eval_tasks
-            )
-            
-            if has_rotation_tasks and total_objects < 5:
-                import warnings
-                warnings.warn(
-                    f"Warning: Only {total_objects} objects for rotation tasks. "
-                    f"Consider having at least 5 objects to ensure sufficient angular separation (eps>30°)."
-                )
-        
-        # Validate same_room_size parameter
+        if use_fixed:
+            self._validate_fixed_params()
         if self.same_room_size:
-            if self.level == 0:
-                import warnings
-                warnings.warn("same_room_size=True has no effect when level=0 (single room)")
-            
-            if self.main is None:
-                raise ValueError("main parameter must be provided when using same_room_size=True")
+            self._validate_same_room_size()
+        if self.objects_per_area:
+            self._validate_objects_per_area()
+
+    def _validate_fixed_params(self):
+        """Validate fix_room_size and fix_object_n parameters."""
+        if not (self.fix_room_size and self.fix_object_n):
+            raise ValueError("fix_room_size and fix_object_n must be provided together")
         
-        # Validate objects_per_area parameter
-        if self.objects_per_area is not None:
-            if self.objects_per_area <= 0:
-                raise ValueError("objects_per_area must be positive")
-            if use_fixed_params:
-                raise ValueError("objects_per_area cannot be used with fix_room_size/fix_object_n")
+        expected = self.level + 1
+        if len(self.fix_room_size) != expected or len(self.fix_object_n) != expected:
+            raise ValueError(f"Lists must have {expected} elements (level + 1)")
+        
+        # Convert ListConfig
+        if isinstance(self.fix_room_size, ListConfig):
+            self.fix_room_size = OmegaConf.to_container(self.fix_room_size, resolve=True)
+        if isinstance(self.fix_object_n, ListConfig):
+            self.fix_object_n = OmegaConf.to_container(self.fix_object_n, resolve=True)
+        
+        # Validate room sizes and object counts
+        for i, (size, count) in enumerate(zip(self.fix_room_size, self.fix_object_n)):
+            if not isinstance(size, (list, tuple)) or len(size) != 2 or any(s <= 0 for s in size):
+                raise ValueError(f"fix_room_size[{i}] must be [width, height] with positive values")
+            if not isinstance(count, int) or count < 0:
+                raise ValueError(f"fix_object_n[{i}] must be non-negative integer")
+        
+        total = sum(self.fix_object_n)
+        if total < 3:
+            raise ValueError(f"Total objects ({total}) must be at least 3")
+        if total < 5 and any(t.get('task_type') in ['rot', 'rot_dual'] for t in self.eval_tasks):
+            import warnings
+            warnings.warn(f"Only {total} objects for rotation tasks. Consider ≥5 for better separation.")
+
+    def _validate_same_room_size(self):
+        """Validate same_room_size parameter."""
+        if self.level == 0:
+            import warnings
+            warnings.warn("same_room_size=True has no effect when level=0")
+        if not self.main:
+            raise ValueError("main parameter required when using same_room_size=True")
+
+    def _validate_objects_per_area(self):
+        """Validate objects_per_area parameter."""
+        if self.objects_per_area <= 0:
+            raise ValueError("objects_per_area must be positive")
             
 
     
