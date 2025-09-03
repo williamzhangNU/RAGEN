@@ -31,6 +31,10 @@ class SpatialGymConfig:
     level: int = 0
     main: int = 6
     
+    # New fine-grained control parameters (mutually exclusive with main/n_objects)
+    fix_room_size: Optional[List[List[int]]] = None  # e.g., [[5,5], [6,6], [4,4]]
+    fix_object_n: Optional[List[int]] = None         # e.g., [3, 4, 2]
+    
     # Exploration configuration
     exp_type: str = 'passive'
     field_of_view: int = 90
@@ -58,6 +62,7 @@ class SpatialGymConfig:
         self._validate_field_of_view()
         self._validate_eval_tasks()
         self._validate_render_mode()
+        self._validate_room_parameters()
 
 
     def _validate_exp_type(self):
@@ -114,18 +119,68 @@ class SpatialGymConfig:
         if self.render_mode != 'text':
             raise ValueError("Only 'text' rendering mode is currently supported")
     
+    def _validate_room_parameters(self):
+        """Validate room configuration parameters."""
+        use_fixed_params = self.fix_room_size is not None or self.fix_object_n is not None
+        
+        if use_fixed_params:
+            # Validate fix_room_size and fix_object_n are both provided
+            if self.fix_room_size is None or self.fix_object_n is None:
+                raise ValueError("fix_room_size and fix_object_n must be provided together")
+            
+            # Validate list lengths match level + 1
+            expected_rooms = self.level + 1
+            if len(self.fix_room_size) != expected_rooms:
+                raise ValueError(f"fix_room_size must have {expected_rooms} elements (level + 1), got {len(self.fix_room_size)}")
+            if len(self.fix_object_n) != expected_rooms:
+                raise ValueError(f"fix_object_n must have {expected_rooms} elements (level + 1), got {len(self.fix_object_n)}")
+            
+            # Convert ListConfig to regular lists if needed first
+            if isinstance(self.fix_room_size, ListConfig):
+                self.fix_room_size = OmegaConf.to_container(self.fix_room_size, resolve=True)
+            if isinstance(self.fix_object_n, ListConfig):
+                self.fix_object_n = OmegaConf.to_container(self.fix_object_n, resolve=True)
+            
+            # Validate each room size is valid
+            for i, room_size in enumerate(self.fix_room_size):
+                if not isinstance(room_size, (list, tuple)) or len(room_size) != 2:
+                    raise ValueError(f"fix_room_size[{i}] must be a list of 2 integers")
+                if room_size[0] <= 0 or room_size[1] <= 0:
+                    raise ValueError(f"fix_room_size[{i}] must contain positive values")
+            
+            # Validate object counts are non-negative
+            for i, obj_count in enumerate(self.fix_object_n):
+                if not isinstance(obj_count, int) or obj_count < 0:
+                    raise ValueError(f"fix_object_n[{i}] must be a non-negative integer")
+            
+
+    
 
 
 
     def get_room_config(self) -> Dict[str, Any]:
         """Get configuration for room generation."""
-        return {
+        config = {
             'room_size': self.room_size,
-            'n_objects': self.n_objects,
             'level': self.level,
-            'main': self.main,
             # 'candidate_objects': self.candidate_objects,
         }
+        
+        # Use fixed parameters if provided, otherwise use traditional parameters
+        if self.fix_room_size is not None and self.fix_object_n is not None:
+            config.update({
+                'fix_room_size': self.fix_room_size,
+                'fix_object_n': self.fix_object_n,
+                'n_objects': sum(self.fix_object_n),  # Total objects (for compatibility)
+                'main': None,  # Not used when fix_room_size is provided
+            })
+        else:
+            config.update({
+                'n_objects': self.n_objects,
+                'main': self.main,
+            })
+        
+        return config
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""

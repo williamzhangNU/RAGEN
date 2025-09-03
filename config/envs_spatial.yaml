@@ -28,25 +28,43 @@ _prompt_topdown: &prompt_topdown
     type: standard
 
 # exp_type
+# _passive: &passive
+#   exp_type: passive
+#   n_objects: 8
+#   level: 2 # 0, 1, 2
+#   main: 5 # 12, 7, 5
+#   room_size: [20, 20]
+#   proxy_agent_config:
+#     type: analyst
+#     delegate: observer_analyst
+#     observer_delegate: strategist
+
 _passive: &passive
   exp_type: passive
-  n_objects: 8
-  level: 2 # 0, 1, 2
-  main: 5 # 12, 7, 5
   room_size: [20, 20]
+  level: 2
+  fix_room_size: [[8, 8], [6, 6], [4, 4]]
+  fix_object_n: [4, 3, 1]
   proxy_agent_config:
     type: analyst
     delegate: observer_analyst
     observer_delegate: strategist
 
+# _active: &active
+#   exp_type: active
+#   n_objects: 8
+#   max_exp_steps: 15
+#   room_size: [15, 15]
+#   level: 1
+#   main: 6
 
 _active: &active
   exp_type: active
-  n_objects: 8
   max_exp_steps: 15
-  room_size: [15, 15]
+  room_size: [20, 20]
   level: 2
-  main: 6
+  fix_room_size: [[6, 6], [4, 5], [3, 4]]
+  fix_object_n: [3, 2, 1]
 
 custom_envs:
   PassiveDir:
@@ -149,7 +167,7 @@ custom_envs:
 
   ActiveDir:
     <<: *common
-    max_actions_per_traj: 25
+    max_actions_per_traj: 20
     env_config:
       <<: *prompt_standard
       <<: *active
@@ -158,12 +176,30 @@ custom_envs:
 
   ActiveRot:
     <<: *common
-    max_actions_per_traj: 25
+    max_actions_per_traj: 20
     env_config:
       <<: *prompt_standard
       <<: *active
       name: "active_rot"
       eval_tasks: [{task_type: "rot", task_kwargs: {}}]
+
+  ActiveRotDual:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_rot_dual"
+      eval_tasks: [{task_type: "rot_dual", task_kwargs: {}}]
+
+  ActivePoV:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_pov"
+      eval_tasks: [{task_type: "pov", task_kwargs: {}}]
 
   ActiveLoc:
     <<: *common
@@ -173,6 +209,15 @@ custom_envs:
       <<: *active
       name: "active_loc"
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
+
+  ActiveE2A:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_e2a"
+      eval_tasks: [{task_type: "e2a", task_kwargs: {}}]
 
   ActiveDirCogmap:
     <<: *common
