@@ -94,14 +94,6 @@ custom_envs:
       name: "passive_rot_dual"
       eval_tasks: [{task_type: "rot_dual", task_kwargs: {}}]
 
-  PassiveLoc:
-    <<: *common
-    env_config:
-      <<: *prompt_standard
-      <<: *passive
-      name: "passive_loc"
-      eval_tasks: [{task_type: "loc", task_kwargs: {'only_main_room': False}}]
-
   PassiveE2A:
     <<: *common
     env_config:
@@ -125,6 +117,22 @@ custom_envs:
       <<: *passive
       name: "passive_false_belief"
       eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
+
+  PassiveFwdLoc:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_fwd_loc"
+      eval_tasks: [{task_type: "fwd_loc", task_kwargs: {}}]
+  
+  PassiveBwdLoc:
+    <<: *common
+    env_config:
+      <<: *prompt_standard
+      <<: *passive
+      name: "passive_bwd_loc"
+      eval_tasks: [{task_type: "bwd_loc", task_kwargs: {}}]
 
   PassiveBwdNav:
     <<: *common
@@ -213,7 +221,7 @@ custom_envs:
       name: "active_loc"
       eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
-  ActiveE2A:
+  ActiveFalseBelief:
     <<: *common
     max_actions_per_traj: 20
     env_config:
@@ -221,6 +229,44 @@ custom_envs:
       <<: *active
       name: "active_e2a"
       eval_tasks: [{task_type: "e2a", task_kwargs: {}}]
+      name: "active_false_belief"
+      eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
+
+  ActiveFwdLoc:
+    <<: *common
+    max_actions_per_traj: 25
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_fwd_loc"
+      eval_tasks: [{task_type: "fwd_loc", task_kwargs: {}}]
+    
+  ActiveBwdLoc:
+    <<: *common
+    max_actions_per_traj: 25
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_bwd_loc"
+      eval_tasks: [{task_type: "bwd_loc", task_kwargs: {}}] 
+
+  ActiveBwdNav:
+    <<: *common
+    max_actions_per_traj: 25
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_bwd_nav"
+      eval_tasks: [{task_type: "bwd_nav", task_kwargs: {}}]
+
+  ActiveFwdFov:
+    <<: *common
+    max_actions_per_traj: 25
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_fwd_fov"
+      eval_tasks: [{task_type: "fwd_fov", task_kwargs: {}}]
 
   ActiveDirCogmap:
     <<: *common
