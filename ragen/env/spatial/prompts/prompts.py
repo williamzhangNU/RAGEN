@@ -14,21 +14,21 @@ You are a spatial reasoner in a 2D, text-only N×M grid. Every object including 
 - You cannot see objects in other rooms.
 - You cannot see through a door unless you are standing on it. When at a door, it's open and invisible.
 - Rooms connect via doors on vertical (front/back) or horizontal (left/right) walls.
-- When standing on a door, you can see objects from both connected rooms (within FOV).
+- When standing on a door, you can see objects from both connected rooms (within your FOV).
 
 ## Objective
 - Minimize total COST.
-- Achieve complete spatial understanding: every pair of objects must be assigned exactly one relation from:
+- Achieve complete spatial understanding: every pair of objects (including your initial position) must be assigned exactly one relation from:
 {allo_bins}
 
 ## Observation
-You egocentric observation is provided in following format:
+You egocentric observation rule is provided in following format:
 {observation_instructions}
 
 ## Rules
 - Achieve complete coverage with the fewest steps;
 - Prefer actions that reveal more unknowns; avoid redundancy
-- FOV is 90°
+- FOV is 90°, you can NOT see objects outside your FOV.
 - Track your current and initial pose
 
 ## Room Layout
@@ -38,8 +38,6 @@ You egocentric observation is provided in following format:
 
 ## Action Instructions
 {exp_instructions}
-
-After exploration, you will return to your starting position facing north.
 """
 
 
@@ -52,14 +50,14 @@ You are a spatial reasoner in a 2D, text-only N×M grid. Every object including 
 - You cannot see objects in other rooms.
 - You cannot see through a door unless you are standing on it. When at a door, it's open and invisible.
 - Rooms connect via doors on vertical (front/back) or horizontal (left/right) walls.
-- When standing on a door, you can see objects from both connected rooms (within FOV).
+- When standing on a door, you can see objects from both connected rooms (within your FOV).
 
 ## Observation
-You egocentric observation is provided in following format:
+You egocentric observation rule is provided in following format:
 {observation_instructions}
 
 ## Rules
-- FOV is 90°
+- FOV is 90°, you can NOT see objects outside your FOV.
 - Track your current and initial pose
 
 ## Room Layout
