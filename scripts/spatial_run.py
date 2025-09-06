@@ -4,8 +4,9 @@ import subprocess
 import sys
 import shlex
 import os
-
-
+from omegaconf import OmegaConf
+from hydra import initialize, compose
+import time
 def parse_args():
     parser = argparse.ArgumentParser(
         description=(
@@ -44,7 +45,7 @@ def parse_args():
     parser.add_argument(
         "--model_name",
         type=str,
-        default="gpt-5-mini",
+        default="gpt-4.1-mini",
         help="If eval_model_type=api, overrides api_model_info.model_name; if vllm, overrides model_path. Default: gpt-5-mini. If contains '/', the last segment is used for the output directory.",
     )
     return parser.parse_args()
@@ -59,56 +60,51 @@ def normalize_tasks(tasks):
 
 def run_for_task(
     task: str,
-    num_per_task: int,
     cwd: str,
-    override: bool,
     output_dir: str,
-    eval_model_type: str,
-    model_name: str,
 ) -> int:
     cmd = [
         sys.executable,
         "-m",
         "ragen.llm_agent.agent_proxy",
+        "--config-path",
+        f"{os.path.abspath(output_dir)}",
         f"tags=[{task}]",
-        f"num_per_task={num_per_task}",
     ]
-    if override:
-        cmd.append("override=true")
-
-    # Directory segment: if model_name contains slashes (or backslashes), use the last segment
-    model_seg = model_name.replace("\\", "/").rstrip("/").split("/")[-1]
-    effective_output_dir = os.path.join(output_dir, model_seg, task)
+    effective_output_dir = os.path.abspath(os.path.join(output_dir, task))
     cmd.append(f"output_dir={effective_output_dir}")
-
-    # Backend type override
-    cmd.append(f"eval_model_type={eval_model_type}")
-
-    # Model override: api uses api_model_info.model_name; vllm uses model_path
-    if eval_model_type == "vllm":
-        cmd.append(f"model_path={model_name}")
-    else:
-        cmd.append(f"api_model_info.model_name={model_name}")
 
     print("Running:", " ".join(shlex.quote(c) for c in cmd), f"(cwd={cwd})", flush=True)
     completed = subprocess.run(cmd, cwd=cwd)
     return completed.returncode
 
+def save_config(args, output_dir):
+    with initialize(config_path="../config", version_base=None):
+        cfg = compose(config_name="evaluate_spatial",overrides=[
+            f"tags={args.tasks}",
+            f"num_per_task={args.num_per_task}",
+            f"output_dir={output_dir}",
+            f"eval_model_type={args.eval_model_type}",
+            f"api_model_info.model_name={args.model_name}",
+            f"model_path={args.model_name}",
+            f"override={args.override}",
+        ])
+    OmegaConf.save(cfg, os.path.join(output_dir, "evaluate_spatial.yaml"))
 
 def main():
     args = parse_args()
+    time_stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    output_dir = os.path.join(args.output_dir, args.model_name.replace("\\", "/").rstrip("/").split("/")[-1], time_stamp)
+    os.makedirs(output_dir, exist_ok=True)
     tasks = normalize_tasks(args.tasks)
+    save_config(args, output_dir)
     # Project root dir so that -m can find the ragen package
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     for t in tasks:
         rc = run_for_task(
             t,
-            args.num_per_task,
             cwd=root_dir,
-            override=args.override,
-            output_dir=args.output_dir,
-            eval_model_type=args.eval_model_type,
-            model_name=args.model_name,
+            output_dir=output_dir,
         )
         if rc != 0:
             sys.exit(rc)

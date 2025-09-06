@@ -98,16 +98,18 @@ class SpatialEnvLogger:
         if save_images:
             for config_name, group in config_groups.items():
                 for sample_idx, env_data in enumerate(group):
-                    # Plot initial room
-                    initial_img_path = SpatialEnvLogger._plot_room(env_data["env_info"]["initial_room"], env_data["env_info"]["initial_agent"], output_dir, config_name, sample_idx, 0)
-                    env_data["initial_room_image"] = initial_img_path
-                    
                     # Plot room for each turn
                     for turn_log in env_data["env_turn_logs"]:
+                        if turn_log["room_image"]:
+                            turn_log['room_image'] = os.path.relpath(turn_log['room_image'], output_dir)
+                            continue
                         if turn_log["room_state"]:
                             turn_idx = turn_log["turn_number"]
                             img_path = SpatialEnvLogger._plot_room(turn_log["room_state"], turn_log["agent_state"], output_dir, config_name, sample_idx, turn_idx)
                             turn_log["room_image"] = img_path
+                            turn_log.pop("room_state")
+                            turn_log.pop("agent_state")
+                    
 
         # Initialize result structure
         result = {

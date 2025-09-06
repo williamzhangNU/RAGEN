@@ -281,7 +281,7 @@ class HTMLGenerator:
             f.write("<div class='turn-right'>\n")
             if self.show_images:
                 # previous image (initial if first turn)
-                prev_img = (env_turn_logs[t_idx-1].get('room_image') if t_idx > 0 else entry.get('initial_room_image'))
+                prev_img = env_turn_logs[t_idx-1].get('room_image') if t_idx > 0 else None
                 if prev_img:
                     f.write(f"<figure><img src='{prev_img}' class='room-plot' alt='Previous state'><figcaption>State before Turn {t_idx+1}</figcaption></figure>\n")
                 # current image

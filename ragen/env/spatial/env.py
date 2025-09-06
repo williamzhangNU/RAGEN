@@ -40,6 +40,7 @@ class EnvTurnLog:
     cogmap_final_log: Optional["CognitiveMapTurnLog"] = None
     room_state: Optional["Room"] = None
     agent_state: Optional["Agent"] = None
+    room_image: Optional[str] = None
     info: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self):
@@ -56,6 +57,7 @@ class EnvTurnLog:
             "cogmap_final_log": self.cogmap_final_log.to_dict() if self.cogmap_final_log else {},
             "room_state": self.room_state.to_dict() if self.room_state else {},
             "agent_state": self.agent_state.to_dict() if self.agent_state else {},
+            "room_image": self.room_image,
             "info": self.info
         }
 
@@ -234,7 +236,7 @@ class SpatialGym(gym.Env):
         
         # Log turn at start with current state
         current_obs = self.render_cache
-        
+        img_path = None
         # step the environment
         if not (action and think_content):
             reward, obs, done, step_info = -0.5, "Invalid input format.\n", False, {}
@@ -244,16 +246,21 @@ class SpatialGym(gym.Env):
             step_fn = self._step_exploration if was_exploration else self._step_evaluation
             obs, reward, done, step_info, log = step_fn(action)  # log = exp_log or eval_log
             exp_log, eval_log = (log, None) if was_exploration else (None, log)
-            if was_exploration and self.history_manager and not self.history_manager.is_history_exist():
-                self.history_manager.update_response(llm_response)
-                if not self.is_exploration_phase:
-                    self.history_manager.save()
+
+            if was_exploration and exp_log:
+                room_state, agent_state = exp_log.room_state, exp_log.agent_state
+            elif not self.is_exploration_phase:
+                room_state, agent_state = self.evaluation_manager.get_last_room_state()
+                
+            if was_exploration and self.history_manager:
+                if not self.history_manager.is_history_exist():
+                    img_path = self.history_manager.update_response(llm_response, room_state, agent_state)
+                    if not self.is_exploration_phase:
+                        self.history_manager.save()
+                else:
+                    img_path = self.history_manager.get_image_path(self.current_turn_number)
             # Cognitive map evaluation
             if self.cognitive_map_manager:
-                if was_exploration and exp_log:
-                    room_state, agent_state = exp_log.room_state, exp_log.agent_state
-                elif not self.is_exploration_phase:
-                    room_state, agent_state = self.evaluation_manager.get_last_room_state()
 
                 def eval_cogmap(all_items: bool = False):
                     items = (
@@ -269,16 +276,6 @@ class SpatialGym(gym.Env):
                     cogmap_log = eval_cogmap(all_items=False)
                 if not self.is_exploration_phase:  # may have flipped during step
                     cogmap_final_log = eval_cogmap(all_items=True)
-
-        # Determine room/agent state after step
-        if self.is_exploration_phase:
-            if exp_log and exp_log.room_state and exp_log.agent_state:
-                room_state = exp_log.room_state
-                agent_state = exp_log.agent_state
-        else:
-            if self.evaluation_manager:
-                room_state, agent_state = self.evaluation_manager.get_last_room_state()
-
 
         # post-process the observation
         if self.is_exploration_phase:
@@ -296,6 +293,7 @@ class SpatialGym(gym.Env):
             is_exploration_phase=self.is_exploration_phase,
             room_state=room_state,
             agent_state=agent_state,
+            room_image=img_path,
             exploration_log=exp_log,
             evaluation_log=eval_log,
             cogmap_log=cogmap_log,
