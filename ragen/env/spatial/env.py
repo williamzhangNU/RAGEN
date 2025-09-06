@@ -23,6 +23,7 @@ from ragen.env.spatial.Base.tos_base.managers.agent_proxy import get_agent_proxy
 from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.utils.utils import extract_think_and_answer
+from ragen.env.spatial.Base.tos_base.utils.entry_gate_utils import extract_entry_map
 from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
 
 @dataclass
@@ -115,6 +116,9 @@ class SpatialGym(gym.Env):
             exp_history = proxy.to_text()
             # expose proxy manager so metrics are available via env.get_exp_summary()
             self.exploration_manager = proxy.mgr
+            entry_map = extract_entry_map(proxy)
+            print(entry_map)
+            self.cognitive_map_manager.entry_gate_by_room.update(entry_map)
         return self.prompter.get_initial_observation_prompt(
             room=self.initial_room,
             agent=self.agent,
@@ -194,6 +198,12 @@ class SpatialGym(gym.Env):
         else:
         # Execute action
             exp_info, action_results = self.exploration_manager.execute_action_sequence(action_sequence)
+            # Detect a room change and the gate used
+            """prev_agent = self.agent_state if hasattr(self, "agent_state") and self.agent_state else self.agent
+            curr_agent = self.exploration_manager.turn_logs[-1].agent_state if self.exploration_manager.turn_logs else None
+            if self.cognitive_map_manager and curr_agent and int(curr_agent.room_id) != int(prev_agent.room_id):
+                
+                self.cognitive_map_manager.register_room_entry(int(curr_agent.room_id), str(gate_name))"""
             obs += action_results_to_text(action_results)
             exp_log = self.exploration_manager.turn_logs[-1]
 
