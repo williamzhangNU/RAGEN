@@ -198,12 +198,6 @@ class SpatialGym(gym.Env):
         else:
         # Execute action
             exp_info, action_results = self.exploration_manager.execute_action_sequence(action_sequence)
-            # Detect a room change and the gate used
-            """prev_agent = self.agent_state if hasattr(self, "agent_state") and self.agent_state else self.agent
-            curr_agent = self.exploration_manager.turn_logs[-1].agent_state if self.exploration_manager.turn_logs else None
-            if self.cognitive_map_manager and curr_agent and int(curr_agent.room_id) != int(prev_agent.room_id):
-                
-                self.cognitive_map_manager.register_room_entry(int(curr_agent.room_id), str(gate_name))"""
             obs += action_results_to_text(action_results)
             exp_log = self.exploration_manager.turn_logs[-1]
 
