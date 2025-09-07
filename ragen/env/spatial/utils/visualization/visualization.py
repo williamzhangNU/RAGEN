@@ -259,13 +259,14 @@ class HTMLGenerator:
 
             # Display turn metrics from env log
             metrics = {}
-            if env_log['is_exploration_phase'] and env_log['exploration_log']:
+            if env_log['exploration_log']:
                 exp_log = env_log['exploration_log']
                 metrics.update({
                     "node_coverage": exp_log.get('node_coverage'),
                     "edge_coverage": exp_log.get('edge_coverage'),
                     "step": exp_log.get('step'),
                     "action_counts": exp_log.get('action_counts'),
+                    "information_gain": exp_log.get('information_gain')
                 })
             
             # Add info from env log
