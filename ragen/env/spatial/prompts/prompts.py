@@ -34,8 +34,6 @@ You egocentric observation rule is provided in following format:
 ## Room Layout
 {room_info}
 
-{cogmap_instruction}
-
 ## Action Instructions
 {exp_instructions}
 """
@@ -62,8 +60,6 @@ You egocentric observation rule is provided in following format:
 
 ## Room Layout
 {room_info}
-
-{cogmap_instruction}
 
 {exp_history}
 """
