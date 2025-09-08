@@ -118,6 +118,14 @@ custom_envs:
       name: "passive_false_belief"
       eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
 
+  PassiveFalseBeliefCogmap:
+    <<: *common
+    env_config:
+      <<: *prompt_cogmap
+      <<: *passive
+      name: "passive_false_belief"
+      eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
+
   PassiveFwdLoc:
     <<: *common
     env_config:

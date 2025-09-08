@@ -18,8 +18,6 @@ except ImportError:
 	pass
 from verl.single_controller.ray.base import RayWorkerGroup
 
-from ragen.env.spatial.env import SpatialGym
-from ragen.env.spatial.utils.visualization import visualize_json
 from .es_manager import EnvStateManager
 from .ctx_manager import ContextManager
 from .base_llm import ConcurrentLLM
@@ -201,14 +199,14 @@ def main(config):
 
 
 	# for spatial env
-	from ragen.env.spatial.utils.env_logger import SpatialEnvLogger
+	from ragen.env.spatial.Base.tos_base.utils.env_logger import SpatialEnvLogger
 	from ragen.env.spatial.Base.tos_base.utils.cog_utils import evaluate_cognitive_maps_from_turnlogs
 	id_2_env = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
 	envs = [id_2_env[env_id] for env_id in rollouts.non_tensor_batch['env_ids'].tolist()]
 	
-	evaluate_cognitive_maps_from_turnlogs(envs, proxy.actor_wg)
+	env_summarys= evaluate_cognitive_maps_from_turnlogs([env.get_env_summary() for env in envs], rollouts.non_tensor_batch['messages_list'].tolist(), proxy.actor_wg)
 	SpatialEnvLogger.log_each_env_info(
-		env_summaries=[env.get_env_summary() for env in envs ],
+		env_summaries=env_summarys,
 		messages=rollouts.non_tensor_batch['messages_list'].tolist(),
 		output_dir=config.output_dir,
 		model_name= config.model_path if config.eval_model_type == "vllm" else config.api_model_info.model_name
