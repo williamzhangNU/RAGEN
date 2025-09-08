@@ -237,6 +237,14 @@ class HTMLGenerator:
                 f.write(VisualizationHelper.dict_to_html(details))
                 f.write("</div>\n")
 
+            # Display cognitive map response if available
+            if env_log.get('cognitive_map_response'):
+                response_content = env_log['cognitive_map_response']
+                f.write("<div class='block cogmap-response'><strong>🗺️ Cognitive Map Response</strong>")
+                response_html = escape(response_content).replace("\n", "<br>")
+                f.write(f"<div class='response-content'>{response_html}</div>")
+                f.write("</div>\n")
+
             # Display cognitive map information if available
             if env_log['cogmap_log']:
                 cogmap_log = env_log['cogmap_log']

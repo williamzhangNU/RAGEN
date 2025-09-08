@@ -464,6 +464,22 @@ body {
     color: #0d47a1;
 }
 
+.block.cogmap-response {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffcc02 30%, #ffe0b2 100%);
+    border-left-color: #ff9800;
+    color: #e65100;
+}
+
+.response-content {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+}
+
 .metrics {
     margin-top: 15px;
     font-size: 13px;

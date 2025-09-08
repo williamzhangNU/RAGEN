@@ -42,8 +42,9 @@ class EnvTurnLog:
     agent_state: Optional["Agent"] = None
     room_image: Optional[str] = None
     observed_items: List[str] = field(default_factory=list)
+    cognitive_map_response: Optional[str] = None
     info: Dict[str, Any] = field(default_factory=dict)
-
+    
     def to_dict(self):
         return {
             "turn_number": self.turn_number,
@@ -59,6 +60,7 @@ class EnvTurnLog:
             "room_state": self.room_state.to_dict() if self.room_state else {},
             "agent_state": self.agent_state.to_dict() if self.agent_state else {},
             "observed_items": self.observed_items,
+            "cognitive_map_response": self.cognitive_map_response,
             "room_image": self.room_image,
             "info": self.info
         }
