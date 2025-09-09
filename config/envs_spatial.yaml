@@ -235,8 +235,6 @@ custom_envs:
     env_config:
       <<: *prompt_standard
       <<: *active
-      name: "active_e2a"
-      eval_tasks: [{task_type: "e2a", task_kwargs: {}}]
       name: "active_false_belief"
       eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
 
