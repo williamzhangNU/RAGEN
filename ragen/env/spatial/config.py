@@ -194,11 +194,21 @@ class SpatialGymConfig:
         }
         return config
     
+    def get_observation_config(self) -> Dict[str, Any]:
+        """Get configuration for observation."""
+        return {
+            'field_of_view': self.field_of_view,
+            'observation_mode': self.observation_mode,
+            'render_mode': self.render_mode,
+        }
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
             'name': self.name,
             'room_size': self.room_size,
+            'level': self.level,
+            'main': self.main,
             'n_objects': self.n_objects,    
             'exp_type': self.exp_type,
             'field_of_view': self.field_of_view,
@@ -206,6 +216,5 @@ class SpatialGymConfig:
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
             'prompt_config': self.prompt_config,
-            'model': self.kwargs['model']
             # 'candidate_objects': self.candidate_objects,
         }
