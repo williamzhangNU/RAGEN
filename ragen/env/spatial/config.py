@@ -31,6 +31,14 @@ class SpatialGymConfig:
     level: int = 0
     main: int = 6
     
+    # Room size control parameters
+    fix_room_size: Optional[List[List[int]]] = None  # e.g., [[5,5], [6,6], [4,4]]
+    same_room_size: bool = False                     # When True, all rooms use the same size as main room
+    
+    # Object placement strategies (one of three modes)
+    fix_object_n: Optional[List[int]] = None         # e.g., [3, 4, 2] - exact count per room
+    proportional_to_area: bool = False               # Distribute objects proportional to room area
+    
     # Exploration configuration
     exp_type: str = 'passive'
     field_of_view: int = 90
@@ -58,6 +66,7 @@ class SpatialGymConfig:
         self._validate_field_of_view()
         self._validate_eval_tasks()
         self._validate_render_mode()
+        self._validate_room_parameters()
 
 
     def _validate_exp_type(self):
@@ -114,18 +123,76 @@ class SpatialGymConfig:
         if self.render_mode != 'text':
             raise ValueError("Only 'text' rendering mode is currently supported")
     
+    def _validate_room_parameters(self):
+        """Validate room configuration parameters."""
+        if self.fix_room_size and self.same_room_size:
+            raise ValueError("fix_room_size and same_room_size are mutually exclusive")
+        if self.fix_object_n and self.proportional_to_area:
+            raise ValueError("fix_object_n and proportional_to_area are mutually exclusive")
+        
+        if self.fix_room_size or self.fix_object_n:
+            self._validate_fixed_params()
+        if self.same_room_size:
+            self._validate_same_room_size()
+
+    def _validate_fixed_params(self):
+        """Validate fix_room_size and fix_object_n parameters."""
+        expected = self.level + 1
+        
+        if self.fix_room_size:
+            if len(self.fix_room_size) != expected:
+                raise ValueError(f"fix_room_size must have {expected} elements (level + 1)")
+            if isinstance(self.fix_room_size, ListConfig):
+                self.fix_room_size = OmegaConf.to_container(self.fix_room_size, resolve=True)
+            for i, size in enumerate(self.fix_room_size):
+                if not isinstance(size, (list, tuple)) or len(size) != 2 or any(s <= 0 for s in size):
+                    raise ValueError(f"fix_room_size[{i}] must be [width, height] with positive values")
+        
+        if self.fix_object_n:
+            if len(self.fix_object_n) != expected:
+                raise ValueError(f"fix_object_n must have {expected} elements (level + 1)")
+            if isinstance(self.fix_object_n, ListConfig):
+                self.fix_object_n = OmegaConf.to_container(self.fix_object_n, resolve=True)
+            for i, count in enumerate(self.fix_object_n):
+                if not isinstance(count, int) or count < 0:
+                    raise ValueError(f"fix_object_n[{i}] must be non-negative integer")
+            total = sum(self.fix_object_n)
+            if total != self.n_objects:
+                raise ValueError(f"Sum of fix_object_n ({total}) must equal n_objects ({self.n_objects})")
+            if total < 3:
+                raise ValueError(f"Total objects ({total}) must be at least 3")
+            if total < 5 and any(t.get('task_type') in ['rot', 'rot_dual'] for t in self.eval_tasks):
+                import warnings
+                warnings.warn(f"Only {total} objects for rotation tasks. Consider ≥5 for better separation.")
+
+    def _validate_same_room_size(self):
+        """Validate same_room_size parameter."""
+        if self.level == 0:
+            import warnings
+            warnings.warn("same_room_size=True has no effect when level=0")
+        if not self.main:
+            raise ValueError("main parameter required when using same_room_size=True")
+
+
 
 
 
     def get_room_config(self) -> Dict[str, Any]:
         """Get configuration for room generation."""
-        return {
+        config = {
             'room_size': self.room_size,
-            'n_objects': self.n_objects,
             'level': self.level,
+            'n_objects': self.n_objects,  # Total objects always exists
             'main': self.main,
-            # 'candidate_objects': self.candidate_objects,
+            'fix_room_size': self.fix_room_size,
+            'same_room_size': self.same_room_size,
+            'fix_object_n': self.fix_object_n,
+            'proportional_to_area': self.proportional_to_area,
+            'eval_tasks': self.eval_tasks,
+            'min_angle_eps': 30.0,
+            'max_retries': 10,
         }
+        return config
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""

@@ -1,7 +1,11 @@
-tags: 
-  - ActiveRot
+tags:
+  - ActivePoV
+  # - ActivePoV
+  # - ActiveRot
 
-num_per_task: 10
+  # - ActiveE2A
+
+num_per_task: 20
 
 override: false  # whether to use active explore history, only valid when task is active task
 
@@ -10,7 +14,7 @@ defaults:
   - envs_spatial
   - evaluate_api_llm
 
-output_dir: results/gpt-5-mini/debug
+output_dir: results/gpt-4.1-mini/0901_active_pov
 
 eval_model_type: api # api or vllm
 # api model
@@ -39,7 +43,6 @@ es_manager:
     env_groups: ${mul:${len:${tags}}, ${num_per_task}}
     group_size: 1
     env_configs:
-        # tags: ["PassiveRot", "PassiveRotDual", "PassivePoV", "PassiveDir", "PassiveE2A", "PassiveLoc", "PassiveFalseBelief"]
-
-      tags: ${tags}
-      n_groups: ${repeat:${num_per_task}, ${len:${tags}}}
+        # tags: ["ActiveDir", "ActivePoV", "ActiveRot", "ActiveRotDual", "ActiveE2A"]
+        tags: ${tags}
+        n_groups: ${repeat:${num_per_task}, ${len:${tags}}}
