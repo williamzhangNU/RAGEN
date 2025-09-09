@@ -23,6 +23,7 @@ from ragen.env.spatial.Base.tos_base.managers.agent_proxy import get_agent_proxy
 from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.utils.utils import extract_think_and_answer
+from ragen.env.spatial.Base.tos_base.utils.entry_gate_utils import extract_entry_map
 from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
 
 @dataclass
@@ -115,6 +116,9 @@ class SpatialGym(gym.Env):
             exp_history = proxy.to_text()
             # expose proxy manager so metrics are available via env.get_exp_summary()
             self.exploration_manager = proxy.mgr
+            entry_map = extract_entry_map(proxy)
+            print(entry_map)
+            self.cognitive_map_manager.entry_gate_by_room.update(entry_map)
         return self.prompter.get_initial_observation_prompt(
             room=self.initial_room,
             agent=self.agent,
