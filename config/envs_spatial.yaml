@@ -11,16 +11,6 @@ _prompt_standard: &prompt_standard
     cogmap: false
     type: standard
 
-_prompt_cogmap: &prompt_cogmap
-  prompt_config:
-    topdown: false
-    cogmap: true
-    type: standard
-  cogmap_config:
-    cogmap_type: standard
-    pos_allow_scale: true
-    scope: all
-
 _prompt_topdown: &prompt_topdown
   prompt_config:
     topdown: true
@@ -118,14 +108,6 @@ custom_envs:
       name: "passive_false_belief"
       eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
 
-  PassiveFalseBeliefCogmap:
-    <<: *common
-    env_config:
-      <<: *prompt_cogmap
-      <<: *passive
-      name: "passive_false_belief"
-      eval_tasks: [{task_type: "false_belief", task_kwargs: {}}]
-
   PassiveFwdLoc:
     <<: *common
     env_config:
@@ -157,32 +139,6 @@ custom_envs:
       <<: *passive
       name: "passive_fwd_fov"
       eval_tasks: [{task_type: "fwd_fov", task_kwargs: {}}]
-  
-
-  PassiveDirCogmap:
-    <<: *common
-    env_config:
-      <<: *prompt_cogmap
-      <<: *passive
-      name: "passive_dir_cogmap"
-      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
-
-  PassiveRotCogmap:
-    <<: *common
-    env_config:
-      <<: *prompt_cogmap
-      <<: *passive
-      name: "passive_rot_cogmap"
-      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
-
-  PassiveLocCogmap:
-    <<: *common
-    env_config:
-      <<: *prompt_cogmap
-      <<: *passive
-      name: "passive_loc_cogmap"
-      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
-
 
   ActiveDir:
     <<: *common
@@ -274,30 +230,4 @@ custom_envs:
       name: "active_fwd_fov"
       eval_tasks: [{task_type: "fwd_fov", task_kwargs: {}}]
 
-  ActiveDirCogmap:
-    <<: *common
-    max_actions_per_traj: 25
-    env_config:
-      <<: *prompt_cogmap
-      <<: *active
-      name: "active_dir_cogmap"
-      eval_tasks: [{task_type: "dir", task_kwargs: {}}]
-
-  ActiveRotCogmap:
-    <<: *common
-    max_actions_per_traj: 25
-    env_config:
-      <<: *prompt_cogmap
-      <<: *active
-      name: "active_rot_cogmap"
-      eval_tasks: [{task_type: "rot", task_kwargs: {}}]
-
-  ActiveLocCogmap:
-    <<: *common
-    max_actions_per_traj: 25
-    env_config:
-      <<: *prompt_cogmap
-      <<: *active
-      name: "active_loc_cogmap"
-      eval_tasks: [{task_type: "loc", task_kwargs: {}}]
 
