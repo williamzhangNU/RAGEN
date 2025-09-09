@@ -30,6 +30,11 @@ def parse_args():
         help="If set, will override the active exploration history",
     )
     parser.add_argument(
+        "--cogmap",
+        action="store_true",
+        help="If set, will enable cognitive map evaluation",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
         default="results",
@@ -88,6 +93,7 @@ def save_config(args, output_dir):
             f"api_model_info.model_name={args.model_name}",
             f"model_path={args.model_name}",
             f"override={args.override}",
+            f"evaluate_cogmap={args.cogmap}"
         ])
     OmegaConf.save(cfg, os.path.join(output_dir, "evaluate_spatial.yaml"))
 

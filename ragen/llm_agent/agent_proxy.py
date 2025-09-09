@@ -203,8 +203,10 @@ def main(config):
 	from ragen.env.spatial.Base.tos_base.utils.cog_utils import evaluate_cognitive_maps_from_turnlogs
 	id_2_env = {env['env_id']: env['env'] for env in proxy.val_es_manager.envs}
 	envs = [id_2_env[env_id] for env_id in rollouts.non_tensor_batch['env_ids'].tolist()]
-	
-	env_summarys= evaluate_cognitive_maps_from_turnlogs([env.get_env_summary() for env in envs], rollouts.non_tensor_batch['messages_list'].tolist(), proxy.actor_wg)
+	if config.evaluate_cogmap:
+		env_summarys= evaluate_cognitive_maps_from_turnlogs([env.get_env_summary() for env in envs], rollouts.non_tensor_batch['messages_list'].tolist(), proxy.actor_wg)
+	else:
+		env_summarys= [env.get_env_summary() for env in envs]
 	SpatialEnvLogger.log_each_env_info(
 		env_summaries=env_summarys,
 		messages=rollouts.non_tensor_batch['messages_list'].tolist(),

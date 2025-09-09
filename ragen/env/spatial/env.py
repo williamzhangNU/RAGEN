@@ -113,7 +113,6 @@ class SpatialGym(gym.Env):
         # always create exploration manager (also used to generate passive history)
         self.exploration_manager = ExplorationManager(self.initial_room, self.agent)
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
-        self.cognitive_map_manager = CognitiveMapManager(**self.config.cogmap_config) if self.config.prompt_config["cogmap"] else None
         self.history_manager = HistoryManager(seed, self.config, self.initial_room, self.agent) if self.config.exp_type == 'active' else None
         
         obs = self._generate_initial_observation()
@@ -239,11 +238,7 @@ class SpatialGym(gym.Env):
     def get_eval_summary(self):
         """Get evaluation performance metrics."""
         return self.evaluation_manager.get_eval_summary() if self.evaluation_manager else EvaluationManager.DEFAULT_EVAL_SUMMARY.copy()
-
-    def get_cogmap_summary(self):
-        """Get cognitive map summary."""
-        return self.cognitive_map_manager.get_cogmap_summary() if self.cognitive_map_manager else CognitiveMapManager.DEFAULT_COGMAP_SUMMARY.copy()
-
+    
     def get_env_summary(self) -> Dict[str, Any]:
         """Aggregate environment metrics from all turns."""
 
@@ -254,7 +249,6 @@ class SpatialGym(gym.Env):
                 'total_turns': len(self.turn_logs),
                 'exp_summary': self.get_exp_summary(),
                 'eval_summary': self.get_eval_summary(),
-                'cogmap_summary': self.get_cogmap_summary()
             }
         }
 

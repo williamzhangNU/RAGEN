@@ -2,12 +2,12 @@ tags:
   - ActivePoV
   # - ActivePoV
   # - ActiveRot
-
   # - ActiveE2A
 
 num_per_task: 20
 
 override: false  # whether to use active explore history, only valid when task is active task
+evaluate_cogmap: false
 
 defaults:
   - base
