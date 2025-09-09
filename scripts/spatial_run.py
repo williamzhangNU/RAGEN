@@ -93,8 +93,7 @@ def save_config(args, output_dir):
 
 def main():
     args = parse_args()
-    time_stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-    output_dir = os.path.join(args.output_dir, args.model_name.replace("\\", "/").rstrip("/").split("/")[-1], time_stamp)
+    output_dir = os.path.join(args.output_dir, args.model_name.replace("\\", "/").rstrip("/").split("/")[-1])
     os.makedirs(output_dir, exist_ok=True)
     tasks = normalize_tasks(args.tasks)
     save_config(args, output_dir)
