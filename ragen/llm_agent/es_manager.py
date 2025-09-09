@@ -65,8 +65,13 @@ class EnvStateManager:
                     env_config = REGISTERED_ENV_CONFIGS[env_class]()
                 else:
                     if env_class == 'SpatialGym':
+                        from omegaconf import OmegaConf
+                        if self.sys_config.eval_model_type=='api':
+                            model_config = self.sys_config.model_info[self.sys_config.api_model_info['model_name']]
+                        else:
+                            model_config = self.sys_config.actor_rollout_ref.rollout
                         kwargs = {
-                            "model": self.sys_config.api_model_info['model_name'] if self.sys_config.eval_model_type=='api' else self.sys_config.model_path,
+                            "model_config": OmegaConf.to_container(model_config,resolve=True),
                             "override": self.sys_config.override  
                         }
                         env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config, kwargs=kwargs)

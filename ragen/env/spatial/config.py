@@ -200,7 +200,6 @@ class SpatialGymConfig:
             'field_of_view': self.field_of_view,
             'observation_mode': self.observation_mode,
             'render_mode': self.render_mode,
-            'model': self.kwargs['model']
         }
     
     def to_dict(self) -> Dict[str, Any]:
@@ -217,6 +216,5 @@ class SpatialGymConfig:
             'max_exp_steps': self.max_exp_steps,
             'render_mode': self.render_mode,
             'prompt_config': self.prompt_config,
-            'model': self.kwargs['model']
             # 'candidate_objects': self.candidate_objects,
         }
