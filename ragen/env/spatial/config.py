@@ -52,11 +52,7 @@ class SpatialGymConfig:
     eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
     # prompt configuration
-    prompt_config: dict = field(default_factory=lambda: {"topdown": False, "type": "shorter", "enable_think": True})
-
-    # cognitive map configuration
-    cogmap_config: dict = field(default_factory=lambda: {"cogmap_type": "standard", "pos_allow_scale": True, "scope": "all"})
-
+    prompt_config: dict = field(default_factory=lambda: {"topdown": False, "cogmap": False, "type": "shorter"})
 
     # Rendering configuration
     render_mode: str = "text"
@@ -200,9 +196,13 @@ class SpatialGymConfig:
         """Get configuration for observation."""
         return {
             'field_of_view': self.field_of_view,
+            'observation_mode': self.observation_mode,
             'render_mode': self.render_mode,
-            'prompt_config': self.prompt_config,
+            "exp_type": self.exp_type,
         }
+    def get_model_config(self) -> Dict[str, Any]:
+        """Get configuration for proxy agent."""
+        return self.kwargs['model_config']
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
@@ -212,12 +212,11 @@ class SpatialGymConfig:
             'level': self.level,
             'main': self.main,
             'n_objects': self.n_objects,    
-            'exp_type': self.exp_type,
-            'field_of_view': self.field_of_view,
+            'observation_config': self.get_observation_config(),
+            'model_config': self.get_model_config(),
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
-            'calculate_information_gain': self.calculate_information_gain,
-            'render_mode': self.render_mode,
+            'exp_type': self.exp_type,
             'prompt_config': self.prompt_config,
             # 'candidate_objects': self.candidate_objects,
         }

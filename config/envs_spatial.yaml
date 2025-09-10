@@ -17,7 +17,11 @@ _prompt_topdown: &prompt_topdown
     cogmap: false
     type: standard
 
-# exp_type
+cogmap_config:
+  cogmap_type: standard
+  pos_allow_scale: True
+  scope: all
+
 
 _passive: &passive
   exp_type: passive
