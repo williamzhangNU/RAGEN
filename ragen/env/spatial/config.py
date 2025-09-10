@@ -34,16 +34,18 @@ class SpatialGymConfig:
     # Room size control parameters
     fix_room_size: Optional[List[List[int]]] = None  # e.g., [[5,5], [6,6], [4,4]]
     same_room_size: bool = False                     # When True, all rooms use the same size as main room
-    
+
     # Object placement strategies (one of three modes)
     fix_object_n: Optional[List[int]] = None         # e.g., [3, 4, 2] - exact count per room
     proportional_to_area: bool = False               # Distribute objects proportional to room area
     
+
+    
     # Exploration configuration
     exp_type: str = 'passive'
     field_of_view: int = 90
-    observation_mode: str = "full"
     max_exp_steps: int = 100
+    calculate_information_gain: bool = False
     proxy_agent_config: dict = field(default_factory=lambda: {"type": "analyst", "delegate": "oracle"})
     
     # Evaluation configuration
@@ -198,7 +200,6 @@ class SpatialGymConfig:
         """Get configuration for observation."""
         return {
             'field_of_view': self.field_of_view,
-            'observation_mode': self.observation_mode,
             'render_mode': self.render_mode,
         }
     
@@ -214,6 +215,7 @@ class SpatialGymConfig:
             'field_of_view': self.field_of_view,
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
+            'calculate_information_gain': self.calculate_information_gain,
             'render_mode': self.render_mode,
             'prompt_config': self.prompt_config,
             # 'candidate_objects': self.candidate_objects,

@@ -78,33 +78,57 @@ class EnvStateManager:
                     else:
                         env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config)
                 env_obj = REGISTERED_ENVS[env_class](env_config)
+                # control llm response parsing behavior from config (class-level)
+                if hasattr(env_obj.__class__, 'parsing_kwargs'):
+                    env_obj.__class__.parsing_kwargs = {'enable_think': bool(getattr(self.sys_config, 'enable_think', True))}
+                    
                 entry = {'tag': tag, 'group_id': env_id // self.group_size, 'env_id': env_id, 
                         'env': env_obj, 'config': env_config, 'status': EnvStatus(), 'max_actions_per_traj': max_actions_per_traj}
                 env_list.append(entry)
             done_groups += n_group
         return env_list
 
-    def reset(self, seed: Optional[int] = None):
+    def reset(self, seed: Optional[Union[int, List[int]]] = None):
         """
         Reset the environments and get initial observation
         build up rollout cache like [{"env_id": int, "history": List[Dict], "group_id": int}, ...]
         """
-        def _expand_seed(seed: int):
-            seeds = [[seed + i] * self.group_size for i in range(self.env_groups)] # [[seed, ..., seed], [seed+1, ..., seed+1], ...]
-            return sum(seeds, [])
+        def _expand_seeds(seed_or_seeds: Union[int, List[int]]):
+            # int: original behavior (base+i per group)
+            if isinstance(seed_or_seeds, int):
+                group_bases = [seed_or_seeds + i for i in range(self.env_groups)]
+            else:
+                seeds_list = list(seed_or_seeds)
+                tags = self.config.env_configs.tags
+                n_groups = self.config.env_configs.n_groups
+                if len(seeds_list) == len(tags):  # per-tag base, expand over groups
+                    group_bases = []
+                    for base, ng in zip(seeds_list, n_groups):
+                        group_bases.extend([base + i for i in range(ng)])
+                else:
+                    assert len(seeds_list) == self.env_groups, f"Length of group_seeds must equal env_groups or len(tags). Got {len(seeds_list)}"
+                    group_bases = seeds_list
+            seeds = sum([[base] * self.group_size for base in group_bases], [])
+            return seeds
 
         envs = self.envs
         self.rollout_cache = [{"env_id": entry['env_id'], "history": [], "group_id": entry['group_id'], "tag": entry['tag'], "penalty": 0} for entry in envs]
 
         # reset all environments
         if self.mode == "train":
-            seed = random.randint(0, 1000000) if seed is None else seed # get a random seed
+            base = random.randint(0, 1000000) if seed is None else seed
+            seeds_list = _expand_seeds(base)
         else:
-            seed = 123
-        seeds = _expand_seed(seed)
-        for seed, entry in zip(seeds, envs):
-            entry['env'].reset(seed=seed)
-            entry['status'] = EnvStatus(seed=seed)
+            cfg_group_seeds = getattr(self.config.env_configs, 'group_seeds', None)
+            if seed is not None:
+                seeds_list = _expand_seeds(seed)
+            elif cfg_group_seeds is not None:
+                seeds_list = _expand_seeds(cfg_group_seeds)
+            else:
+                seeds_list = _expand_seeds(123)
+        for _seed, entry in zip(seeds_list, envs):
+            entry['env'].reset(seed=_seed)
+            entry['status'] = EnvStatus(seed=_seed)
 
         # update rollout cache
         for cache, env in zip(self.rollout_cache, envs):

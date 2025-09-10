@@ -46,3 +46,5 @@ es_manager:
         # tags: ["ActiveDir", "ActivePoV", "ActiveRot", "ActiveRotDual", "ActiveE2A"]
         tags: ${tags}
         n_groups: ${repeat:${num_per_task}, ${len:${tags}}}
+        # Optional: per-tag base seeds; expanded per tag across its n_groups. Defaults to all 42s.
+        group_seeds: ${repeat:42, ${len:${tags}}}

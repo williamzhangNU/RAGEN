@@ -325,8 +325,11 @@ class ContextManager:
             )
         else: # dataproto has textual responses
             responses = lm_outputs.non_tensor_batch['response_texts']
-        responses = [response if self.config.agent_proxy.enable_think else response for response in responses] # The LLM generation does not include <think> tags. Add them back here.
+
+        # for spatial env
+        # responses = ["<think>" + response if self.config.agent_proxy.enable_think else "<answer>" + response for response in responses] # The LLM generation does not include <think> tags. Add them back here.
             
+
         env_ids = lm_outputs.non_tensor_batch['env_ids']
         env_inputs = []
         for env_id, response in zip(env_ids, responses):

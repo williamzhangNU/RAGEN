@@ -52,6 +52,7 @@ _active: &active
   level: 1
   main: 6
   same_room_size: true
+  calculate_information_gain: false
   # fix_room_size: [[6, 6], [4, 5], [3, 4]]
   # fix_object_n: [3, 2, 1]
 

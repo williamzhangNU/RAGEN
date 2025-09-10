@@ -16,7 +16,7 @@ from ragen.env.spatial.Base.tos_base.managers.agent_proxy import get_agent_proxy
 from ragen.env.spatial.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.Base.tos_base.utils.env_logger import EnvTurnLog
-from ragen.env.spatial.Base.tos_base.utils.utils import extract_think_and_answer
+from ragen.env.spatial.Base.tos_base.utils.utils import parse_llm_response
 from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
 
 
@@ -27,6 +27,7 @@ class SpatialGym(gym.Env):
     This environment uses an EvaluationManager to handle all evaluation tasks,
     separating evaluation logic from the main environment logic.
     """
+    parsing_kwargs = {'enable_think': True}
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
         self.config = config
@@ -52,10 +53,6 @@ class SpatialGym(gym.Env):
     def _set_args(self):
         # Set field of view for all actions
         BaseAction.set_field_of_view(self.config.field_of_view)
-        
-        # Set observation mode: default to 'full' (dir+degree+distance), allow override via config
-        mode = getattr(self.config, 'observation_mode', 'full')
-        ObserveAction.MODE = 'full' if mode == 'full' else 'dir'
 
 
     def _generate_initial_observation(self) -> str:
@@ -111,7 +108,11 @@ class SpatialGym(gym.Env):
         # Initialize managers
         # create decoupled agent with initial pose (0,0,N) and store init pose
         # always create exploration manager (also used to generate passive history)
-        self.exploration_manager = ExplorationManager(self.initial_room, self.agent)
+        self.exploration_manager = ExplorationManager(
+            self.initial_room,
+            self.agent,
+            enable_information_gain=getattr(self.config, 'calculate_information_gain', False)
+        )
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
         self.history_manager = HistoryManager(seed, self.config, self.initial_room, self.agent) if self.config.exp_type == 'active' else None
         
@@ -173,7 +174,8 @@ class SpatialGym(gym.Env):
         """Process agent actions in the spatial gym environment."""
         self.current_turn_number += 1
         exp_log, eval_log = None, None
-        think_content, action = extract_think_and_answer(llm_response)
+        enable_think = self.__class__.parsing_kwargs.get('enable_think', True)
+        think_content, action, parsed_ok = parse_llm_response(llm_response, enable_think=enable_think)
         room_state = next((turn_log.room_state for turn_log in self.turn_logs[::-1] if turn_log.room_state), self.initial_room)
         agent_state = next((turn_log.agent_state for turn_log in self.turn_logs[::-1] if turn_log.agent_state), self.agent)
         
@@ -181,7 +183,7 @@ class SpatialGym(gym.Env):
         current_obs = self.render_cache
         img_path = None
         # step the environment
-        if action and think_content:
+        if parsed_ok:
             if self.is_exploration_phase:
                 obs, reward, done, step_info, exp_log = self._step_exploration(action)
                 if exp_log:
