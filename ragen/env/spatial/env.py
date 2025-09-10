@@ -27,7 +27,6 @@ class SpatialGym(gym.Env):
     This environment uses an EvaluationManager to handle all evaluation tasks,
     separating evaluation logic from the main environment logic.
     """
-    parsing_kwargs = {'enable_think': True}
     def __init__(self, config: SpatialGymConfig):
         super().__init__()
         self.config = config
@@ -174,8 +173,9 @@ class SpatialGym(gym.Env):
         """Process agent actions in the spatial gym environment."""
         self.current_turn_number += 1
         exp_log, eval_log = None, None
-        enable_think = self.__class__.parsing_kwargs.get('enable_think', True)
-        think_content, action, parsed_ok = parse_llm_response(llm_response, enable_think=enable_think)
+        think_content, action, parsed_ok = parse_llm_response(
+            llm_response, enable_think=bool(self.config.prompt_config.get('enable_think', True))
+        )
         room_state = next((turn_log.room_state for turn_log in self.turn_logs[::-1] if turn_log.room_state), self.initial_room)
         agent_state = next((turn_log.agent_state for turn_log in self.turn_logs[::-1] if turn_log.agent_state), self.agent)
         

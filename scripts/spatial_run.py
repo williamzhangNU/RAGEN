@@ -53,6 +53,11 @@ def parse_args():
         default="gpt-4.1-mini",
         help="If eval_model_type=api, overrides api_model_info.model_name; if vllm, overrides model_path. Default: gpt-5-mini. If contains '/', the last segment is used for the output directory.",
     )
+    parser.add_argument(
+        "--no_think",
+        action="store_true",
+        help="If set, will disable think",
+    )
     return parser.parse_args()
 
 
@@ -93,7 +98,8 @@ def save_config(args, output_dir):
             f"api_model_info.model_name={args.model_name}",
             f"model_path={args.model_name}",
             f"override={args.override}",
-            f"evaluate_cogmap={args.cogmap}"
+            f"evaluate_cogmap={args.cogmap}",
+            f"agent_proxy.enable_think={not args.no_think}"
         ])
     OmegaConf.save(cfg, os.path.join(output_dir, "evaluate_spatial.yaml"))
 

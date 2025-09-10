@@ -72,16 +72,18 @@ class EnvStateManager:
                             model_config = self.sys_config.actor_rollout_ref.rollout
                         kwargs = {
                             "model_config": OmegaConf.to_container(model_config,resolve=True),
-                            "override": self.sys_config.override  
+                            "override": self.sys_config.override,
                         }
-                        env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config, kwargs=kwargs)
+                        # Inject enable_think into prompt_config
+                        base_pcfg = cfg_template.env_config.get('prompt_config', None)
+                        pcfg = OmegaConf.to_container(base_pcfg, resolve=True) if not isinstance(base_pcfg, dict) else dict(base_pcfg)
+                        pcfg["enable_think"] = bool(self.sys_config.agent_proxy.enable_think)
+                        ecfg = OmegaConf.to_container(cfg_template.env_config, resolve=True) if not isinstance(cfg_template.env_config, dict) else dict(cfg_template.env_config)
+                        ecfg["prompt_config"], ecfg["kwargs"] = pcfg, kwargs
+                        env_config = REGISTERED_ENV_CONFIGS[env_class](**ecfg)
                     else:
                         env_config = REGISTERED_ENV_CONFIGS[env_class](**cfg_template.env_config)
                 env_obj = REGISTERED_ENVS[env_class](env_config)
-                # control llm response parsing behavior from config (class-level)
-                if hasattr(env_obj.__class__, 'parsing_kwargs'):
-                    env_obj.__class__.parsing_kwargs = {'enable_think': bool(getattr(self.sys_config, 'enable_think', True))}
-                    
                 entry = {'tag': tag, 'group_id': env_id // self.group_size, 'env_id': env_id, 
                         'env': env_obj, 'config': env_config, 'status': EnvStatus(), 'max_actions_per_traj': max_actions_per_traj}
                 env_list.append(entry)
