@@ -20,7 +20,7 @@ eval_model_type: api # api or vllm
 # api model
 api_model_info:
   model_name: gpt-4.1-mini # o4-mini
-  max_concurrency: 128
+  max_concurrency: 256
 
 # vllm model
 model_path: Qwen/Qwen2.5-3B-Instruct

@@ -1,0 +1,96 @@
+Room(name=room, objects=[tv@(9, 9):(0, 1)@room2, floor-lamp@(9, 6):(0, 1)@room2, backpack@(4, 7):(-1, 0)@room1, red door@(7, 9):(1, 0)@room[1, 2]]) Agent(name='agent', pos=array([ 4, 11]), ori=array([0, 1]), has_orientation=True, room_id=1, init_pos=array([ 4, 11]), init_ori=array([0, 1]), init_room_id=1)
+1. You observe: Nothing in view..
+2. You rotated clockwise 90°. You observe: 
+• red door: front-right, mid distance, on front wall.
+3. You rotated clockwise 90°. You observe: 
+• backpack: front, mid distance, facing right.
+4. You rotated clockwise 90°. You observe: Nothing in view..
+5. You rotated counterclockwise 90°. You moved at backpack. You rotated counterclockwise 90°. You observe: 
+• red door: front-left, mid distance, on front wall.
+6. You moved at red door. This gate connects rooms 1 and 2. You observe: 
+• tv: front, near, facing left.
+7. You rotated clockwise 90°. You observe: 
+• floor-lamp: front-left, mid distance, facing backward.
+8. You moved at floor-lamp. You are in room 2. You rotated clockwise 180°. You observe: 
+• tv: front, mid distance, facing forward
+• red door: front-left, mid distance, on left wall.
+9. You returned to starting position and orientation.
+10. You query tv: +112°, 5.39
+11. Exploration terminated.
+backpack floor-lamp set()
+backpack initial_pos set()
+backpack red door set()
+backpack tv set()
+floor-lamp initial_pos set()
+floor-lamp red door set()
+floor-lamp tv set()
+initial_pos red door {'north west, mid distance'}
+initial_pos tv set()
+red door tv set()
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'south, very far', 'south west, slightly far', 'north east, very far', 'south, near', 'south, far', 'south west, far', 'north east, far', 'east, mid distance', 'east, slightly far', 'north west, far', 'south west, mid distance', 'west, very far', 'west, slightly far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'west, mid distance', 'south west, mid distance'}
+backpack tv {'south east, far', 'south west, very far', 'west, far', 'west, mid distance', 'east, far', 'north east, slightly far', 'north, far', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'north west, very far', 'north west, near', 'south west, slightly far', 'north east, near', 'north east, mid distance', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'north west, far', 'east, very far', 'west, very far', 'west, slightly far'}
+floor-lamp initial_pos {'south east, far', 'south west, very far', 'west, far', 'west, mid distance', 'east, far', 'north, far', 'south east, very far', 'south, slightly far', 'south, mid distance', 'north west, very far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, mid distance', 'east, slightly far', 'west, near', 'north west, far', 'north, near'}
+floor-lamp red door {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'north, mid distance', 'north west, near', 'south west, slightly far', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, near', 'south west, far', 'north east, far', 'north, very far', 'east, mid distance', 'east, slightly far', 'west, near', 'north west, far', 'west, very far', 'north, near', 'west, slightly far'}
+floor-lamp tv {'south east, far', 'south west, very far', 'west, far', 'west, mid distance', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south west, extremely far', 'north west, very far', 'south, mid distance', 'north, mid distance', 'south, very far', 'north west, near', 'north, same distance', 'south west, slightly far', 'north east, mid distance', 'north east, near', 'north west, mid distance', 'north, slightly far', 'south, near', 'north east, very far', 'south, far', 'south west, far', 'north east, extremely far', 'north east, far', 'east, near', 'north west, extremely far', 'north, very far', 'east, mid distance', 'south east, extremely far', 'east, slightly far', 'west, near', 'north west, far', 'south west, mid distance', 'east, very far', 'west, very far', 'south east, near', 'north, near', 'south west, near', 'west, slightly far'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'south east, far', 'south west, very far', 'west, far', 'west, mid distance', 'east, far', 'north, far', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, very far', 'south west, slightly far', 'north east, mid distance', 'south, far', 'south west, far', 'north east, far', 'east, slightly far', 'north west, far', 'west, very far', 'west, slightly far'}
+red door tv {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'south east, mid distance', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'south, very far', 'south west, slightly far', 'north east, mid distance', 'north east, near', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, near', 'east, mid distance', 'east, slightly far', 'north west, far', 'east, very far'}
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north, far', 'south east, very far', 'north west, slightly far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'south, very far', 'north, same distance', 'south west, slightly far', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, near', 'south, far', 'south west, far', 'north east, far', 'east, slightly far', 'north west, far', 'east, very far', 'west, very far', 'west, slightly far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'south west, mid distance'}
+backpack tv {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, very far', 'south west, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, slightly far', 'north west, far', 'west, slightly far'}
+floor-lamp initial_pos {'south, slightly far', 'south east, far', 'south west, very far', 'north west, very far', 'north, slightly far', 'north west, far', 'north, mid distance', 'west, far', 'north east, very far', 'east, far', 'north east, slightly far', 'south, far', 'north, far', 'south west, far', 'south east, mid distance', 'south west, slightly far', 'north east, far', 'west, slightly far'}
+floor-lamp red door {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north, far', 'north west, slightly far', 'south east, slightly far', 'north west, very far', 'north, mid distance', 'north west, near', 'south west, slightly far', 'north east, near', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, near', 'north, very far', 'north west, far', 'west, very far', 'north, near', 'west, slightly far'}
+floor-lamp tv {'south east, far', 'south west, very far', 'west, far', 'west, mid distance', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'south west, extremely far', 'north, mid distance', 'south, very far', 'north west, near', 'north, same distance', 'south west, slightly far', 'north east, mid distance', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, near', 'south, far', 'south, extremely far', 'south west, far', 'north east, extremely far', 'north east, far', 'east, near', 'north west, extremely far', 'north, very far', 'east, mid distance', 'south east, extremely far', 'east, slightly far', 'west, near', 'north west, far', 'south west, mid distance', 'east, very far', 'west, very far', 'south east, near', 'north, near', 'south west, near', 'west, slightly far'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'south east, far', 'south west, very far', 'east, slightly far', 'north west, very far', 'north west, mid distance', 'west, far', 'north west, far', 'north east, very far', 'east, far', 'north east, slightly far', 'south, far', 'north, far', 'south west, far', 'north east, far', 'east, mid distance', 'north west, slightly far', 'west, slightly far'}
+red door tv {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, very far', 'north west, slightly far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'south, very far', 'south west, slightly far', 'north, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, slightly far', 'north west, far', 'east, very far', 'west, slightly far'}
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'south east, very far', 'north west, slightly far', 'south, slightly far', 'south east, slightly far', 'north west, very far', 'north, mid distance', 'south, very far', 'south west, slightly far', 'north, slightly far', 'south, far', 'south west, far', 'north east, far', 'east, mid distance', 'east, slightly far', 'north west, far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'south west, mid distance'}
+backpack tv {'west, mid distance', 'south west, slightly far', 'south west, mid distance', 'west, slightly far'}
+floor-lamp initial_pos {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, very far', 'north west, slightly far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'south west, slightly far', 'north, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, slightly far', 'north west, far', 'west, slightly far'}
+floor-lamp red door {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'north west, very far', 'south west, slightly far', 'north east, mid distance', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'east, mid distance', 'north, very far', 'east, slightly far', 'west, near', 'north west, far', 'west, very far', 'south east, near', 'south west, near', 'west, slightly far'}
+floor-lamp tv {'south east, far', 'south west, very far', 'west, far', 'east, far', 'north east, slightly far', 'north, far', 'south east, mid distance', 'north west, slightly far', 'south east, very far', 'south, slightly far', 'south east, slightly far', 'south, mid distance', 'north west, very far', 'north west, near', 'south west, slightly far', 'north west, mid distance', 'north, slightly far', 'north east, very far', 'south, far', 'south west, far', 'north east, far', 'north, very far', 'east, mid distance', 'east, slightly far', 'north west, far', 'west, very far', 'south east, near', 'west, slightly far'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'west, mid distance', 'north west, slightly far', 'north west, mid distance', 'west, slightly far'}
+red door tv {'west, near'}
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'west, mid distance', 'north west, slightly far', 'west, slightly far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'south west, mid distance'}
+backpack tv {'west, mid distance', 'south west, slightly far', 'south west, mid distance', 'west, slightly far'}
+floor-lamp initial_pos {'south east, slightly far'}
+floor-lamp red door {'south east, mid distance'}
+floor-lamp tv {'south west, mid distance', 'south, near', 'south, mid distance', 'south east, mid distance'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'west, mid distance', 'north west, slightly far', 'north west, mid distance', 'west, slightly far'}
+red door tv {'west, near'}
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'west, mid distance', 'north west, slightly far', 'west, slightly far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'south west, mid distance'}
+backpack tv {'south west, slightly far', 'south west, mid distance', 'west, slightly far'}
+floor-lamp initial_pos {'south east, slightly far'}
+floor-lamp red door {'south east, mid distance'}
+floor-lamp tv {'south, mid distance'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'west, mid distance', 'north west, slightly far', 'west, slightly far'}
+red door tv {'west, near'}
+----------------------------------------------------------------------------------------------------
+backpack floor-lamp {'west, slightly far'}
+backpack initial_pos {'south, mid distance'}
+backpack red door {'south west, mid distance'}
+backpack tv {'west, slightly far'}
+floor-lamp initial_pos {'south east, slightly far'}
+floor-lamp red door {'south east, mid distance'}
+floor-lamp tv {'south, mid distance'}
+initial_pos red door {'north west, mid distance'}
+initial_pos tv {'west, slightly far'}
+red door tv {'west, near'}
+----------------------------------------------------------------------------------------------------
