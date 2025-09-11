@@ -52,7 +52,7 @@ class SpatialGymConfig:
     eval_tasks: List[Dict[str, Any]] = field(default_factory=lambda: [{"task_type": "rot", "task_kwargs": {}}])
     
     # prompt configuration
-    prompt_config: dict = field(default_factory=lambda: {"topdown": False, "cogmap": False, "type": "shorter"})
+    prompt_config: dict = field(default_factory=lambda: {"topdown": False, "enable_think": True, "type": "shorter"})
 
     # Rendering configuration
     render_mode: str = "text"
@@ -196,7 +196,7 @@ class SpatialGymConfig:
         """Get configuration for observation."""
         return {
             'field_of_view': self.field_of_view,
-            'observation_mode': self.observation_mode,
+            'prompt_config': self.prompt_config,
             'render_mode': self.render_mode,
             "exp_type": self.exp_type,
         }

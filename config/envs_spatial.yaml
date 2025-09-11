@@ -8,13 +8,11 @@ _common: &common
 _prompt_standard: &prompt_standard
   prompt_config:
     topdown: false
-    cogmap: false
     type: standard
 
 _prompt_topdown: &prompt_topdown
   prompt_config:
     topdown: true
-    cogmap: false
     type: standard
 
 cogmap_config:
