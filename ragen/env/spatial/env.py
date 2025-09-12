@@ -18,6 +18,7 @@ from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to
 from ragen.env.spatial.Base.tos_base.utils.env_logger import EnvTurnLog
 from ragen.env.spatial.Base.tos_base.utils.utils import parse_llm_response
 from ragen.env.spatial.Base.tos_base.actions.actions import ForcedTermAction, ActionSequence
+from .vision_alignment import load_vision_data, initialize_room_from_vision_data
 
 
 class SpatialGym(gym.Env):
@@ -39,6 +40,7 @@ class SpatialGym(gym.Env):
         # Room state management
         self.initial_room = None
         self.initial_agent = None
+        self.vision_data = None
         
         # Managers
         self.exploration_manager = None
@@ -74,6 +76,7 @@ class SpatialGym(gym.Env):
             agent=self.agent,
             eval_manager=self.evaluation_manager,
             exp_history=exp_history,
+            vision_data=self.vision_data,
         )
     
     def get_history(self):
@@ -86,10 +89,16 @@ class SpatialGym(gym.Env):
         self.prompter = Prompter(self.config, self.np_random)
         
         # Generate initial room
-        self.initial_room, self.agent = RoomGenerator.generate_room(
-            **self.config.get_room_config(),
-            np_random=self.np_random,
-        )
+        if self.config.align_with_vision and self.config.vision_data_path:
+            data_dir, json_data = load_vision_data(self.config.vision_data_path, seed)
+            self.initial_room, self.agent, self.vision_data = initialize_room_from_vision_data(json_data)
+            self.vision_data['data_dir'] = data_dir  # Store directory path for image access
+        else:
+            self.initial_room, self.agent = RoomGenerator.generate_room(
+                **self.config.get_room_config(),
+                np_random=self.np_random,
+            )
+            self.vision_data = None
         self.initial_agent = self.agent.copy()
 
         # Initialize episode state

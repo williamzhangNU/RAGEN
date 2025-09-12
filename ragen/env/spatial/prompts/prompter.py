@@ -28,7 +28,17 @@ class Prompter:
         """
         Generates the complete observation prompt including exploration, evaluation, and cognitive map instructions.
         """
-        room_desc = get_room_description(room, agent, with_topdown=self.config.prompt_config["topdown"])
+        vision_data = kwargs.get('vision_data', None)
+        room_desc = get_room_description(room, agent, with_topdown=self.config.prompt_config["topdown"], vision_data=vision_data)
+        
+        # Add orientation instruction image if vision data is available
+        orientation_prompt = ""
+        if vision_data and 'data_dir' in vision_data:
+            import os
+            orientation_img_path = os.path.join(vision_data['data_dir'], 'orientation_instruction.png')
+            if os.path.exists(orientation_img_path):
+                orientation_prompt = f"\n\nOrientation Instruction: [Image: {orientation_img_path}]"
+        
         # Build main prompt based on exploration type
         observation_instructions = (
             PairwiseRelationship.prompt()
@@ -49,6 +59,7 @@ class Prompter:
                 allo_bins=PairwiseRelationshipDiscrete.prompt(bin_system=CardinalBinsAllo()),
                 observation_instructions=observation_instructions,
             )
+            prompt += orientation_prompt
         else:
             exp_history = f"## Exploration History\n{kwargs.get('exp_history', '')}" if not self.config.prompt_config["topdown"] else ""
             prompt = self.PASSIVE_INSTRUCTION.format(
@@ -58,6 +69,7 @@ class Prompter:
                 allo_bins=PairwiseRelationshipDiscrete.prompt(bin_system=CardinalBinsAllo()),
                 observation_instructions=observation_instructions,
             )
+            prompt += orientation_prompt
             prompt += f"\n{self.get_evaluation_prompt(eval_manager)}"
         
         return prompt

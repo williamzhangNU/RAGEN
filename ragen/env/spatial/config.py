@@ -34,6 +34,7 @@ class SpatialGymConfig:
     # Room size control parameters
     fix_room_size: Optional[List[List[int]]] = None  # e.g., [[5,5], [6,6], [4,4]]
     same_room_size: bool = False                     # When True, all rooms use the same size as main room
+    room_sizes: Optional[List[int]] = None           # e.g., [7,6,5] - square rooms with these sizes
 
     # Object placement strategies (one of three modes)
     fix_object_n: Optional[List[int]] = None         # e.g., [3, 4, 2] - exact count per room
@@ -57,6 +58,9 @@ class SpatialGymConfig:
     # cognitive map configuration
     cogmap_config: dict = field(default_factory=lambda: {"cogmap_type": "standard", "pos_allow_scale": True, "scope": "all"})
 
+    # Vision alignment configuration
+    align_with_vision: bool = False
+    vision_data_path: Optional[str] = None
 
     # Rendering configuration
     render_mode: str = "text"
@@ -127,8 +131,8 @@ class SpatialGymConfig:
     
     def _validate_room_parameters(self):
         """Validate room configuration parameters."""
-        if self.fix_room_size and self.same_room_size:
-            raise ValueError("fix_room_size and same_room_size are mutually exclusive")
+        if sum([bool(self.fix_room_size), bool(self.same_room_size), bool(self.room_sizes)]) > 1:
+            raise ValueError("fix_room_size, same_room_size, and room_sizes are mutually exclusive")
         if self.fix_object_n and self.proportional_to_area:
             raise ValueError("fix_object_n and proportional_to_area are mutually exclusive")
         
@@ -136,6 +140,8 @@ class SpatialGymConfig:
             self._validate_fixed_params()
         if self.same_room_size:
             self._validate_same_room_size()
+        if self.room_sizes:
+            self._validate_room_sizes()
 
     def _validate_fixed_params(self):
         """Validate fix_room_size and fix_object_n parameters."""
@@ -175,6 +181,16 @@ class SpatialGymConfig:
         if not self.main:
             raise ValueError("main parameter required when using same_room_size=True")
 
+    def _validate_room_sizes(self):
+        """Validate room_sizes parameter."""
+        expected = self.level + 1
+        if isinstance(self.room_sizes, ListConfig):
+            self.room_sizes = OmegaConf.to_container(self.room_sizes, resolve=True)
+        if len(self.room_sizes) != expected:
+            raise ValueError(f"room_sizes must have {expected} elements (level + 1)")
+        if any(s <= 0 for s in self.room_sizes):
+            raise ValueError("All room sizes must be positive")
+
 
 
 
@@ -188,6 +204,7 @@ class SpatialGymConfig:
             'main': self.main,
             'fix_room_size': self.fix_room_size,
             'same_room_size': self.same_room_size,
+            'room_sizes': self.room_sizes,
             'fix_object_n': self.fix_object_n,
             'proportional_to_area': self.proportional_to_area,
             'eval_tasks': self.eval_tasks,
@@ -219,5 +236,7 @@ class SpatialGymConfig:
             'calculate_information_gain': self.calculate_information_gain,
             'render_mode': self.render_mode,
             'prompt_config': self.prompt_config,
+            'align_with_vision': self.align_with_vision,
+            'vision_data_path': self.vision_data_path,
             # 'candidate_objects': self.candidate_objects,
         }
