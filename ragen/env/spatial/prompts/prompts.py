@@ -17,8 +17,7 @@ You are a spatial reasoner in a 2D, text-only N×M grid. Every object including 
 
 ## Objective
 - Minimize total COST.
-- Achieve complete spatial understanding: every pair of objects (including your initial position) must be assigned exactly one relation from:
-{allo_bins}
+- Achieve complete spatial understanding: determine accurate 2D coordinates for each object including gates.
 
 ## Observation
 You egocentric observation rule is provided in following format:

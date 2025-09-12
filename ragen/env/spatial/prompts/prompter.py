@@ -46,7 +46,6 @@ class Prompter:
             prompt = active_instruction.format(
                 room_info=room_desc,
                 exp_instructions=exp_instructions,
-                allo_bins=PairwiseRelationshipDiscrete.prompt(bin_system=CardinalBinsAllo()),
                 observation_instructions=observation_instructions,
             )
         else:
@@ -55,7 +54,6 @@ class Prompter:
                 room_info=room_desc,
                 action_instructions="",
                 exp_history=exp_history,
-                allo_bins=PairwiseRelationshipDiscrete.prompt(bin_system=CardinalBinsAllo()),
                 observation_instructions=observation_instructions,
             )
             prompt += f"\n{self.get_evaluation_prompt(eval_manager)}"
