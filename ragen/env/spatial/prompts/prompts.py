@@ -12,9 +12,8 @@ You are a spatial reasoner in a 2D, text-only N×M grid. Every object including 
 
 ## Multi-room rules
 - You cannot see objects in other rooms.
-- You cannot see through a door unless you are standing on it. When at a door, it's open and invisible.
-- Rooms connect via doors on vertical (front/back) or horizontal (left/right) walls.
-- When standing on a door, you can see objects from both connected rooms (within your FOV).
+- You cannot see through a door unless you are standing on it. When at a door, door will be open and invisible, and you can see objects from both connected rooms (within your FOV).
+- Rooms connect via doors on vertical or horizontal walls, e.g., door on front/left wall. 
 
 ## Objective
 - Minimize total COST.
@@ -46,9 +45,8 @@ You are a spatial reasoner in a 2D, text-only N×M grid. Every object including 
 
 ## Multi-room rules
 - You cannot see objects in other rooms.
-- You cannot see through a door unless you are standing on it. When at a door, it's open and invisible.
-- Rooms connect via doors on vertical (front/back) or horizontal (left/right) walls.
-- When standing on a door, you can see objects from both connected rooms (within your FOV).
+- You cannot see through a door unless you are standing on it. When at a door, door will be open and invisible, and you can see objects from both connected rooms (within your FOV).
+- Rooms connect via doors on vertical or horizontal walls, e.g., door on front wall. 
 
 ## Observation
 You egocentric observation rule is provided in following format:
