@@ -89,6 +89,7 @@ class SpatialGym(gym.Env):
         self.initial_room, self.agent = RoomGenerator.generate_room(
             **self.config.get_room_config(),
             np_random=self.np_random,
+            fixed_mask=False
         )
         self.initial_agent = self.agent.copy()
 
@@ -113,12 +114,12 @@ class SpatialGym(gym.Env):
             enable_information_gain=getattr(self.config, 'calculate_information_gain', False)
         )
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
-        self.history_manager = HistoryManager(seed, self.config, self.initial_room, self.agent) if self.config.exp_type == 'active' else None
+        self.history_manager = HistoryManager(self.config, self.initial_room, self.agent, override=self.config.kwargs['override']) if self.config.exp_type == 'active' else None
         
         obs = self._generate_initial_observation()
         self.render_cache = obs
         return obs, {}
-    
+     
     def _step_exploration(self, action: str):
         """
         Handle exploration phase step.

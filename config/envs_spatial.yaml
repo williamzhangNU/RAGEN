@@ -8,16 +8,18 @@ _common: &common
 _prompt_standard: &prompt_standard
   prompt_config:
     topdown: false
-    cogmap: false
     type: standard
 
 _prompt_topdown: &prompt_topdown
   prompt_config:
     topdown: true
-    cogmap: false
     type: standard
 
-# exp_type
+cogmap_config:
+  cogmap_type: standard
+  pos_allow_scale: True
+  scope: all
+
 
 _passive: &passive
   exp_type: passive

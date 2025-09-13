@@ -35,6 +35,11 @@ def parse_args():
         help="If set, will enable cognitive map evaluation",
     )
     parser.add_argument(
+        "--override-cogmap",
+        action="store_true",
+        help="If set, will override the cognitive map cache",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
         default="results",
@@ -99,7 +104,8 @@ def save_config(args, output_dir):
             f"model_path={args.model_name}",
             f"override={args.override}",
             f"evaluate_cogmap={args.cogmap}",
-            f"agent_proxy.enable_think={not args.no_think}"
+            f"agent_proxy.enable_think={not args.no_think}",
+            f"override_cogmap={args.override_cogmap}",
         ])
     OmegaConf.save(cfg, os.path.join(output_dir, "evaluate_spatial.yaml"))
 
