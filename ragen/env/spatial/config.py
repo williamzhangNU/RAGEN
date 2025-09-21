@@ -199,6 +199,8 @@ class SpatialGymConfig:
             'prompt_config': self.prompt_config,
             'render_mode': self.render_mode,
             "exp_type": self.exp_type,
+            "model_name": self.kwargs['model_name'],
+            "proxy_agent": self.proxy_agent_config["type"]
         }
     def get_model_config(self) -> Dict[str, Any]:
         """Get configuration for proxy agent."""
@@ -212,11 +214,12 @@ class SpatialGymConfig:
             'level': self.level,
             'main': self.main,
             'n_objects': self.n_objects,    
-            'observation_config': self.get_observation_config(),
-            'model_config': self.get_model_config(),
             'eval_tasks': self.eval_tasks,
             'max_exp_steps': self.max_exp_steps,
             'exp_type': self.exp_type,
+            'calculate_information_gain': self.calculate_information_gain,
             'prompt_config': self.prompt_config,
+            'observation_config': self.get_observation_config(),
+            'model_config': self.get_model_config(),
             # 'candidate_objects': self.candidate_objects,
         }

@@ -86,8 +86,8 @@ def run_for_task(
         f"{os.path.abspath(output_dir)}",
         f"tags=[{task}]",
     ]
-    effective_output_dir = os.path.abspath(os.path.join(output_dir, task))
-    cmd.append(f"output_dir={effective_output_dir}")
+    # effective_output_dir = os.path.abspath(os.path.join(output_dir, task))
+    # cmd.append(f"output_dir={effective_output_dir}")
 
     print("Running:", " ".join(shlex.quote(c) for c in cmd), f"(cwd={cwd})", flush=True)
     completed = subprocess.run(cmd, cwd=cwd)
@@ -111,7 +111,8 @@ def save_config(args, output_dir):
 
 def main():
     args = parse_args()
-    output_dir = os.path.join(args.output_dir, args.model_name.replace("\\", "/").rstrip("/").split("/")[-1])
+    output_dir = args.output_dir
+    # output_dir = os.path.join(args.output_dir, args.model_name.replace("\\", "/").rstrip("/").split("/")[-1])
     os.makedirs(output_dir, exist_ok=True)
     tasks = normalize_tasks(args.tasks)
     save_config(args, output_dir)

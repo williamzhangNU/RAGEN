@@ -17,19 +17,19 @@ _prompt_topdown: &prompt_topdown
 
 cogmap_config:
   cogmap_type: standard
-  pos_allow_scale: True
+  pos_allow_scale: False
   scope: all
 
 
 _passive: &passive
   exp_type: passive
-  n_objects: 10
+  n_objects: 8
   proportional_to_area: true
-  level: 2 # 0, 1, 2
-  main: 5 # 12, 7, 5
+  level: 1 # 0, 1, 2
+  main: 6 # 12, 7, 5
   #   fix_room_size: [[8, 8], [6, 6], [4, 4]]
   #   fix_object_n: [4, 3, 1]
-  room_size: [20, 20]
+  room_size: [15, 15]
   same_room_size: true
   proxy_agent_config:
     type: analyst
@@ -55,6 +55,7 @@ _active: &active
   main: 6
   same_room_size: true
   calculate_information_gain: false
+  
   # fix_room_size: [[6, 6], [4, 5], [3, 4]]
   # fix_object_n: [3, 2, 1]
 
@@ -179,6 +180,14 @@ custom_envs:
       name: "active_pov"
       eval_tasks: [{task_type: "pov", task_kwargs: {}}]
 
+  ActiveBwdPoV:
+    <<: *common
+    max_actions_per_traj: 20
+    env_config:
+      <<: *prompt_standard
+      <<: *active
+      name: "active_bwd_pov"
+      eval_tasks: [{task_type: "bwd_pov", task_kwargs: {}}]
   ActiveLoc:
     <<: *common
     max_actions_per_traj: 25

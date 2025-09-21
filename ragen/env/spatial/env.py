@@ -13,7 +13,7 @@ from ragen.env.spatial.Base.tos_base import (
     ObserveAction,
 )
 from ragen.env.spatial.Base.tos_base.managers.agent_proxy import get_agent_proxy
-from ragen.env.spatial.prompts import Prompter
+from ragen.env.spatial.Base.tos_base.prompts import Prompter
 from ragen.env.spatial.Base.tos_base.utils.action_utils import action_results_to_text
 from ragen.env.spatial.Base.tos_base.utils.env_logger import EnvTurnLog
 from ragen.env.spatial.Base.tos_base.utils.utils import parse_llm_response
@@ -74,7 +74,7 @@ class SpatialGym(gym.Env):
             agent=self.agent,
             eval_manager=self.evaluation_manager,
             exp_history=exp_history,
-        )
+        )['obs_str']
     
     def get_history(self):
         return self.history_manager.get_responses() if self.history_manager else None
@@ -114,7 +114,7 @@ class SpatialGym(gym.Env):
             enable_information_gain=getattr(self.config, 'calculate_information_gain', False)
         )
         self.evaluation_manager = EvaluationManager(self.config.eval_tasks, self.np_random, self.initial_room, self.agent) if len(self.config.eval_tasks) > 0 else None
-        self.history_manager = HistoryManager(self.config, self.initial_room, self.agent, override=self.config.kwargs['override']) if self.config.exp_type == 'active' else None
+        self.history_manager = HistoryManager(self.config.get_observation_config(), self.initial_room.to_dict(), self.agent.to_dict(), override=self.config.kwargs['override'], output_dir=self.config.kwargs['output_dir'])
         
         obs = self._generate_initial_observation()
         self.render_cache = obs
@@ -177,29 +177,25 @@ class SpatialGym(gym.Env):
         think_content, action, parsed_ok = parse_llm_response(
             llm_response, enable_think=bool(self.config.prompt_config.get('enable_think', True))
         )
-        room_state = next((turn_log.room_state for turn_log in self.turn_logs[::-1] if turn_log.room_state), self.initial_room)
-        agent_state = next((turn_log.agent_state for turn_log in self.turn_logs[::-1] if turn_log.agent_state), self.agent)
+        room_state = None
+        agent_state = None
         
         # Log turn at start with current state
         current_obs = self.render_cache
-        img_path = None
+        is_exploration_phase = self.is_exploration_phase
         # step the environment
         if parsed_ok:
             if self.is_exploration_phase:
                 obs, reward, done, step_info, exp_log = self._step_exploration(action)
                 if exp_log:
                     room_state, agent_state = exp_log.room_state, exp_log.agent_state
-                if self.history_manager:
-                    if self.history_manager.is_history_exist():
-                        img_path = self.history_manager.get_image_path(self.current_turn_number)
-                    else:
-                        img_path = self.history_manager.update_response(llm_response, room_state, agent_state)
-                    # has terminated
-                    if not self.is_exploration_phase:
-                        self.history_manager.save()
+                    exp_log.room_state = None
+                    exp_log.agent_state = None
             else:
                 obs, reward, done, step_info, eval_log = self._step_evaluation(action)
-                room_state, agent_state = self.evaluation_manager.get_last_room_state()
+                room_state, agent_state = eval_log.room_state, eval_log.agent_state
+                eval_log.room_state = None
+                eval_log.agent_state = None
         else:
             reward, obs, done, step_info = -0.5, "Invalid input format.\n", False, {}
 
@@ -211,15 +207,20 @@ class SpatialGym(gym.Env):
             assistant_raw_message=llm_response,
             assistant_think_message=think_content,
             assistant_parsed_message=action,
-            is_exploration_phase=self.is_exploration_phase,
-            room_state=room_state,
-            agent_state=agent_state,
+            is_exploration_phase=is_exploration_phase,
             observed_items=list(self.exploration_manager.observed_items),
-            room_image=img_path,
             exploration_log=exp_log,
             evaluation_log=eval_log,
+            room_state=room_state,
+            agent_state=agent_state,
             info={"reward": reward, "is_done": done, **step_info}
         )
+        if is_exploration_phase:
+            if not self.history_manager.is_history_exist():
+                self.history_manager.update_turn_log(turn_log.to_dict())
+        else:
+            self.history_manager.update_turn_log(turn_log.to_dict())
+            self.history_manager.save()
         self.turn_logs.append(turn_log)
         return obs, reward, done, step_info
 
@@ -248,12 +249,12 @@ class SpatialGym(gym.Env):
         return {
             'env_info': self._get_env_info(),
             'env_turn_logs': [turn_log.to_dict() for turn_log in self.turn_logs],
-            'summary': {
-                'total_turns': len(self.turn_logs),
-                'exp_summary': self.get_exp_summary(),
-                'eval_summary': self.get_eval_summary(),
-                'cogmap_summary': {},
-            }
+            # 'summary': {
+            #     'total_turns': len(self.turn_logs),
+            #     'exp_summary': self.get_exp_summary(),
+            #     'eval_summary': self.get_eval_summary(),
+            #     'cogmap_summary': {},
+            # }
         }
 
     def _get_env_info(self):
